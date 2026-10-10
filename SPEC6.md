@@ -22,3 +22,15 @@ Dark mode (the user wants light), new copy, new behaviour.
 
 ## Logo (user pick, 17:30 EDT): Knot
 Use `brand/knot.svg` (64-unit, currentColor) as the mark: top bar at cap height of the wordmark (12 px gap at 26 px, scale with em), Loop's message disc (knot in ink on lime), the ticket's corner mark, and `brand/favicon-knot.svg` copied to `public/favicon.svg`. Remove the hand-drawn loop mark from v3. The wordmark "Loop" is Space Grotesk 700 in v4.
+
+## Declutter (user, 19:25 EDT: "Make the page cleaner. Too much information right now.")
+Same v4 language, far less of it. Rules:
+- Top bar: wordmark + globe only. The lime "TEXT LOOP" strip leaves the top; the number lives in the board footer as one mono line ("Text Loop · (773) 912-3997") and on the Post page as one small line. Nothing else above the hero.
+- Hero: title "Post what you don't need." + one line "Someone nearby takes it. No names, no accounts." + ONE primary button "Post something". "Ask for something" becomes a quiet text link under the button (or a secondary link in the People need section header). No ruled-paper pattern, no highlighter block (plain ink title) — or keep the highlighter only if it stays subtle.
+- Section headers: plain uppercase mono label, no count badge, no underline bars; 32–40 px of space above each section.
+- Item cards (Up for grabs): photo, title, ONE chip (status only; condition moves to the item page). Two-column grid stays on phone; 12–16 px gaps.
+- Need cards (People need): title + "Asked 2 min ago" on one muted line. No details text on the board (details show on the item/request page or on tap-to-expand); no "Open need" chip when the need is open (only show a chip when Matched or Fulfilled); "yours" = a small ink dot before the title, not a chip. Max 4 need cards visible with "Show all (5)" below.
+- For you: unchanged in behaviour, but as one compact row (thumbnail, title, chevron), no lime banner block.
+- Chrome: borders 1.5 px (3 px only on the hero card / ticket), hard shadows 3 px (6 px only on ticket and stamp card), chips 11 px mono with 1 px border and no rotation except stickers on the ticket/map, Loop's cards keep the lime title bar but lighter (28 px tall).
+- Item page: collapse the "Gemini drafted this listing…" line into a small mono footnote; timeline stays; the Hand it over / ticket card first, plan card second, thread third; composer stays at the bottom.
+- Keep: contrast targets, 44 px targets, reduced motion, all copy (except the moved/removed decorations), all behaviour.
