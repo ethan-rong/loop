@@ -3,30 +3,35 @@
 ## Setup (laptop)
 
 ```bash
-cd ~/loop && npm start          # http://localhost:3000, real Gemini
+cd ~/loop && (lsof -ti :3000 | xargs kill 2>/dev/null; true) && npm run seed && npm start   # http://localhost:3000, real Gemini
 ```
 
 Open two Chrome windows side by side, each about half the screen:
 - LEFT = Maya (owner). RIGHT = Sam (recipient). Pick the person on first load (per tab, stored in sessionStorage).
 - Before every judge: click "Reset demo" in the footer (or `npm run seed`). Check both windows show the fresh board.
 - Keep 3–4 real photos ready in `~/loop/demo-photos/` (your own objects, shot on your phone). Use the file picker; don't depend on venue Wi-Fi for the phone.
-- Emergency fallback if Gemini is down or rate-limited: restart with `GEMINI_MOCK=1 npm start`. The UI shows a "canned draft" banner; tell the judge "the model is offline, this is the canned draft path" — never present mock output as live.
+- If venue Wi-Fi fails: tether the laptop to your phone's hotspot first (only the Gemini call needs the internet). Last resort: restart with `GEMINI_MOCK=1 npm start`; the UI shows a "Demo mode" banner, and you tell the judge "the model is offline, this is the canned draft path". Never present mock output as live.
 
 ## Two-minute video / live demo script
 
+The seed already contains Sam's request for the hero object, so the match works even if a step is skipped under pressure. HERO = the object you photograph live (set the seed request to match it; see "Seed for the demo" below).
+
 | Time | Window | Say | Do |
 |---|---|---|---|
-| 0:00 | both | "Every move-out, working lamps and fridges go in the dumpster while someone down the hall is about to buy one. Listings don't finish the job. Loop does." | Show the board. |
-| 0:12 | RIGHT (Sam) | "Sam needs a reading lamp." | Ask for something → title "Reading lamp for my desk" → Post. |
-| 0:25 | LEFT (Maya) | "Maya photographs the lamp she's about to throw out. Gemini drafts the listing and says: this fits Sam's request, here's why." | Give something → pick lamp photo → wait for draft → point at the dashed "Drafted by Gemini — check it" card and the match card. |
-| 0:50 | LEFT | "She fixes the condition herself, Gemini only drafts, then offers it to Sam." | Change condition to "fair", edit one word → Offer to Sam. |
-| 1:02 | RIGHT | "Sam sees the offer live, accepts, picks the pickup spot, and gets a code." | Open the offer → Accept & reserve → Davis Library lobby, Today 5 pm → Reserve → show the big code. |
-| 1:20 | LEFT | "At the handoff Maya types Sam's code. That's the only way an item becomes collected." | Type a wrong code first (shows the error), then the right one → Collected. |
-| 1:35 | RIGHT | "Sam's need is fulfilled. The loop closed: photo, reviewed draft, real need, reservation, confirmed handoff." | Show Fulfilled chip and the "1 item kept in use" footer. |
-| 1:45 | LEFT | "Built in plain JavaScript on Node with Gemini 3.5 Flash-Lite behind a JSON schema; the server validates every suggestion and a person approves every step." | Show the code briefly (gemini.mjs schema, store transitions). |
+| 0:00 | both | "Every move-out, working lamps and chargers go in the dumpster while someone down the hall is about to buy one. Listings don't finish the job. Loop does." | Show the board: point at Sam's open need for HERO. |
+| 0:15 | LEFT (Maya) | "Maya photographs the HERO she's about to throw out. Gemini drafts the listing and says: this fits Sam's request, and why." | Give something → pick the HERO photo → wait ~2 s → point at the dashed "Drafted by Gemini — check it" card and the match card. |
+| 0:40 | LEFT | "She corrects the condition herself. Gemini only drafts. Then she offers it to Sam." | Tap "Fair" (or edit one word) → Looks right → Offer to Sam. |
+| 0:55 | RIGHT (Sam) | "Sam sees the offer live, accepts, picks the pickup spot, and gets a code." | Open the "Maya offered you this" card → Accept & reserve → Davis Library lobby, Today 5 pm → show the big code. |
+| 1:12 | LEFT | "At the handoff Maya types Sam's code. That's the only way an item becomes collected." | Type a wrong code (error), then the right one → Collected. |
+| 1:25 | RIGHT | "Sam's need is fulfilled, and the board counts one item kept in use." | Board: Fulfilled chip, "1 item kept in use". |
+| 1:35 | RIGHT | "It works the other way too: Priya asks for a desk fan, and Loop points her at the fan Sam already posted." | Ask for something → "Desk fan for a hot room" → Post → suggestion card appears. |
+| 1:48 | LEFT | "Plain JavaScript on Node, Gemini 3.5 Flash-Lite behind a JSON schema, the server validates every suggestion, a person approves every step." | Show gemini.mjs schema + store.mjs transitions for 5 seconds. |
 | 1:57 | — | "Loop." | End. |
 
 Rehearse with a timer three times. Cut words, not steps.
+
+### Seed for the demo
+`server/seed.mjs` holds the three people, their requests and the two available items. Before the video, change Sam's request title/details to match the HERO object you will photograph (for a lamp: keep "Reading lamp for my desk"; for a charger: "USB-C charger for my laptop"). Keep Priya's coat request and Maya's fridge request as unmatched background needs. Run `npm run seed` after editing.
 
 ## How it works (for the two minutes of questions)
 
