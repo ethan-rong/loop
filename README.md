@@ -52,7 +52,8 @@ npm run e2e                     # scripted full loop ×3 with GEMINI_MOCK=1 (no 
 npm run e2e-threads             # handoff threads ×3 (needs a mock server on :3100, see scripts)
 npm run e2e-textflow            # iMessage text flow ×3 (no server, no SDK)
 npm run photo-test -- path.jpg  # one real Gemini call with a real photo; prints latency, tokens, draft
-GEMINI_MOCK=1 npm start         # canned drafts, no network; the UI shows a "Demo mode" banner
+GEMINI_MOCK=1 npm start         # canned drafts, no network, iMessage off (tests only)
+LOOP_POLLS=1 npm start          # ask thread questions as iMessage polls instead of the 👍/👎 line (off by default; the shared line echoed a poll without a title)
 ```
 
 ## How it works
