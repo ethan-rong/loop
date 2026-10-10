@@ -19,7 +19,7 @@ for (const [id, phone] of Object.entries(PHONES)) process.env[`PHONE_${id.toUppe
 const store = await import('../server/store.mjs');
 const { resetToSeed } = await import('../server/seed.mjs');
 const { handleInbound, itemPosted, startTextflow } = await import('../server/textflow.mjs');
-const { channelStatus, readMessage, receive, threadTexts } = await import('../server/channels/spectrum.mjs');
+const { channelStatus, forwardNewMessages, readMessage, receive, threadTexts } = await import('../server/channels/spectrum.mjs');
 
 const RUNS = 3;
 const LAMP_FILE = fileURLToPath(new URL('../public/seed/lamp.jpg', import.meta.url));
@@ -82,8 +82,9 @@ startTextflow({
   linked: (personId) => linkedNow.has(personId),
 });
 
-const say = (personId, text) => handleInbound({ personId, text });
-const snap = (personId, photoBuffer = LAMP) => handleInbound({ personId, photoBuffer });
+const plain = (reply) => reply?.text ?? reply; // a reply that offers two choices is {text, choice}
+const say = async (personId, text) => plain(await handleInbound({ personId, text }));
+const snap = async (personId, photoBuffer = LAMP) => plain(await handleInbound({ personId, photoBuffer }));
 const itemById = (id) => db.items.find((i) => i.id === id);
 function take(personId) { // what that person's phone got since the last take
   const mine = outbox.filter((o) => o.personId === personId).map((o) => o.text);
@@ -311,10 +312,88 @@ async function channelChecks(run) {
   assert.deepEqual([channelStatus().imessage, channelStatus().lastSendOk], [false, true], 'never connected in tests; the last send worked');
 }
 
+// One-tap answers through the channel (fake SDK messages, real textflow): 👍/👎 on the draft (YES/BOARD), and on a
+// pickup thread's accept/propose, asked as a poll (a vote answers too) or, when the poll can't be sent, a hint line.
+// Other emoji, other messages, unlinked numbers and a second tap are ignored. Every offer is answered by the end,
+// so the next run starts clean.
+async function oneTap() {
+  const PROPOSE = "Tell me a time and place, like 'tomorrow 10 am at Davis'";
+  const sentIds = [];
+  const got = []; // what ethan's DM got, polls as their content
+  let pollFails = false;
+  const space = {
+    send: async (c) => {
+      if (typeof c !== 'string' && pollFails) throw new Error('polls not allowed');
+      got.push(typeof c === 'string' ? c : await c.build());
+      sentIds.push(`g${sentIds.length + 1}`);
+      return { id: sentIds.at(-1) };
+    },
+  };
+  const inbound = (from, content, id = 'in') => receive(space, { platform: 'imessage', direction: 'inbound', id, sender: { id: from }, content }, handleInbound);
+  const tap = (emoji, targetId, from = PHONES.ethan) => inbound(from, { type: 'reaction', emoji, target: { id: targetId, content: {} } });
+  const lastId = () => sentIds.at(-1);
+  const forward = async (result) => {
+    const before = db;
+    commit(result);
+    forwardNewMessages(before, db);
+    await sleep(10); // deliver runs on ethan's send chain
+  };
+
+  fresh('ethan', 'jerry');
+  await inbound(PHONES.ethan, { type: 'attachment', name: 'IMG_1.JPG', mimeType: 'image/jpeg', size: LAMP.length, read: async () => LAMP });
+  assert.equal(got.at(-1), `Adjustable desk lamp · good · ${LAMP_LINE} ${FITS}
+👍 YES · 👎 BOARD`);
+  const draftId = lastId();
+  const count = got.length;
+  await tap('😂', draftId);
+  await tap('👍', 'some-other-message');
+  await tap('👍', draftId, '+15550199999'); // not linked: no answer at all
+  assert.deepEqual([got.length, db.items.length, db.textSessions.ethan.state], [count, 2, 'drafting'], 'unrelated reactions are ignored');
+  await tap('👍', draftId);
+  assert.equal(got.at(-1), "Offered. I'll tell you when they accept and we'll sort out the pickup here.");
+  assert.deepEqual([db.items.at(-1).status, db.items.at(-1).offeredToRequestId], ['offered', lampId], '👍 = YES');
+  await tap('👍', draftId);
+  assert.equal(got.length, count + 1, 'one answer per offer');
+
+  fresh('ethan', 'jerry');
+  await inbound(PHONES.ethan, { type: 'attachment', name: 'IMG_2.JPG', mimeType: 'image/jpeg', size: LAMP.length, read: async () => LAMP });
+  await tap('👎', lastId());
+  assert.equal(got.at(-1), "Posted to the board. I'll text you when someone reserves it.");
+  const item = db.items.at(-1);
+  assert.deepEqual([item.status, item.offeredToRequestId], ['available', null], '👎 = BOARD');
+
+  await forward(store.reserveItem(db, item.id, { personId: 'jerry', place: 'Davis Library lobby', time: 'Today 5 pm' }));
+  assert.equal(got.at(-2), `Loop: Someone reserved your Adjustable desk lamp and suggested Davis Library lobby, Today 5 pm. Does that work?${HINT}`);
+  assert.deepEqual(got.at(-1), { type: 'poll', title: 'Does that work?', options: [{ title: 'Works for me' }, { title: 'Suggest another time' }] });
+  const pollId = lastId();
+  await inbound(PHONES.ethan, { type: 'poll_option', option: { title: 'Works for me' }, selected: false }, `${pollId}:${PHONES.ethan}:1:deselected:1`);
+  await inbound(PHONES.ethan, { type: 'poll_option', option: { title: 'Suggest another time' }, selected: true }, `${pollId}:${PHONES.ethan}:2:selected:2`);
+  assert.equal(got.at(-1), PROPOSE, 'a poll vote answers');
+  const thread = store.newestOpenThread(db, 'ethan');
+  assert.equal(thread.status, 'planning');
+
+  await forward(store.proposePlan(db, thread.id, { personId: 'jerry', place: 'Davis Library lobby', time: 'Today 6 pm' }));
+  await tap('👎', lastId());
+  assert.equal(got.at(-1), PROPOSE, '👎 = Suggest another time');
+  assert.equal(store.getThread(db, thread.id).status, 'planning');
+
+  pollFails = true; // the line takes the poll's place
+  await forward(store.proposePlan(db, thread.id, { personId: 'jerry', place: 'Davis Library lobby', time: 'Today 7 pm' }));
+  assert.equal(got.at(-1), '👍 Works for me · 👎 Suggest another time');
+  await tap('👍', lastId());
+  const set = store.getThread(db, thread.id);
+  assert.deepEqual([set.status, set.plan.time, set.plan.confirmedBy], ['set', 'Today 7 pm', ['jerry', 'ethan']], '👍 = Works for me');
+  const settled = got.length;
+  await tap('👎', lastId());
+  assert.equal(got.length, settled, 'answered: a second tap does nothing');
+  noLeaks();
+}
+
 let failed = 0;
 for (let run = 1; run <= RUNS; run++) {
   try {
     await channelChecks(run);
+    await oneTap();
     await offerByText();
     await boardAndCode();
     await connectorByText();

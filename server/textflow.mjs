@@ -5,6 +5,8 @@
 // - At the pickup (thread status "meeting"), a 4-digit text from the owner is the pickup code.
 // - When a new board item fits someone's open request and their phone is linked, Loop texts them once; YES reserves it.
 // When several things wait for an answer (a draft, that suggestion, a pickup thread), the newest one gets the text.
+// One-tap answers (spectrum.mjs): a 👍 or 👎 on a text that offered two choices (draft YES/BOARD, suggestion
+// Reserve it/Ignore, thread Works for me/Suggest another time) runs what tapping or typing that choice would.
 // State: db.json textSessions[personId] = {state: idle|drafting|offered|posted, photoId, draft, aiDraft,
 // matchRequestId, itemId, draftAt, suggestion: {itemId, requestId, at, delivered?} | null, welcomed, updatedAt}.
 // Older db.json files have no textSessions. GEMINI_MOCK=1: gemini.mjs's canned draft, rule-based corrections.
@@ -38,6 +40,7 @@ const SEND_JPEG = 'Please send it as a JPEG/PNG (Settings → Camera → Formats
 const TOO_BIG = 'That photo is too big. Try one under 6 MB.';
 const FIX_FAILED = "I couldn't apply that just now. Try again, or reply YES or BOARD.";
 const NO_MATCH_YES = 'No open request fits it right now. Reply BOARD to post it for anyone, or type a correction.';
+const PROPOSE_PROMPT = "Tell me a time and place, like 'tomorrow 10 am at Davis'";
 const IDLE = { state: 'idle', photoId: null, draft: null, aiDraft: null, matchRequestId: null };
 
 let deps = null; // see startTextflow
@@ -45,7 +48,7 @@ let deps = null; // see startTextflow
 /**
  * Wire the flow to the server's state (index.mjs) or a test's.
  * getDb() -> the current db; commit({db}) persists it and swaps it in (index.mjs also forwards new thread messages);
- * send(personId, text) -> Promise<boolean>, never rejects; toThread(personId, text) -> Promise<reply|null> for the
+ * send(personId, text, choice?) -> Promise<boolean>, never rejects (choice: see spectrum.mjs deliver); toThread(personId, text) -> Promise<reply|null> for the
  * person's newest open pickup thread; linked(personId) -> true when the person has a phone link.
  */
 export function startTextflow(d) {
@@ -67,15 +70,17 @@ const openMatch = (db, ownerId, requestId) =>
   db.requests.find((r) => r.id === requestId && r.status === 'open' && r.personId !== ownerId) ?? null;
 
 /**
- * One text and/or photo from a linked person. Returns Loop's reply, or null when the answer goes out as the pickup
- * thread's own message (index.mjs forwards those to linked phones). A broken rule (wrong code, item already taken)
- * comes back as the store's plain message.
- * @param {{personId: string, text?: string, photoBuffer?: Buffer|null}} message
- * @returns {Promise<string|null>}
+ * One text and/or photo, or a one-tap answer (reaction = the offered choice plus pick 0|1, from spectrum.mjs), from a
+ * linked person. Returns Loop's reply — {text, choice} when the reply itself offers two choices — or null when the
+ * answer goes out as the pickup thread's own message (index.mjs forwards those to linked phones). A broken rule
+ * (wrong code, item already taken) comes back as the store's plain message.
+ * @param {{personId: string, text?: string, photoBuffer?: Buffer|null, reaction?: object|null}} message
+ * @returns {Promise<string|{text: string, choice: object}|null>}
  */
-export async function handleInbound({ personId, text = '', photoBuffer = null }) {
+export async function handleInbound({ personId, text = '', photoBuffer = null, reaction = null }) {
   if (!deps.getDb().people.some((p) => p.id === personId)) return null;
   try {
+    if (reaction) return pickChoice(personId, reaction);
     return photoBuffer ? await draftPhoto(personId, photoBuffer) : await answer(personId, clamp(text, 300));
   } catch (err) {
     if (err instanceof ApiError) return err.message;
@@ -115,6 +120,27 @@ async function answer(personId, said) {
   }
 }
 
+// A one-tap answer. pick 0 = the first choice (YES, reserve it, Works for me), 1 = the second (BOARD, ignore,
+// Suggest another time). One that is no longer live (answered, replaced, buttons retired) is ignored.
+function pickChoice(personId, { kind, pick, photoId, itemId, threadId, messageId }) {
+  const db = deps.getDb();
+  const session = sessionOf(db, personId);
+  if (kind === 'draft') {
+    if (session?.state !== 'drafting' || session.photoId !== photoId) return null;
+    return publish(personId, session, pick === 0);
+  }
+  if (kind === 'suggestion') {
+    if (!session?.suggestion || session.suggestion.itemId !== itemId) return null;
+    save(personId, { suggestion: null });
+    return pick === 0 ? reserveSuggested(personId, session.suggestion) : null;
+  }
+  const message = kind === 'thread' && db.threads?.find((t) => t.id === threadId)?.messages.find((m) => m.id === messageId);
+  if (!message?.actions.length) return null;
+  if (pick === 1) return PROPOSE_PROMPT;
+  deps.commit(store.acceptPlan(db, threadId, { personId })); // the "Works for me" button: Loop's next message goes to both
+  return null;
+}
+
 function confirmCode(personId, thread, code) {
   deps.commit(store.confirmItem(deps.getDb(), thread.itemId, personId, code)); // wrong code: ApiError, its message is the reply
   return null; // "Handed over. Thanks, both — …" is the thread's closing message, texted to both
@@ -148,7 +174,15 @@ async function draftPhoto(personId, buffer) {
     ...IDLE, state: 'drafting', photoId: photo.photoId, draft, aiDraft: draft, matchRequestId: draft.match.requestId,
     itemId: null, draftAt: now(), suggestion: null, // a new photo means any older suggestion was ignored
   });
-  return `${draftLine(draft)} ${nextStep(deps.getDb(), personId, draft.match.requestId)}`;
+  return draftAnswer(personId, `${draftLine(draft)} ${nextStep(deps.getDb(), personId, draft.match.requestId)}`);
+}
+
+// When the draft fits an open request, the reply offers two choices: 👍 YES, 👎 BOARD.
+function draftAnswer(personId, text) {
+  const db = deps.getDb();
+  const session = sessionOf(db, personId);
+  if (!openMatch(db, personId, session?.matchRequestId)) return text;
+  return { text, choice: { kind: 'draft', photoId: session.photoId, labels: ['YES', 'BOARD'] } };
 }
 
 // "Adjustable desk lamp · fair (dent on base) · Desk lamp with a jointed arm."
@@ -179,7 +213,7 @@ async function draftReply(personId, session, said) {
   const { draft, aiError } = await coordinateDraft(session.draft, said);
   if (aiError) return FIX_FAILED;
   save(personId, { draft, draftAt: now() });
-  return `Updated: ${draftLine(draft)} ${nextStep(deps.getDb(), personId, session.matchRequestId)}`;
+  return draftAnswer(personId, `Updated: ${draftLine(draft)} ${nextStep(deps.getDb(), personId, session.matchRequestId)}`);
 }
 
 // YES: offer it to the request the draft fits. BOARD: post it for anyone (and tell that requester, if linked).
@@ -276,7 +310,7 @@ export function itemPosted(item) {
   save(request.personId, { suggestion });
   const text = `Someone just posted ${article(noun(item.title))} that fits your request for "${request.title}". `
     + 'Reply YES to reserve it, or ignore this.';
-  deps.send(request.personId, text).then((sent) => {
+  deps.send(request.personId, text, { kind: 'suggestion', itemId: item.id, labels: ['Reserve it', 'Ignore'] }).then((sent) => {
     // Not sent: the channel keeps it and sends it right before answering their next text.
     const current = sessionOf(deps.getDb(), request.personId)?.suggestion;
     if (!sent && current?.itemId === item.id) save(request.personId, { suggestion: { ...current, delivered: false } });
