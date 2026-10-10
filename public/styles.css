@@ -824,6 +824,205 @@ select.input {
 .success h1 { font-size: var(--fs-2); }
 .success + .muted { margin-top: 10px; }
 
+/* ---------- handoff thread (phase 2) ---------- */
+
+.optional { font-size: var(--fs-4); font-weight: 700; color: var(--ink-2); }
+.thread { display: grid; gap: 12px; }
+.thread-live { display: grid; gap: 12px; }
+.plan-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
+.plan .meet { margin-top: 12px; }
+.plan .note { margin-top: 12px; }
+.agree { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: var(--fs-4); color: var(--ink-2); }
+.agree li { display: inline-flex; align-items: center; gap: 8px; }
+.agree strong { color: var(--ink); }
+.agree-dot {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid rgba(61, 90, 120, .45);
+  background: #fff;
+  color: #fff;
+}
+.agree-dot .i { width: 13px; height: 13px; stroke-width: 3; }
+.agree .yes .agree-dot {
+  border-color: rgba(255, 255, 255, .9);
+  background: var(--spec), linear-gradient(180deg, #2fa866, #167f47);
+  box-shadow: inset 0 -3px 5px -2px rgba(170, 255, 200, .7), 0 2px 6px rgba(31, 154, 87, .3);
+}
+
+/* Conversation: Loop and the other person on the left, me on the right. Meta lines sit on the sky in ink-2 (5.03:1). */
+.msgs { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.msg { display: flex; align-items: flex-start; gap: 8px; }
+.msg > .avatar, .msg > .loop-orb { margin-top: 23px; } /* level with the bubble, below the name line */
+.msg-mine { justify-content: flex-end; }
+.msg-body { min-width: 0; max-width: 85%; }
+.msg-mine .msg-body { display: grid; justify-items: end; }
+.msg-meta { margin: 0 6px 4px; font-size: var(--fs-5); color: var(--ink-2); }
+.msg-meta strong { color: var(--ink); }
+.via {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .85);
+  box-shadow: 0 0 0 1px rgba(61, 90, 120, .2);
+  color: var(--ink-2);
+  font-weight: 800;
+}
+.msg-text {
+  width: fit-content;
+  max-width: 100%;
+  padding: 10px 14px;
+  border-radius: 18px;
+  font-size: var(--fs-4);
+  line-height: 1.4;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.msg-loop .msg-text {
+  background-color: rgba(255, 255, 255, .8);
+  background-image: var(--sheen);
+  border: 1px solid rgba(255, 255, 255, .95);
+  box-shadow: var(--shadow), 0 0 0 1px rgba(13, 111, 192, .12);
+  border-bottom-left-radius: 6px;
+}
+.msg-theirs .msg-text {
+  background: rgba(255, 255, 255, .92);
+  border: 1px solid rgba(117, 140, 164, .35);
+  box-shadow: 0 6px 16px -10px rgba(16, 86, 170, .3);
+  border-bottom-left-radius: 6px;
+}
+/* White on #1676c9 is 4.70:1 at the lightest point, so the gradient never goes brighter than that. */
+.msg-mine .msg-text {
+  color: #fff;
+  background: linear-gradient(180deg, #1676c9 0%, #0d6fc0 55%, #0a5fa8 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .45), inset 0 -4px 8px -4px rgba(140, 215, 255, .6), 0 6px 14px -4px rgba(13, 111, 192, .35);
+  border-bottom-right-radius: 6px;
+}
+.msg .avatar { width: 32px; height: 32px; font-size: var(--fs-5); }
+.loop-orb { flex: none; width: 32px; height: 32px; filter: drop-shadow(0 3px 6px rgba(13, 111, 192, .3)); }
+.msg-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+
+.composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 26px;
+}
+.composer .composer-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  max-height: 160px;
+  padding: 10px 14px;
+  border-radius: 20px;
+  resize: none;
+  field-sizing: content; /* grows with the message where supported; one scrolling line elsewhere */
+}
+.composer .btn { flex: none; }
+.closed-note { text-align: center; font-size: var(--fs-5); font-weight: 700; color: var(--ink-2); }
+
+/* ---------- give: one thing or a pile ---------- */
+
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .5);
+  -webkit-backdrop-filter: blur(10px) saturate(160%);
+  backdrop-filter: blur(10px) saturate(160%);
+  box-shadow: inset 0 1px 3px rgba(11, 42, 74, .12), 0 0 0 1px rgba(255, 255, 255, .75);
+}
+.segment {
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-2);
+  font: 800 var(--fs-4)/1.2 var(--font);
+  cursor: pointer;
+  transition: background-color 160ms var(--ease), color 160ms var(--ease), box-shadow 160ms var(--ease);
+}
+.segment:hover { color: var(--ink); background: rgba(255, 255, 255, .55); }
+.segment[aria-pressed="true"] {
+  color: var(--link);
+  background: linear-gradient(180deg, #fff, #eef6ff);
+  box-shadow: inset 0 1px 0 #fff, 0 3px 10px rgba(20, 80, 140, .16), 0 0 0 1px rgba(13, 111, 192, .2);
+}
+
+/* The figure hugs the photo, so box percentages land on the right pixels at any width. */
+.photo-frame.pile-photo { aspect-ratio: auto; width: fit-content; max-width: 100%; margin-inline: auto; }
+.pile-photo img { width: auto; height: auto; max-width: 100%; max-height: 70vh; object-fit: fill; }
+.pile-box {
+  position: absolute;
+  border: 2px solid #fff;
+  border-radius: 10px;
+  background: rgba(27, 143, 230, .14);
+  box-shadow: 0 0 0 1.5px rgba(10, 79, 150, .85), inset 0 0 0 1.5px rgba(10, 79, 150, .5);
+  pointer-events: none;
+  transition: background-color 160ms var(--ease), opacity 160ms var(--ease);
+}
+.pile-box.is-off { background: transparent; border-style: dashed; opacity: .7; }
+/* White digits on #1676c9 or darker: >= 4.70:1. */
+.pile-num {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, .9);
+  background: linear-gradient(180deg, #1676c9, #0a4f96);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .45), 0 2px 6px rgba(13, 111, 192, .35);
+  color: #fff;
+  font-size: var(--fs-5);
+  font-weight: 800;
+  line-height: 1;
+}
+.pile-box .pile-num { position: absolute; top: 4px; left: 4px; }
+.pile-box.is-off .pile-num, .pile-item.is-off .pile-num { background: #4f6b88; }
+.pile-intro h2 { margin-top: 6px; }
+.pile-intro .muted { margin-top: 4px; }
+.pile-list { min-width: 0; margin: 0; padding: 0; border: 0; display: grid; gap: 12px; }
+.pile-item > * + * { margin-top: 14px; }
+.pile-check { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; min-height: 44px; font-weight: 800; cursor: pointer; }
+.pile-check input { flex: none; width: 22px; height: 22px; margin: 0; accent-color: var(--accent-deep); cursor: pointer; }
+.pile-label { min-width: 0; overflow-wrap: anywhere; }
+.pile-skip { font-weight: 700; }
+.is-listed .pile-check { cursor: default; }
+.pile-match .note { margin: 0 0 10px; }
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  z-index: 40;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  margin: 0;
+  padding: 12px 20px;
+  border-radius: 999px;
+  border: 1px solid #fff;
+  background-color: rgba(255, 255, 255, .9);
+  background-image: var(--sheen);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  backdrop-filter: blur(14px) saturate(160%);
+  box-shadow: var(--shadow-lift);
+  color: var(--ink);
+  font-size: var(--fs-4);
+  font-weight: 800;
+  text-align: center;
+  transform: translateX(-50%);
+  animation: toast-in 220ms var(--ease) both;
+}
+@keyframes toast-in { from { opacity: 0; transform: translate(-50%, 8px); } }
+
 /* ---------- motion ---------- */
 
 .route-enter { animation: route-in 180ms var(--ease) both; }

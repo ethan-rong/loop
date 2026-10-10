@@ -14,7 +14,7 @@ const PLACES = ['Davis Library lobby', 'Student Union', 'Dorm front desk'];
 const TIMES = ['Today 5 pm', 'Today 8 pm', 'Tomorrow noon'];
 const CONDITIONS = ['good', 'fair', 'worn'];
 const CATEGORIES = ['furniture', 'lighting', 'kitchen', 'textbooks', 'electronics', 'clothing', 'bedding', 'sports', 'other'];
-const AVATAR_COLORS = { maya: '#0d6fc0', sam: '#6a4fe0', priya: '#1b7f45' };
+const AVATAR_COLORS = { ethan: '#0d6fc0', caleb: '#6a4fe0', dani: '#1b7f45' };
 const COND_LABEL = { good: 'Good condition', fair: 'Fair condition', worn: 'Worn' };
 const STATUS_LABEL = { available: 'Available', offered: 'Offered', reserved: 'Reserved', collected: 'Collected', withdrawn: 'Taken back' };
 const REQUEST_LABEL = { open: 'Open need', matched: 'Matched', fulfilled: 'Fulfilled', closed: 'Closed' };
@@ -31,6 +31,23 @@ const DONE_TEXT = {
   release: "Reservation cancelled. It's back on the board.",
   withdraw: "You took it back. It's off the board.",
 };
+/* Phase 2: handoff threads and pile photos. */
+const QUICK_TIMES = { 'Today 5 pm': [0, 17], 'Today 8 pm': [0, 20], 'Tomorrow noon': [1, 12] }; // [days from today, hour] in New York
+const OPEN_THREAD = ['planning', 'set', 'meeting'];
+const THREAD_CHIP = { planning: ['Planning', 'open'], set: ['Set', 'available'], meeting: ['Meeting now', 'reserved'], done: ['Done', 'collected'], cancelled: ['Cancelled', 'withdrawn'] };
+const THREAD_ACTIONS = ['accept', 'propose', 'arrived', 'cancel', 'enter_code']; // enter_code never goes to the server
+const PRIMARY_ACTIONS = ['accept', 'arrived', 'enter_code'];
+const NOT_SET = 'Not set yet';
+const MAX_PILE = 6;
+const CROP_PAD = 0.06; // padding around each box, as a share of the box
+const MIN_CROP = 256; // px, per side of the crop in the original photo
+const TOAST_MS = 5000;
+const PILE_AI_ERRORS = {
+  rate_limited: 'Gemini is busy right now (rate limit). Try again in a minute, or list it as one thing.',
+  timeout: 'Gemini took too long. Try again, or list it as one thing.',
+};
+const PILE_AI_ERROR_OTHER = "Gemini couldn't sort this photo right now. List it as one thing instead.";
+const PILE_NOT_FOUND = "Gemini couldn't pick out separate things to give away here. List it as one thing, or try a photo with the things spread out a little.";
 
 /* ---------- markup: escape by default ---------- */
 
@@ -71,9 +88,11 @@ const view = $('#view');
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
 const freshUi = () => ({
-  notice: null, // { text, tone } for the current view
+  notice: null, // { text, tone, where } for the current view; where = 'thread' puts it in the conversation
   reserveOpen: false,
-  reserve: { place: PLACES[0], time: TIMES[0] },
+  reserve: { place: '', time: '' }, // both optional: people can settle it in the thread
+  propose: null, // { threadId, place, time } while "Suggest another time" is open
+  composer: {}, // thread id -> unsent message
   code: '',
   codeError: '',
   codeAlert: false, // a fresh wrong code: focus + shake once
@@ -96,11 +115,25 @@ const freshGive = () => ({
   checked: false,
   form: { title: '', description: '', condition: '', category: 'other' },
 });
+const freshPile = () => ({
+  phase: 'pick', // pick | sorting | review | failed
+  attempt: 0,
+  file: null, // the original photo: crops come from it, not from the 1024 px upload
+  previewUrl: '',
+  imageBase64: '',
+  aiError: null,
+  error: '',
+  canRetry: false,
+  slow: false,
+  slowTimer: 0,
+  items: [],
+});
 
 const state = {
   db: null,
   online: true,
   mock: false,
+  health: { imessage: false, linkedPhones: [] },
   me: loadMe(),
   route: parseRoute(),
   busy: '',
@@ -108,6 +141,8 @@ const state = {
   focusTarget: '',
   ui: freshUi(),
   give: freshGive(),
+  giveMode: 'one', // one | pile
+  pile: freshPile(),
   seenCollected: new Set(),
 };
 
@@ -146,10 +181,37 @@ function timeAgo(iso) {
   return relative.format(Math.round(seconds / 86400), 'day');
 }
 
+/* Quick picks carry their real moment, so the server can time the reminder. Campus is in New York. */
+const NEW_YORK = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric' });
+function nyWall(ms) { // New York's wall clock at instant ms, written as if it were UTC
+  const p = Object.fromEntries(NEW_YORK.formatToParts(ms).map(({ type, value }) => [type, Number(value)]));
+  return Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute);
+}
+function quickTimeISO(label, now = Date.now()) {
+  const slot = QUICK_TIMES[label];
+  if (!slot) return null; // free text: the server gets no timeISO
+  const today = new Date(nyWall(now));
+  const wall = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + slot[0], slot[1]);
+  let at = wall - (nyWall(wall) - wall); // offset guessed at the wall time itself
+  at = wall - (nyWall(at) - at); // then taken at the real instant, so DST change days land right
+  return at > now ? new Date(at).toISOString() : null; // "Today 5 pm" at 6 pm has no future moment
+}
+console.assert(quickTimeISO('Today 5 pm', Date.parse('2026-10-10T17:37:00Z')) === '2026-10-10T21:00:00.000Z', 'quick time: EDT');
+console.assert(quickTimeISO('Tomorrow noon', Date.parse('2026-10-31T17:00:00Z')) === '2026-11-01T17:00:00.000Z', 'quick time: across the DST change');
+console.assert(quickTimeISO('Today 5 pm', Date.parse('2026-10-10T22:00:00Z')) === null, 'quick time: already passed');
+
+/* Two announcements in one burst (pickup code, then Loop's message) are read together, not the last one only. */
+let announcing = '';
 function announce(text) {
   const live = $('#live');
-  live.textContent = '';
-  setTimeout(() => { live.textContent = text; }, 40);
+  if (!announcing) {
+    live.textContent = '';
+    setTimeout(() => {
+      live.textContent = announcing;
+      announcing = '';
+    }, 40);
+  }
+  announcing = announcing ? `${announcing} ${text}` : text;
 }
 
 /* ---------- server ---------- */
@@ -210,8 +272,10 @@ async function refresh() {
     setOnline(true);
     if (seq < appliedSeq) return false; // an older response arrived late
     appliedSeq = seq;
-    const changed = !state.db || db.version !== state.db.version;
+    const first = !state.db;
+    const changed = first || db.version !== state.db.version;
     state.db = db;
+    if (first) markAllHeard();
     return changed;
   } catch {
     setOnline(false);
@@ -239,17 +303,36 @@ function setMock(on) {
 
 function isTyping() {
   const el = document.activeElement;
-  return Boolean(el && view.contains(el) && el.matches('input:not([type=file]):not([type=radio]), textarea, select'));
+  return Boolean(el && view.contains(el) && el.matches('input:not([type=file]):not([type=radio]):not([type=checkbox]), textarea, select'));
 }
+/* A render between pointerdown and click replaces the button under the finger and the click is lost,
+   so renders wait for the press to end. */
+let pressing = false;
 function requestRender() {
-  if (isTyping()) state.pendingRender = true;
-  else render();
+  if (!isTyping() && !pressing) return render();
+  if (pressing || !document.activeElement.matches('.composer-input')) {
+    state.pendingRender = true; // a phase-1 field (or a press): render once it's done
+    return;
+  }
+  if (!patchThread()) render(); // the thread closed or was replaced: the composer goes, so redraw everything
+}
+function flushRender() { // the press or the field is done: render now, patch the thread, or keep waiting
+  if (!state.pendingRender) return;
+  state.pendingRender = false;
+  requestRender();
+}
+addEventListener('pointerdown', () => { pressing = true; }, true);
+for (const type of ['pointerup', 'pointercancel']) {
+  // ponytail: 60 ms covers the click a touch screen fires after pointerup; a slower click could still race a poll
+  addEventListener(type, () => setTimeout(() => { pressing = false; flushRender(); }, 60), true);
 }
 
 function render() {
   state.pendingRender = false;
   if (state.db && state.me && !state.db.people.some((p) => p.id === state.me)) state.me = null;
-  const focusId = view.contains(document.activeElement) ? document.activeElement.id : '';
+  const active = view.contains(document.activeElement) ? document.activeElement : null;
+  const focusId = active?.id ?? '';
+  const caret = active?.matches('textarea, input[type=text], input:not([type])') ? [active.selectionStart, active.selectionEnd] : null;
   renderWho();
   view.innerHTML = String(currentView());
   document.title = pageTitle();
@@ -258,8 +341,23 @@ function render() {
   if (target) {
     if (!target.matches('a, button, input, select, textarea, [tabindex]')) target.tabIndex = -1;
     target.focus({ preventScroll: true });
+    if (caret && target.id === focusId && target.setSelectionRange) target.setSelectionRange(...caret);
   }
   afterRender();
+}
+
+/* While someone types a message, replies still arrive: the conversation and the action card are redrawn
+   around the composer, so the text field, its caret and the phone keyboard stay put. While the thread stays
+   open the item stays reserved, so nothing else on the page can change. false = needs a full render. */
+function patchThread() {
+  const box = $('#thread-live');
+  const item = state.route.name === 'item' ? itemOf(state.route.id) : null;
+  const thread = item && threadOf(item);
+  if (!box || !thread || thread.id !== box.dataset.thread || !isOpenThread(thread)) return false;
+  box.innerHTML = String(threadLive(thread));
+  const action = $('.action');
+  if (action && !action.contains(document.activeElement)) action.innerHTML = String(actionArea(item));
+  return true;
 }
 
 function afterRender() {
@@ -288,6 +386,7 @@ function onRouteChange() {
   state.route = parseRoute();
   state.ui = freshUi();
   state.focusTarget = 'h1';
+  markAllHeard(); // a page you open reads as a page; only messages that arrive while you're on it are announced
   let done = false;
   const update = () => {
     if (done) return;
@@ -334,7 +433,10 @@ const avatar = (p) => html`<span class="avatar" style="background-color:${AVATAR
 const condChip = (c) => html`<span class="chip">${COND_LABEL[c] ?? 'Condition not set'}</span>`;
 const statusChip = (item) => html`<span class="chip dot chip-${item.status}">${STATUS_LABEL[item.status] ?? item.status}</span>`;
 const requestChip = (r) => html`<span class="chip dot chip-${r.status}">${REQUEST_LABEL[r.status] ?? r.status}</span>`;
-const noticeBlock = () => (state.ui.notice ? html`<p class="notice ${state.ui.notice.tone}">${state.ui.notice.text}</p>` : '');
+const noticeBlock = (where = 'action') => {
+  const n = state.ui.notice;
+  return n && (n.where ?? 'action') === where ? html`<p class="notice ${n.tone}">${n.text}</p>` : '';
+};
 const backLink = () => html`<a class="back" href="#/">${icon('back')} Board</a>`;
 
 let whoKey = '';
@@ -484,6 +586,7 @@ function itemView(id) {
     </section>
     ${item.status === 'withdrawn' ? '' : timeline(item)}
     <section class="glass card action" aria-labelledby="action-title">${actionArea(item)}</section>
+    ${threadSection(item)}
   </div>`;
 }
 
@@ -545,7 +648,7 @@ function reserveBlock(item, offeredReq) {
   if (!state.ui.reserveOpen) {
     if (offeredReq) {
       return html`<h2 id="action-title">${owner} offered you this</h2>
-        <p class="muted">For your request: <em>${offeredReq.title}</em>. Accept to pick a time and place, or say no thanks and it goes back on the board.</p>
+        <p class="muted">For your request: <em>${offeredReq.title}</em>. Accept to reserve it and plan the pickup with ${owner}, or say no thanks and it goes back on the board.</p>
         ${noticeBlock()}
         <div class="actions">
           <button class="btn btn-primary" id="open-reserve" data-action="open-reserve">Accept &amp; reserve</button>
@@ -553,26 +656,15 @@ function reserveBlock(item, offeredReq) {
         </div>`;
     }
     return html`<h2 id="action-title">Want it?</h2>
-      <p class="muted">Reserve it and pick where to meet ${owner}. You'll get a pickup code to show at the handoff.</p>
+      <p class="muted">Reserve it, then sort out where and when with ${owner}. You'll get a pickup code to show at the handoff.</p>
       ${noticeBlock()}
       <div class="actions"><button class="btn btn-primary btn-block" id="open-reserve" data-action="open-reserve">Reserve</button></div>`;
   }
   const { place, time } = state.ui.reserve;
-  const pick = (field, value, i, current) => html`<button type="button" class="pick" id="pick-${field}-${i}" data-action="pick" data-field="${field}" data-value="${value}" aria-pressed="${String(value === current)}">${icon('check', 'tick')}${value}</button>`;
   return html`<form class="stack-sm" data-form="reserve" data-request="${offeredReq?.id ?? ''}" novalidate>
-    <h2 id="action-title">Where and when?</h2>
-    <fieldset class="field">
-      <legend class="label">Meet at</legend>
-      <div class="picks">${PLACES.map((v, i) => pick('place', v, i, place))}</div>
-      <label class="sr-only" for="place-input">Or type a place</label>
-      <input id="place-input" class="input" name="place" data-scope="reserve" maxlength="60" autocomplete="off" placeholder="Or type a place" value="${place}">
-    </fieldset>
-    <fieldset class="field">
-      <legend class="label">Time</legend>
-      <div class="picks">${TIMES.map((v, i) => pick('time', v, i, time))}</div>
-      <label class="sr-only" for="time-input">Or type a time</label>
-      <input id="time-input" class="input" name="time" data-scope="reserve" maxlength="40" autocomplete="off" placeholder="Or type a time" value="${time}">
-    </fieldset>
+    <h2 id="action-title">Suggest a time and place <span class="optional">(optional)</span></h2>
+    <p class="muted small">Or leave it blank and work it out with ${owner} in the chat; ${owner} is giving it, so ${owner}'s availability comes first.</p>
+    ${placeTimeFields('reserve', place, time)}
     ${noticeBlock()}
     <div class="actions">
       <button class="btn btn-primary" type="submit" id="reserve-submit">${busyText('reserve', offeredReq ? 'Accept & reserve' : 'Reserve', 'Reserving…')}</button>
@@ -581,12 +673,31 @@ function reserveBlock(item, offeredReq) {
   </form>`;
 }
 
+/* Quick picks plus free text; shared by the reserve form and "Suggest another time". Both fields are optional. */
+const pickButton = (scope, field, value, i, current) => html`<button type="button" class="pick" id="${scope === 'reserve' ? 'pick' : scope}-${field}-${i}" data-action="pick" data-scope="${scope}" data-field="${field}" data-value="${value}" aria-pressed="${String(value === current)}">${icon('check', 'tick')}${value}</button>`;
+function placeTimeFields(scope, place, time) {
+  const id = (field) => (scope === 'reserve' ? `${field}-input` : `${scope}-${field}`);
+  return html`<fieldset class="field">
+      <legend class="label">Meet at</legend>
+      <div class="picks">${PLACES.map((v, i) => pickButton(scope, 'place', v, i, place))}</div>
+      <label class="sr-only" for="${id('place')}">Or type a place</label>
+      <input id="${id('place')}" class="input" name="place" data-scope="${scope}" maxlength="60" autocomplete="off" placeholder="Or type a place" value="${place}">
+    </fieldset>
+    <fieldset class="field">
+      <legend class="label">Time</legend>
+      <div class="picks">${TIMES.map((v, i) => pickButton(scope, 'time', v, i, time))}</div>
+      <label class="sr-only" for="${id('time')}">Or type a time</label>
+      <input id="${id('time')}" class="input" name="time" data-scope="${scope}" maxlength="40" autocomplete="off" placeholder="Or type a time" value="${time}">
+    </fieldset>`;
+}
+const meetGrid = (place, time) => html`<dl class="meet"><div><dt>Where</dt><dd>${place || NOT_SET}</dd></div><div><dt>When</dt><dd>${time || NOT_SET}</dd></div></dl>`;
+
 function recipientBlock(item) {
   const res = item.reservation;
   return html`<h2 id="action-title">Your pickup code</h2>
     <p class="code ${state.ui.revealCode === item.id ? 'reveal' : ''}"><span aria-hidden="true">${res.code}</span><span class="sr-only">${spaced(res.code)}</span></p>
     <p class="center">Show this code to <strong>${firstName(item.ownerId)}</strong> at pickup.</p>
-    <dl class="meet"><div><dt>Where</dt><dd>${res.place}</dd></div><div><dt>When</dt><dd>${res.time}</dd></div></dl>
+    ${meetGrid(res.place, res.time)}
     ${noticeBlock()}
     <div class="actions"><button class="btn btn-secondary" id="release" data-action="release">${busyText('release', 'Cancel reservation', 'Cancelling…')}</button></div>`;
 }
@@ -595,8 +706,9 @@ function ownerReservedBlock(item) {
   const res = item.reservation;
   const who = firstName(res.personId);
   const error = state.ui.codeError;
+  const when = [res.place, res.time].filter(Boolean).join(' · ') || 'time and place not set yet';
   return html`<h2 id="action-title">Hand it over</h2>
-    <p class="muted">Reserved by <strong>${who}</strong> · ${res.place} · ${res.time}</p>
+    <p class="muted">Reserved by <strong>${who}</strong> · ${when}</p>
     <form data-form="confirm" novalidate>
       <div class="field">
         <label class="label" for="code-input">${who}'s pickup code</label>
@@ -623,13 +735,142 @@ function collectedBlock(item) {
     <p class="muted thanks">Handed over and kept in use.</p>`;
 }
 
+/* ---------- views: handoff thread (owner, recipient and Loop) ---------- */
+
+// The item's newest thread, shown only to its two people: live while open, read-only history after.
+const threadOf = (item) => (state.db.threads ?? []).findLast((t) => t.itemId === item.id) ?? null;
+const threadById = (id) => (state.db.threads ?? []).find((t) => t.id === id) ?? null;
+const inThread = (t) => Boolean(t) && (t.ownerId === state.me || t.recipientId === state.me);
+const isOpenThread = (t) => OPEN_THREAD.includes(t.status);
+const otherIn = (t) => (t.ownerId === state.me ? t.recipientId : t.ownerId);
+const nameIn = (id) => (id === state.me ? 'You' : firstName(id));
+
+/* New messages from the other two are read out once; everything already on screen counts as heard. */
+const heardIds = new Set();
+function markAllHeard() {
+  for (const t of state.db?.threads ?? []) for (const m of t.messages) heardIds.add(m.id);
+}
+function announceNew(t) {
+  const fresh = t.messages.filter((m) => !heardIds.has(m.id));
+  fresh.forEach((m) => heardIds.add(m.id));
+  const said = fresh.filter((m) => m.from !== state.me).map((m) => `${m.from === 'loop' ? 'Loop' : firstName(m.from)}: ${m.text}`);
+  if (said.length) announce(said.join(' '));
+}
+
+function threadSection(item) {
+  const t = threadOf(item);
+  if (!inThread(t)) return '';
+  return html`<section class="thread" aria-labelledby="thread-title">
+    <div id="thread-live" class="thread-live" data-thread="${t.id}">${threadLive(t)}</div>
+    ${isOpenThread(t) ? composer(t) : html`<p class="closed-note">This conversation is closed.</p>`}
+  </section>`;
+}
+
+// Everything that can change while someone types: patchThread() redraws exactly this.
+function threadLive(t) {
+  announceNew(t);
+  return html`${planCard(t)}${messageLog(t)}${noticeBlock('thread')}${proposeForm(t)}`;
+}
+
+function planCard(t) {
+  const { place, time } = t.plan;
+  // A plan with a blank place or time is still being worked out (Lane C keeps such threads in planning anyway).
+  const status = t.status === 'set' && !(place && time) ? 'planning' : t.status;
+  const [label, chip] = THREAD_CHIP[status] ?? [status, ''];
+  const people = [t.ownerId, t.recipientId];
+  return html`<div class="glass card plan">
+    <div class="plan-head"><h2 id="thread-title">Pickup plan</h2><span class="chip dot chip-${chip}">${label}</span></div>
+    ${meetGrid(place, time)}
+    ${isOpenThread(t) && (place || time) ? html`<ul class="agree" aria-label="Who agreed to this plan">${people.map((id) => {
+      const yes = (t.plan.confirmedBy ?? []).includes(id);
+      return html`<li class="${yes ? 'yes' : ''}"><span class="agree-dot" aria-hidden="true">${yes ? icon('check') : ''}</span><span><strong>${nameIn(id)}</strong> · ${yes ? 'agreed' : 'not yet'}</span></li>`;
+    })}</ul>` : ''}
+    ${imessageNote(t)}
+  </div>`;
+}
+
+function imessageNote(t) {
+  const { imessage, linkedPhones } = state.health;
+  if (!imessage || !isOpenThread(t)) return '';
+  const linked = [otherIn(t), state.me].filter((id) => linkedPhones.includes(id));
+  if (!linked.length) return '';
+  const other = linked[0] === state.me ? '' : firstName(linked[0]);
+  let text = `${other} also gets this thread on iMessage.`;
+  if (!other) text = 'You also get this thread on iMessage.';
+  else if (linked.length === 2) text = `You and ${other} also get this thread on iMessage.`;
+  return html`<p class="note">${icon('ask')}<span>${text}</span></p>`;
+}
+
+function messageLog(t) {
+  // Lane C keeps live buttons on one Loop message at most; the newest one with buttons is that message.
+  const live = t.messages.findLast((m) => m.from === 'loop' && m.actions?.length);
+  return html`<ol class="msgs" aria-label="Conversation">${t.messages.map((m) => messageItem(t, m, m === live ? actionsFor(t, m) : []))}</ol>`;
+}
+
+function actionsFor(t, m) {
+  if (!isOpenThread(t)) return [];
+  return m.actions.filter((a) => {
+    const forId = a.forPersonId ?? m.forPersonId ?? null;
+    if (!THREAD_ACTIONS.includes(a.action) || (forId && forId !== state.me)) return false;
+    if (a.action === 'enter_code') return t.status === 'meeting' && t.ownerId === state.me;
+    if (a.action === 'accept') return !(t.plan.confirmedBy ?? []).includes(state.me);
+    return true;
+  });
+}
+
+const LOOP_ORB = raw('<svg class="loop-orb" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="16" cy="16" r="15" fill="url(#brand-orb)"/><circle cx="16" cy="16" r="15" fill="url(#brand-glow)"/><ellipse cx="16" cy="8.4" rx="10" ry="5.6" fill="url(#brand-gloss)"/><circle cx="16" cy="16" r="14.5" fill="none" stroke="#fff" stroke-opacity=".55"/><g fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21.4 11.5A7 7 0 1 0 22.8 17.8"/><path d="M22.3 8.9 22 12.3 18.6 12"/></g></svg>');
+
+function messageItem(t, m, actions) {
+  const loop = m.from === 'loop';
+  const mine = m.from === state.me;
+  let side = 'theirs';
+  if (loop) side = 'loop';
+  else if (mine) side = 'mine';
+  let face = avatar(person(m.from));
+  if (loop) face = LOOP_ORB;
+  else if (mine) face = '';
+  return html`<li class="msg msg-${side}">
+    ${face}
+    <div class="msg-body">
+      <p class="msg-meta"><strong>${loop ? 'Loop' : nameIn(m.from)}</strong> · <time datetime="${m.at}">${formatTime(clockFormat, m.at)}</time>${m.via === 'imessage' ? html` <span class="via">iMessage</span>` : ''}</p>
+      <p class="msg-text">${m.text}</p>
+      ${actions.length ? html`<div class="msg-actions">${actions.map((a) => html`<button class="btn btn-small ${PRIMARY_ACTIONS.includes(a.action) ? 'btn-primary' : 'btn-secondary'}" id="act-${a.action}" data-action="thread-action" data-thread="${t.id}" data-kind="${a.action}">${busyText(`thread:${a.action}`, a.label, 'Saving…')}</button>`)}</div>` : ''}
+    </div>
+  </li>`;
+}
+
+function proposeForm(t) {
+  const p = state.ui.propose;
+  if (!p || p.threadId !== t.id || !isOpenThread(t)) return '';
+  const title = t.plan.place || t.plan.time ? 'Suggest another time or place' : 'Suggest a time and place';
+  return html`<form class="glass card stack-sm" data-form="propose" novalidate aria-labelledby="propose-title">
+    <h3 id="propose-title">${title}</h3>
+    ${placeTimeFields('propose', p.place, p.time)}
+    <div class="actions">
+      <button class="btn btn-primary" type="submit" id="propose-submit">${busyText('thread:propose', `Suggest to ${firstName(otherIn(t))}`, 'Sending…')}</button>
+      <button class="btn btn-ghost" type="button" data-action="close-propose">Cancel</button>
+    </div>
+  </form>`;
+}
+
+function composer(t) {
+  const other = firstName(otherIn(t));
+  const sending = state.busy === 'thread:send';
+  return html`<form class="composer glass" data-form="message" data-thread="${t.id}" novalidate>
+    <label class="sr-only" for="composer-${t.id}">Message ${other} and Loop</label>
+    <textarea id="composer-${t.id}" class="input composer-input" name="${t.id}" data-scope="composer" rows="1" maxlength="300" placeholder="Message ${other} and Loop…" enterkeyhint="send" ${sending ? raw('readonly') : ''}>${state.ui.composer[t.id] ?? ''}</textarea>
+    <button class="btn btn-primary composer-send" type="submit" id="send-${t.id}">${sending ? 'Sending…' : 'Send'}</button>
+  </form>`;
+}
+
 /* ---------- views: give ---------- */
 
 function giveView() {
   const g = state.give;
   const head = html`${backLink()}<h1>Give something</h1>`;
+  if (state.giveMode === 'pile') return pileView(head);
   if (g.phase === 'pick') {
-    return html`<div class="stack">${head}${g.error ? html`<p class="notice error">${g.error}</p>` : ''}${dropZone()}</div>`;
+    return html`<div class="stack">${head}${modeSwitch()}${g.error ? html`<p class="notice error">${g.error}</p>` : ''}${dropZone()}</div>`;
   }
   const busy = g.phase === 'uploading' || g.phase === 'drafting';
   let body = reviewCards(g);
@@ -645,17 +886,24 @@ function giveView() {
   </div>`;
 }
 
-const dropZone = () => html`
+const dropZone = (
+  title = 'Take or choose a photo',
+  text = 'One thing per photo works best. Gemini drafts the listing, you check it, and nothing goes up until you say so.',
+) => html`
   <input id="photo-input" class="sr-only" type="file" accept="image/*" capture="environment">
   <label class="drop glass" id="drop" for="photo-input">
     <span class="drop-orb" aria-hidden="true">${icon('camera')}</span>
-    <span class="drop-title">Take or choose a photo</span>
-    <span class="muted">One thing per photo works best. Gemini drafts the listing, you check it, and nothing goes up until you say so.</span>
+    <span class="drop-title">${title}</span>
+    <span class="muted">${text}</span>
     <span class="btn btn-primary" aria-hidden="true">Choose a photo</span>
   </label>`;
 
-const draftingCard = (g) => html`<section class="glass card">
-  <p class="status-line"><span class="spinner" aria-hidden="true"></span>${g.phase === 'uploading' ? 'Uploading your photo…' : 'Gemini is looking at your photo…'}</p>
+const modeSwitch = () => html`<div class="segmented" role="group" aria-label="How many things are in the photo?">
+  ${[['one', 'One thing'], ['pile', 'A pile']].map(([mode, label]) => html`<button type="button" class="segment" id="mode-${mode}" data-action="give-mode" data-mode="${mode}" aria-pressed="${String(state.giveMode === mode)}">${label}</button>`)}
+</div>`;
+
+const draftingCard = (g, text = g.phase === 'uploading' ? 'Uploading your photo…' : 'Gemini is looking at your photo…') => html`<section class="glass card">
+  <p class="status-line"><span class="spinner" aria-hidden="true"></span>${text}</p>
   ${g.slow ? html`<p class="muted slow">Taking longer than usual…</p>` : ''}
   <div class="skeleton" aria-hidden="true"><span></span><span></span><span></span></div>
 </section>`;
@@ -753,6 +1001,127 @@ function matchCard(g) {
   </section>`;
 }
 
+/* ---------- views: give a pile ---------- */
+
+const isPending = (it) => it.checked && !it.notAllowed && !it.itemId;
+const boxStyle = ([y0, x0, y1, x1]) => `top:${y0 / 10}%;left:${x0 / 10}%;height:${(y1 - y0) / 10}%;width:${(x1 - x0) / 10}%`;
+function pileMatch(it) { // the open request this item may be offered to, if it is still open
+  const req = requestOf(it.match?.requestId);
+  return req && req.status === 'open' && req.personId !== state.me ? req : null;
+}
+
+function pileView(head) {
+  const p = state.pile;
+  if (p.phase === 'pick') {
+    return html`<div class="stack">${head}${modeSwitch()}${p.error ? html`<p class="notice error">${p.error}</p>` : ''}
+      ${dropZone('Take or choose a photo of a pile', "Up to six things in one photo. Gemini outlines each one and drafts its listing. You check them, and nothing goes up until you say so.")}</div>`;
+  }
+  let body = pileReview(p);
+  if (p.phase === 'sorting') body = draftingCard(p, 'Gemini is sorting the pile…');
+  else if (p.phase === 'failed') body = failedCard(p);
+  else if (p.aiError || !p.items.length) body = pileExplainCard(p);
+  const outlined = p.phase === 'review' ? p.items.filter((it) => it.box) : [];
+  return html`<div class="stack">${head}
+    <figure class="photo-frame glass pile-photo ${p.phase === 'sorting' ? 'is-busy' : ''}">
+      <img src="${p.previewUrl}" alt="${outlined.length ? `Your photo, with ${outlined.length} things outlined and numbered` : 'Your photo'}">
+      ${outlined.map((it) => html`<span class="pile-box ${isPending(it) || it.itemId ? '' : 'is-off'}" style="${boxStyle(it.box)}" aria-hidden="true"><span class="pile-num">${it.n}</span></span>`)}
+    </figure>
+    ${body}
+  </div>`;
+}
+
+function pileExplainCard(p) {
+  const retry = p.aiError === 'rate_limited' || p.aiError === 'timeout';
+  const text = p.aiError ? PILE_AI_ERRORS[p.aiError] ?? PILE_AI_ERROR_OTHER : PILE_NOT_FOUND;
+  return html`<section class="glass card stack-sm">
+    <h2>${p.aiError ? "Gemini couldn't sort this pile" : 'No separate things found'}</h2>
+    <p>${text}</p>
+    <div class="actions">
+      ${retry ? html`<button class="btn btn-secondary" id="retry" data-action="retry">${icon('retry')} Try again</button>` : ''}
+      <button class="btn btn-primary" id="as-one" data-action="pile-as-one">List it as one thing</button>
+      ${newPhotoButton('btn-ghost')}
+    </div>
+  </section>`;
+}
+
+function pileReview(p) {
+  const todo = p.items.filter(isPending).length;
+  const listed = p.items.filter((it) => it.itemId).length;
+  const busy = state.busy === 'pile';
+  let label = `List ${todo} ${todo === 1 ? 'item' : 'items'}`;
+  if (busy) label = 'Listing…';
+  return html`<section class="glass card pile-intro" aria-labelledby="pile-title">
+      <p class="tag tag-ai">${icon('sparkle')} Drafted by Gemini — check each one</p>
+      <h2 id="pile-title">Gemini found ${p.items.length} ${p.items.length === 1 ? 'thing' : 'things'}</h2>
+      <p class="muted small">Untick anything you're keeping. Fix any detail that's off before you list.</p>
+    </section>
+    <fieldset class="pile-list" ${busy ? raw('disabled') : ''}>
+      <legend class="sr-only">Things in the photo</legend>
+      ${p.items.map(pileCard)}
+    </fieldset>
+    ${noticeBlock()}
+    <div class="actions">
+      <button class="btn btn-primary btn-block" id="pile-list" data-action="pile-list" ${todo && !busy ? '' : raw('disabled')}>${label}</button>
+      ${listed && !busy ? html`<button class="btn btn-secondary" id="pile-finish" data-action="pile-finish">Done, go to the board</button>` : ''}
+      ${busy ? '' : newPhotoButton('btn-ghost')}
+    </div>`;
+}
+
+function pileCard(it) {
+  const i = it.n - 1;
+  const id = (field) => `p${i}-${field}`;
+  const name = it.label || it.title || `Thing ${it.n}`;
+  if (it.itemId) {
+    return html`<div class="glass card pile-item is-listed" role="group" aria-label="${it.n}. ${name}">
+      <p class="pile-check"><span class="pile-num" aria-hidden="true">${it.n}</span><span class="pile-label">${it.title}</span>
+        <span class="chip dot ${it.offeredTo ? 'chip-offered' : 'chip-collected'}">${it.offeredTo ? `Offered to ${firstName(it.offeredTo)}` : 'Listed'}</span></p>
+    </div>`;
+  }
+  const on = isPending(it);
+  const attrs = raw(`data-scope="pile" data-index="${i}"`);
+  return html`<div class="glass card pile-item ${on ? 'ai-box' : 'is-off'}" role="group" aria-label="${it.n}. ${name}">
+    <label class="pile-check">
+      <input type="checkbox" id="${id('check')}" ${attrs} data-field="checked" ${on ? raw('checked') : ''} ${it.notAllowed ? raw('disabled') : ''}>
+      <span class="pile-num" aria-hidden="true">${it.n}</span>
+      <span class="pile-label">${name}</span>
+      ${on ? '' : html`<span class="muted small pile-skip">${it.notAllowed ? "can't be listed" : 'not listing'}</span>`}
+    </label>
+    ${it.notAllowed ? html`<p class="notice warn">${it.notAllowed}</p>` : ''}
+    ${on ? html`
+      <div class="field">
+        <label class="label" for="${id('title')}">Title</label>
+        <input id="${id('title')}" class="input" name="title" ${attrs} maxlength="60" autocomplete="off" value="${it.title}" ${it.error && !it.title.trim() ? raw('aria-invalid="true"') : ''}>
+      </div>
+      <div class="field">
+        <label class="label" for="${id('desc')}">Description</label>
+        <textarea id="${id('desc')}" class="input" name="description" ${attrs} maxlength="240" rows="2" placeholder="What it is, what's worn or missing">${it.description}</textarea>
+      </div>
+      <fieldset class="field">
+        <legend class="label">Condition</legend>
+        <div class="picks">${CONDITIONS.map((c, k) => html`<label class="pick"><input type="radio" id="${id(`cond-${k}`)}" name="${id('condition')}" value="${c}" ${attrs} data-field="condition" ${it.condition === c ? raw('checked') : ''}>${icon('check', 'tick')}${cap(c)}</label>`)}</div>
+        ${it.conditionNotes ? html`<p class="note">${icon('sparkle')}<span>Gemini noticed: ${it.conditionNotes}</span></p>` : ''}
+      </fieldset>
+      <div class="field">
+        <label class="label" for="${id('cat')}">Category</label>
+        <select id="${id('cat')}" class="input" name="category" ${attrs}>${CATEGORIES.map((c) => html`<option value="${c}" ${it.category === c ? raw('selected') : ''}>${cap(c)}</option>`)}</select>
+      </div>
+      ${pileMatchLine(it, id, attrs)}` : ''}
+    ${it.error ? html`<p class="error" id="${id('error')}">${it.error}</p>` : ''}
+  </div>`;
+}
+
+function pileMatchLine(it, id, attrs) {
+  const req = pileMatch(it);
+  if (!req) return html`<p class="note">${icon('pin')}<span>No open request fits this one. It goes on the board.</span></p>`;
+  const who = firstName(req.personId);
+  const choices = [['offer', `Offer to ${who}`], ['board', 'Post to board']];
+  return html`<fieldset class="field pile-match">
+    <legend class="label">Fits <strong>${who}</strong>'s request: <em>${req.title}</em></legend>
+    ${it.match.reason ? html`<p class="note">${icon('sparkle')}<span>Gemini: ${it.match.reason}</span></p>` : ''}
+    <div class="picks">${choices.map(([value, label]) => html`<label class="pick"><input type="radio" id="${id(`choice-${value}`)}" name="${id('choice')}" value="${value}" ${attrs} data-field="choice" ${it.choice === value ? raw('checked') : ''}>${icon('check', 'tick')}${label}</label>`)}</div>
+  </fieldset>`;
+}
+
 /* ---------- views: ask ---------- */
 
 function askView() {
@@ -826,15 +1195,16 @@ async function mutate(kind, request, onDone) {
 }
 
 function showError(err) {
+  const where = state.busy.startsWith('thread') ? 'thread' : 'action'; // thread errors show in the conversation
   if (err.code === 'wrong_code') {
     state.ui.codeError = err.message;
     state.ui.codeAlert = true;
   } else {
     if (err.status === 409) {
       state.ui.reserveOpen = false;
-      state.focusTarget = '#action-title';
+      state.focusTarget = where === 'thread' ? '#thread-title' : '#action-title';
     }
-    state.ui.notice = { text: err.message, tone: err.status === 409 ? 'warn' : 'error' };
+    state.ui.notice = { text: err.message, tone: err.status === 409 ? 'warn' : 'error', where };
   }
   announce(err.message);
 }
@@ -845,6 +1215,8 @@ function pickPerson(id) {
   saveMe(id);
   state.ui = freshUi();
   resetGive();
+  resetPile();
+  markAllHeard();
   state.focusTarget = 'h1';
   render();
   announce(`You're now ${person(id).name}.`);
@@ -855,6 +1227,7 @@ async function resetDemo() {
   const done = await mutate('reset', () => api('POST', '/api/reset'));
   if (!done) return;
   resetGive();
+  resetPile();
   state.seenCollected.clear();
   announce('Demo reset.');
 }
@@ -866,15 +1239,18 @@ async function removeRequest(id) {
 
 const itemPath = (action) => `/api/items/${encodeURIComponent(state.route.id)}/${action}`;
 
+/* Place and time are optional; blank ones are left out so the two people settle them in the thread. */
+function planBody(place, time) {
+  const body = {};
+  if (place) body.place = place;
+  if (time) body.time = time;
+  const timeISO = quickTimeISO(time);
+  if (timeISO) body.timeISO = timeISO;
+  return body;
+}
+
 async function reserveItem(requestId) {
-  const place = state.ui.reserve.place.trim();
-  const time = state.ui.reserve.time.trim();
-  if (!place || !time) {
-    state.ui.notice = { text: 'Pick a place and a time to meet.', tone: 'error' };
-    render();
-    return;
-  }
-  const body = { personId: state.me, place, time };
+  const body = { personId: state.me, ...planBody(state.ui.reserve.place.trim(), state.ui.reserve.time.trim()) };
   if (requestId) body.requestId = requestId;
   await mutate('reserve', () => api('POST', itemPath('reserve'), body), (item) => {
     state.ui.reserveOpen = false;
@@ -919,6 +1295,63 @@ async function itemAction(kind) {
   });
 }
 
+const threadPath = (id, what) => `/api/threads/${encodeURIComponent(id)}/${what}`;
+
+async function threadAction(threadId, kind) {
+  if (kind === 'enter_code') return focusCodeInput();
+  const t = threadById(threadId);
+  if (kind === 'propose') {
+    state.ui.propose = { threadId, place: t?.plan.place ?? '', time: '' };
+    state.ui.notice = null;
+    state.focusTarget = '#propose-time-0';
+    return render();
+  }
+  if (kind === 'cancel' && !confirm(`Cancel this pickup? The reservation ends and it goes back on the board.`)) return;
+  await mutate(`thread:${kind}`, () => api('POST', threadPath(threadId, 'actions'), { personId: state.me, action: kind }), () => {
+    state.focusTarget = '#thread-title'; // Loop's reply is read out by the live region
+  });
+}
+
+function focusCodeInput() {
+  const input = $('#code-input');
+  if (!input) return;
+  input.scrollIntoView({ block: 'center', behavior: reducedMotion.matches ? 'auto' : 'smooth' });
+  input.focus({ preventScroll: true });
+}
+
+async function submitPropose() {
+  const p = state.ui.propose;
+  const t = p && threadById(p.threadId);
+  if (!t) return;
+  const place = p.place.trim();
+  const time = p.time.trim();
+  if (!time && (!place || place === t.plan.place)) {
+    state.ui.notice = { text: 'Pick a new time or place to suggest.', tone: 'error', where: 'thread' };
+    state.focusTarget = '#propose-time-0';
+    render();
+    announce(state.ui.notice.text);
+    return;
+  }
+  const body = { personId: state.me, action: 'propose', ...planBody(place, time) };
+  await mutate('thread:propose', () => api('POST', threadPath(t.id, 'actions'), body), () => {
+    state.ui.propose = null;
+    state.focusTarget = '#thread-title';
+  });
+}
+
+async function sendMessage(form) {
+  const id = form.dataset.thread;
+  const text = (state.ui.composer[id] ?? '').trim();
+  if (!text) {
+    form.querySelector('textarea')?.focus();
+    return;
+  }
+  await mutate('thread:send', () => api('POST', threadPath(id, 'messages'), { personId: state.me, text }), () => {
+    state.ui.composer[id] = '';
+    state.focusTarget = `#composer-${id}`;
+  });
+}
+
 async function postAsk() {
   const title = state.ui.ask.title.trim();
   if (!title) {
@@ -945,18 +1378,41 @@ function resetGive() {
   state.give = freshGive();
 }
 
-async function toJpegBase64(file) {
-  const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
+/* Source rectangle for one pile item: the box plus 6% of its size on each side, grown around its centre
+   to at least 256 px a side (or the whole photo when it is smaller), kept inside the photo. No box: whole photo. */
+function cropRect(box, w, h) {
+  if (!box) return { sx: 0, sy: 0, sw: w, sh: h };
+  const [y0, x0, y1, x1] = box.map((v) => v / 1000);
+  const sw = Math.min(w, Math.max((x1 - x0) * w * (1 + 2 * CROP_PAD), MIN_CROP));
+  const sh = Math.min(h, Math.max((y1 - y0) * h * (1 + 2 * CROP_PAD), MIN_CROP));
+  const sx = Math.min(Math.max(0, ((x0 + x1) / 2) * w - sw / 2), w - sw);
+  const sy = Math.min(Math.max(0, ((y0 + y1) / 2) * h - sh / 2), h - sh);
+  return { sx: Math.floor(sx), sy: Math.floor(sy), sw: Math.floor(sw), sh: Math.floor(sh) };
+}
+console.assert(JSON.stringify(cropRect([500, 500, 600, 600], 1000, 1000)) === '{"sx":422,"sy":422,"sw":256,"sh":256}', 'crop: small box grows to 256 px');
+console.assert(JSON.stringify(cropRect([0, 900, 500, 1000], 1000, 800)) === '{"sx":744,"sy":0,"sw":256,"sh":448}', 'crop: padding stays inside the photo');
+
+// The crop as JPEG base64, at most 1024 px a side.
+function cropToJpeg(bitmap, box) {
+  const { sx, sy, sw, sh } = cropRect(box, bitmap.width, bitmap.height);
+  const scale = Math.min(1, MAX_SIDE / Math.max(sw, sh));
   const canvas = document.createElement('canvas');
-  canvas.width = Math.round(bitmap.width * scale);
-  canvas.height = Math.round(bitmap.height * scale);
+  canvas.width = Math.round(sw * scale);
+  canvas.height = Math.round(sh * scale);
   const ctx = canvas.getContext('2d');
   ctx.fillStyle = '#fff'; // transparent PNGs get a white background, not black
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  bitmap.close?.();
+  ctx.drawImage(bitmap, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
   return canvas.toDataURL('image/jpeg', JPEG_QUALITY).split(',')[1];
+}
+
+async function toJpegBase64(file) {
+  const bitmap = await createImageBitmap(file);
+  try {
+    return cropToJpeg(bitmap, null);
+  } finally {
+    bitmap.close?.();
+  }
 }
 
 async function onPhoto(file) {
@@ -1083,6 +1539,190 @@ function giveProblem(text, focusSelector) {
   announce(text);
 }
 
+/* ---------- give flow: a pile ---------- */
+
+function resetPile() {
+  clearTimeout(state.pile.slowTimer);
+  if (state.pile.previewUrl) URL.revokeObjectURL(state.pile.previewUrl);
+  state.pile = freshPile();
+}
+
+function setGiveMode(mode) {
+  if (state.giveMode === mode) return;
+  state.giveMode = mode;
+  resetGive();
+  resetPile();
+  state.ui.notice = null;
+}
+
+const onPicked = (file) => (state.giveMode === 'pile' ? onPilePhoto(file) : onPhoto(file));
+
+async function onPilePhoto(file) {
+  if (!file) return;
+  resetPile();
+  const p = state.pile;
+  if (file.type && !file.type.startsWith('image/')) {
+    p.error = "That file isn't a photo. Choose a JPEG, PNG, or WebP image.";
+    render();
+    return;
+  }
+  Object.assign(p, { file, previewUrl: URL.createObjectURL(file), phase: 'sorting' });
+  render();
+  try {
+    p.imageBase64 = await toJpegBase64(file);
+  } catch {
+    if (state.pile !== p) return;
+    Object.assign(p, { phase: 'failed', error: "This photo couldn't be opened here. Try a JPEG or PNG.", canRetry: false });
+    render();
+    return;
+  }
+  if (state.pile === p) sendPile();
+}
+
+function sendPile() {
+  const p = state.pile;
+  if (!p.imageBase64) return;
+  const attempt = ++p.attempt;
+  const current = () => state.pile === p && p.attempt === attempt;
+  Object.assign(p, { phase: 'sorting', slow: false, aiError: null, error: '', items: [] });
+  clearTimeout(p.slowTimer);
+  p.slowTimer = setTimeout(() => {
+    if (!current() || p.phase !== 'sorting') return;
+    p.slow = true;
+    requestRender();
+    announce('Taking longer than usual…');
+  }, SLOW_MS);
+  state.ui.notice = null;
+  render();
+  announce('Gemini is sorting the pile…');
+  const body = { ownerId: state.me, imageBase64: p.imageBase64, mimeType: 'image/jpeg' };
+  api('POST', '/api/items/pile', body).then((res) => {
+    if (!current()) return;
+    clearTimeout(p.slowTimer);
+    setMock(Boolean(res?.mock));
+    const items = res?.identified === false || !Array.isArray(res?.items) ? [] : res.items.slice(0, MAX_PILE).map(pileEntry);
+    Object.assign(p, { phase: 'review', aiError: res?.aiError ?? null, items });
+    requestRender();
+    announce(p.aiError || !items.length ? "Gemini couldn't sort this pile." : `Gemini found ${items.length} things. Check each one, then list them.`);
+  }, (err) => {
+    if (!current()) return;
+    clearTimeout(p.slowTimer);
+    Object.assign(p, { phase: 'failed', error: err.message, canRetry: err.code === 'network' || err.status >= 500 });
+    requestRender();
+    announce(err.message);
+  });
+}
+
+function validBox(box) {
+  if (!Array.isArray(box) || box.length !== 4 || !box.every(Number.isFinite)) return null;
+  const [y0, x0, y1, x1] = box.map((v) => Math.min(1000, Math.max(0, v)));
+  return y0 < y1 && x0 < x1 ? [y0, x0, y1, x1] : null;
+}
+
+function pileEntry(raw, i) {
+  const text = (v) => (typeof v === 'string' ? v : '');
+  return {
+    n: i + 1,
+    label: text(raw?.label),
+    box: validBox(raw?.box), // no usable box: listed from the whole photo
+    aiDraft: raw, // the untouched Gemini entry, kept on the item for the record
+    title: text(raw?.title),
+    description: text(raw?.description),
+    condition: CONDITIONS.includes(raw?.condition) ? raw.condition : '',
+    category: CATEGORIES.includes(raw?.category) ? raw.category : 'other',
+    conditionNotes: text(raw?.conditionNotes),
+    notAllowed: text(raw?.notAllowed) || null,
+    match: raw?.match ?? null,
+    checked: !raw?.notAllowed,
+    choice: raw?.match?.requestId ? 'offer' : 'board',
+    photoId: '', // set once the crop is stored, so a retry never uploads it twice
+    itemId: '', // set once listed, so a retry never lists it twice
+    offeredTo: '',
+    error: '',
+  };
+}
+
+function pileProblem(it) {
+  if (!it.title.trim()) return 'Add a title so people know what it is.';
+  if (!CONDITIONS.includes(it.condition)) return 'Pick a condition: good, fair, or worn.';
+  return '';
+}
+
+async function listPile() {
+  const p = state.pile;
+  const todo = p.items.filter(isPending);
+  if (state.busy || !todo.length) return;
+  todo.forEach((it) => { it.error = pileProblem(it); });
+  const bad = todo.find((it) => it.error);
+  if (bad) {
+    render();
+    const field = bad.title.trim() ? 'cond-0' : 'title';
+    $(`#p${bad.n - 1}-${field}`)?.focus();
+    announce(`Thing ${bad.n}: ${bad.error}`);
+    return;
+  }
+  state.busy = 'pile';
+  state.ui.notice = null;
+  render();
+  announce(`Listing ${todo.length} ${todo.length === 1 ? 'item' : 'items'}…`);
+  const ownerId = state.me; // a person switch mid-way must not list the rest under someone else
+  let bitmap = null;
+  try {
+    bitmap = await createImageBitmap(p.file);
+  } catch {
+    state.ui.notice = { text: "This photo couldn't be opened here. Try another photo.", tone: 'error' };
+  }
+  for (const it of bitmap ? todo : []) {
+    if (state.pile !== p) break; // reset or person switch: stop here
+    try {
+      if (!it.photoId) {
+        const crop = { ownerId, imageBase64: cropToJpeg(bitmap, it.box), mimeType: 'image/jpeg' };
+        it.photoId = (await api('POST', '/api/photos', crop)).photoId;
+      }
+      const offer = it.choice === 'offer' ? pileMatch(it) : null;
+      const body = {
+        ownerId, photoId: it.photoId, title: it.title.trim(), description: it.description.trim(),
+        condition: it.condition, category: it.category, aiDraft: it.aiDraft,
+      };
+      if (offer) body.offerToRequestId = offer.id;
+      const item = await api('POST', '/api/items', body);
+      Object.assign(it, { itemId: item.id, offeredTo: offer?.personId ?? '', error: '' });
+    } catch (err) {
+      it.error = err.message;
+    }
+    if (state.pile === p) render(); // progress: listed cards turn into "Listed" one by one
+  }
+  bitmap?.close?.();
+  state.busy = '';
+  await refresh();
+  if (state.pile !== p) return;
+  const left = p.items.filter(isPending);
+  if (!left.length) return finishPile();
+  render();
+  const listed = p.items.filter((it) => it.itemId).length;
+  announce(`${listed} listed. ${left.length} didn't go through: the reason is under each one. Fix it and list again.`);
+}
+
+function finishPile() {
+  const done = state.pile.items.filter((it) => it.itemId);
+  const offered = done.filter((it) => it.offeredTo);
+  const names = [...new Set(offered.map((it) => firstName(it.offeredTo)))].join(' and ');
+  const text = `${done.length} ${done.length === 1 ? 'item' : 'items'} listed${offered.length ? ` · ${offered.length} offered to ${names}` : ''}`;
+  resetPile();
+  location.hash = '#/';
+  showToast(text);
+  announce(text);
+}
+
+let toastTimer = 0;
+function showToast(text) {
+  const toast = $('#toast');
+  toast.textContent = text;
+  toast.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { toast.hidden = true; }, TOAST_MS);
+}
+
 /* ---------- events ---------- */
 
 const actions = {
@@ -1100,9 +1740,31 @@ const actions = {
     state.focusTarget = '#open-reserve';
     render();
   },
-  pick: (el) => {
-    state.ui.reserve[el.dataset.field] = el.dataset.value;
+  pick: (el) => { // tapping the chosen chip again clears it: every quick pick is optional
+    const target = state.ui[el.dataset.scope];
+    if (!target) return;
+    const { field, value } = el.dataset;
+    target[field] = target[field] === value ? '' : value;
     render();
+  },
+  'thread-action': (el) => threadAction(el.dataset.thread, el.dataset.kind),
+  'close-propose': () => {
+    state.ui.propose = null;
+    state.ui.notice = null;
+    state.focusTarget = '#thread-title';
+    render();
+  },
+  'give-mode': (el) => {
+    setGiveMode(el.dataset.mode);
+    state.focusTarget = `#mode-${el.dataset.mode}`;
+    render();
+  },
+  'pile-list': listPile,
+  'pile-finish': finishPile,
+  'pile-as-one': () => {
+    const { file } = state.pile;
+    setGiveMode('one');
+    onPhoto(file);
   },
   decline: () => itemAction('decline'),
   release: () => itemAction('release'),
@@ -1112,9 +1774,10 @@ const actions = {
     $('[data-needs-check]')?.focus();
   },
   publish: (el) => publish(el.dataset.offer || null),
-  retry: sendDraft,
+  retry: () => (state.giveMode === 'pile' ? sendPile() : sendDraft()),
   'new-photo': () => {
     resetGive();
+    resetPile();
     state.focusTarget = '#photo-input';
     render();
   },
@@ -1130,10 +1793,21 @@ const forms = {
   confirm: confirmHandoff,
   ask: postAsk,
   publish: () => (isManual(state.give) ? publish(null) : actions.approve()), // Enter never publishes a Gemini draft
+  propose: submitPropose,
+  message: sendMessage,
 };
+
+function bindPile(el) {
+  const it = state.pile.items[Number(el.dataset.index)];
+  const field = el.dataset.field || el.name;
+  if (!it || !(field in it)) return;
+  it[field] = el.type === 'checkbox' ? el.checked : el.value;
+  if (field === 'checked') render(); // shows or hides the card's fields and updates "List N items"
+}
 
 function bind(el) {
   const scope = el.dataset?.scope;
+  if (scope === 'pile') return bindPile(el); // pile checkboxes carry data-field, not a name
   if (!scope || !el.name) return;
   if (scope === 'code') {
     el.value = el.value.replace(/\D/g, '').slice(0, 4);
@@ -1144,8 +1818,8 @@ function bind(el) {
   if (!target) return;
   target[el.name] = el.value;
   if (scope === 'give') markChecked();
-  if (scope === 'reserve') {
-    document.querySelectorAll(`[data-field="${el.name}"]`).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.value === el.value)));
+  if (scope === 'reserve' || scope === 'propose') {
+    document.querySelectorAll(`[data-scope="${scope}"][data-field="${el.name}"]`).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.value === el.value)));
   }
 }
 
@@ -1164,11 +1838,17 @@ document.addEventListener('submit', (event) => {
 });
 document.addEventListener('input', (event) => bind(event.target));
 document.addEventListener('change', (event) => {
-  if (event.target.id === 'photo-input') onPhoto(event.target.files?.[0]);
+  if (event.target.id === 'photo-input') onPicked(event.target.files?.[0]);
+});
+/* The composer sends on Enter; Shift+Enter is a new line, and IME composition is never cut short. */
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Enter' || event.shiftKey || event.isComposing || !event.target.matches?.('.composer-input')) return;
+  event.preventDefault();
+  event.target.form?.requestSubmit();
 });
 
 /* Drop a photo anywhere on the give screen. */
-const canDrop = () => Boolean(state.me) && state.route.name === 'give' && state.give.phase === 'pick';
+const canDrop = () => Boolean(state.me) && state.route.name === 'give' && (state.giveMode === 'pile' ? state.pile : state.give).phase === 'pick';
 for (const type of ['dragenter', 'dragover']) {
   document.addEventListener(type, (event) => {
     if (!canDrop()) return;
@@ -1183,17 +1863,19 @@ document.addEventListener('drop', (event) => {
   if (!canDrop()) return;
   event.preventDefault();
   $('#drop')?.classList.remove('is-over');
-  onPhoto(event.dataTransfer?.files?.[0]);
+  onPicked(event.dataTransfer?.files?.[0]);
 });
 
 /* A poll that landed while someone was typing renders as soon as they leave the field. */
-view.addEventListener('focusout', () => setTimeout(() => {
-  if (state.pendingRender && !isTyping()) render();
-}));
+view.addEventListener('focusout', () => setTimeout(flushRender));
 addEventListener('hashchange', onRouteChange);
 
 /* ---------- start ---------- */
 
 render();
-api('GET', '/api/health').then((health) => setMock(Boolean(health?.mock))).catch(() => { /* no health route: rely on per-response flags */ });
+api('GET', '/api/health').then((health) => {
+  setMock(Boolean(health?.mock));
+  state.health = { imessage: health?.imessage === true, linkedPhones: Array.isArray(health?.linkedPhones) ? health.linkedPhones : [] };
+  if (state.health.imessage) requestRender();
+}).catch(() => { /* no health route: rely on per-response flags */ });
 pollLoop();
