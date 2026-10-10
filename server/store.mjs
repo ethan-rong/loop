@@ -98,13 +98,14 @@ export function closeRequest(db, id, personId) {
   return { db: next(db, { requests: patchRequest(db.requests, id, { status: 'closed' }) }), request: closed };
 }
 
-export function createItem(db, { ownerId, photo, title, description, condition, category, aiDraft, offerToRequestId }) {
+// price: null (free) or whole US dollars 1-500, validated in index.mjs. Loop never handles money; it only shows it.
+export function createItem(db, { ownerId, photo, title, description, condition, category, price = null, aiDraft, offerToRequestId }) {
   getPerson(db, ownerId);
   const offer = offerToRequestId ? find(db.requests, offerToRequestId, 'request') : null;
   if (offer?.personId === ownerId) throw new ApiError(400, 'own_request', "You can't offer something to your own request.");
   if (offer && offer.status !== 'open') throw new ApiError(409, 'request_not_open', 'That request already has a match.');
   const item = {
-    id: newId('i'), ownerId, photo, title, description, condition, category, aiDraft,
+    id: newId('i'), ownerId, photo, title, description, condition, category, price, aiDraft,
     status: offer ? 'offered' : 'available', offeredToRequestId: offer?.id ?? null,
     reservation: null, collectedAt: null, createdAt: now(),
   };
@@ -136,7 +137,7 @@ export function reserveItem(db, id, { personId, requestId, place = null, time = 
     ...item, status: 'reserved', offeredToRequestId: null,
     reservation: { personId, requestId: link, place, time, code: newCode(), at: now() },
   };
-  const hello = `Someone reserved your ${item.title}`;
+  const hello = `Someone reserved your ${item.title}${item.price ? ` ($${item.price})` : ''}`;
   const thread = {
     id: newId('t'), itemId: item.id, ownerId: item.ownerId, recipientId: personId, status: 'planning',
     plan: place
@@ -214,9 +215,9 @@ export function repostItem(db, id, personId) {
   if (item.status !== 'collected') throw new ApiError(409, 'not_collected', 'Only something already handed over can be passed on again.');
   if (item.reservation?.personId !== personId) throw new ApiError(403, 'not_taker', 'Only the person who collected this can pass it on.');
   if (db.items.some((i) => i.fromItemId === id)) throw new ApiError(409, 'already_passed_on', 'You already passed this on.');
-  const { photo, title, description, condition, category } = item;
+  const { photo, title, description, condition, category, price = null } = item;
   const passed = {
-    id: newId('i'), ownerId: personId, photo, title, description, condition, category, aiDraft: null,
+    id: newId('i'), ownerId: personId, photo, title, description, condition, category, price, aiDraft: null,
     status: 'available', offeredToRequestId: null, reservation: null, collectedAt: null, createdAt: now(),
     lap: (item.lap ?? 1) + 1, fromItemId: item.id,
   };

@@ -67,6 +67,7 @@ async function mainLoop() {
     ownerId: 'ethan', photoId: drafted.photoId, title, description, condition, category, aiDraft: drafted.draft, offerToRequestId: need.id,
   }));
   assert.equal(item.status, 'offered');
+  assert.equal(item.price, null, 'no price means free');
   assert.equal(await requestStatus(need.id), 'matched');
 
   // jerry accepts and reserves.
@@ -99,6 +100,16 @@ async function mainLoop() {
     ['available', 2, item.photo, 'jerry', item.id, null]);
   assert.equal((await state()).items.find((i) => i.id === again.id)?.status, 'available', 'the new item is on the board');
   await expect(call('POST', `/api/items/${item.id}/repost`, { personId: 'jerry' }), 409, 'already_passed_on');
+
+  // Optional price: null (free) or whole dollars 1-500. Loop only shows it: the pickup thread's first line names it.
+  const fan = await draftLamp();
+  const fanBody = { ownerId: 'ethan', photoId: fan.photoId, title: 'Small desk fan', description: '', condition, category };
+  const priced = await ok(call('POST', '/api/items', { ...fanBody, price: 10 }));
+  assert.equal(priced.price, 10);
+  await ok(call('POST', `/api/items/${priced.id}/reserve`, { personId: 'jack' }));
+  const opening = (await state()).threads.find((t) => t.itemId === priced.id).messages[0].text;
+  assert.ok(opening.startsWith("Someone reserved your Small desk fan ($10). You're the one"), opening);
+  for (const price of [0, 'abc', 10.5, 501]) await expect(call('POST', '/api/items', { ...fanBody, price }), 400, 'invalid_field');
 }
 
 async function sideFlows() {

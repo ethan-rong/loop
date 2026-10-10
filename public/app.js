@@ -472,6 +472,10 @@ const condChip = (c) => html`<span class="chip">${COND_LABEL[c] ?? 'Condition no
 const statusChip = (item) => html`<span class="chip dot chip-${item.status}">${STATUS_LABEL[item.status] ?? item.status}</span>`;
 // "Pass it on again": LAP 2 from the second time round (items without `lap` are lap 1, no sticker).
 const lapChip = (item) => ((item.lap ?? 1) >= 2 ? html`<span class="chip chip-lap">Lap ${item.lap}</span>` : '');
+// Optional price in whole dollars (Loop never handles money, it only shows it): every item gets a sticker, FREE without one.
+const priceChip = (item) => html`<span class="chip chip-price">${item.price ? `$${item.price}` : 'Free'}</span>`;
+const atPickup = (item) => (item.price ? `$${item.price} at pickup · cash or Venmo` : '');
+const priceValue = (p) => (p == null || String(p).trim() === '' ? null : Number(p)); // "$" left empty = free; the server checks 1-500
 const requestChip = (r) => html`<span class="chip dot chip-${r.status}">${REQUEST_LABEL[r.status] ?? r.status}</span>`;
 const yoursChip = (mine) => (mine ? html`<span class="chip chip-yours">yours</span>` : ''); // SPEC5: the only sign of "mine"
 const noticeBlock = (where = 'action') => {
@@ -542,7 +546,7 @@ function boardView() {
 /* One compact row: thumbnail, title, why it's here (the old banner line), chevron. */
 const forYouCard = (item) => html`<li><a class="foryou glass" href="#/item/${item.id}">
   <img src="${item.photo}" alt="" style="view-transition-name:${vtName(item.id)}">
-  <span class="foryou-text"><span class="foryou-title">${item.title}</span><span class="small muted">${bannerFor(item)}</span></span>
+  <span class="foryou-text"><span class="foryou-title">${item.title}</span><span class="small muted">${[bannerFor(item), atPickup(item)].filter(Boolean).join(' · ')}</span></span>
   ${icon('next')}
 </a></li>`;
 
@@ -552,7 +556,7 @@ const mineDot = (mine) => (mine ? html`<span class="mine-dot"><span class="sr-on
 
 const itemCard = (item) => html`<li><a class="item-card glass" href="#/item/${item.id}">
   <img class="thumb" src="${item.photo}" alt="" loading="lazy" style="view-transition-name:${vtName(item.id)}">
-  <div class="item-body"><h3 class="item-title">${mineDot(item.ownerId === state.me)}${item.title}</h3><div class="chips">${statusChip(item)}${lapChip(item)}</div></div>
+  <div class="item-body"><h3 class="item-title">${mineDot(item.ownerId === state.me)}${item.title}</h3><div class="chips">${statusChip(item)}${priceChip(item)}${lapChip(item)}</div></div>
 </a></li>`;
 
 /* Title and "Asked … ago"; a chip only once it's matched. Details and Remove open inline on a tap (no request page). */
@@ -588,7 +592,7 @@ function itemView(id) {
     ${backLink()}
     <figure class="photo-frame glass detail-photo"><img src="${item.photo}" alt="Photo of ${item.title}" style="view-transition-name:${vtName(item.id)}"></figure>
     <section class="glass card detail-head">
-      <div class="chips">${condChip(item.condition)}${statusChip(item)}${lapChip(item)}${yoursChip(mine)}</div>
+      <div class="chips">${condChip(item.condition)}${statusChip(item)}${priceChip(item)}${lapChip(item)}${yoursChip(mine)}</div>
       <h1>${item.title}</h1>
       <p class="from">Posted <time datetime="${item.createdAt}">${timeAgo(item.createdAt)}</time></p>
       ${item.description ? html`<p class="desc">${item.description}</p>` : ''}
@@ -759,7 +763,7 @@ function recipientBlock(item) {
   const res = item.reservation;
   return html`<h2 id="action-title">Your pickup code</h2>
     <div class="ticket ${state.ui.revealCode === item.id ? 'reveal' : ''}">
-      <div class="ticket-main"><p class="ticket-label" aria-hidden="true">Show this at pickup</p><p class="code"><span aria-hidden="true">${res.code}</span><span class="sr-only">${spaced(res.code)}</span></p></div>
+      <div class="ticket-main"><p class="ticket-label" aria-hidden="true">Show this at pickup</p><p class="code"><span aria-hidden="true">${res.code}</span><span class="sr-only">${spaced(res.code)}</span></p>${atPickup(item) ? html`<p class="ticket-pay">${atPickup(item)}</p>` : ''}</div>
       <span class="ticket-stub" aria-hidden="true">${LOOP_MARK}</span>
     </div>
     <p class="center">Show this code to the giver at pickup.</p>
@@ -1041,10 +1045,23 @@ function draftForm(g, manual) {
       <label class="label" for="f-cat">Category</label>
       <select id="f-cat" class="input" name="category" data-scope="give">${CATEGORIES.map((c) => html`<option value="${c}" ${f.category === c ? raw('selected') : ''}>${cap(c)}</option>`)}</select>
     </div>
+    ${priceField((field) => `f-${field}`, f.price, raw('data-scope="give"'))}
     ${manual
       ? html`${noticeBlock()}<div class="actions"><button class="btn btn-primary btn-moment btn-block" type="submit" id="publish-board">${busyText('publish:board', 'Post to board', 'Posting…')}</button></div>`
       : html`<div class="actions"><button type="button" class="btn btn-secondary approve" id="approve" data-action="approve">${icon('check')} Looks right</button></div>`}
   </form>`;
+}
+
+/* "Free" | "$" segments; "$" shows a whole-dollar box. price: null = free, a string ('' at first) = "$" chosen. */
+function priceField(id, price, attrs) {
+  const paid = price != null;
+  return html`<fieldset class="field">
+    <legend class="label">Price</legend>
+    <div class="price-row">
+      <div class="segmented inline">${[['free', 'Free'], ['paid', '$']].map(([mode, label]) => html`<button type="button" class="segment" id="${id(`price-${mode}`)}" data-action="price-mode" data-mode="${mode}" ${attrs} aria-pressed="${String((mode === 'paid') === paid)}">${label}${mode === 'paid' ? html`<span class="sr-only"> Set a price</span>` : ''}</button>`)}</div>
+      ${paid ? html`<label class="sr-only" for="${id('price')}">Price in dollars, 1 to 500</label><input id="${id('price')}" class="input" type="number" inputmode="numeric" min="1" max="500" step="1" placeholder="10" name="price" data-field="price" ${attrs} value="${price}">` : ''}
+    </div>
+  </fieldset>`;
 }
 
 function matchCard(g) {
@@ -1177,6 +1194,7 @@ function pileCard(it) {
         <label class="label" for="${id('cat')}">Category</label>
         <select id="${id('cat')}" class="input" name="category" ${attrs}>${CATEGORIES.map((c) => html`<option value="${c}" ${it.category === c ? raw('selected') : ''}>${cap(c)}</option>`)}</select>
       </div>
+      ${priceField(id, it.price, attrs)}
       ${pileMatchLine(it, id, attrs)}` : ''}
     ${it.error ? html`<p class="error" id="${id('error')}">${it.error}</p>` : ''}
   </div>`;
@@ -1544,6 +1562,7 @@ function formFromDraft(d) {
     description: usable ? String(d.description ?? '') : '',
     condition: usable && CONDITIONS.includes(d.condition) ? d.condition : '',
     category: usable && CATEGORIES.includes(d.category) ? d.category : 'other',
+    price: null, // free until "$" is picked
   };
 }
 
@@ -1581,6 +1600,7 @@ async function publish(offerTo) {
     description: f.description.trim(),
     condition: f.condition,
     category: f.category,
+    price: priceValue(f.price),
     aiDraft: isManual(g) ? null : g.draft, // the untouched Gemini draft, kept for the record
   };
   if (offerTo) body.offerToRequestId = offerTo;
@@ -1690,6 +1710,7 @@ function pileEntry(raw, i) {
     description: text(raw?.description),
     condition: CONDITIONS.includes(raw?.condition) ? raw.condition : '',
     category: CATEGORIES.includes(raw?.category) ? raw.category : 'other',
+    price: null, // free until "$" is picked
     conditionNotes: text(raw?.conditionNotes),
     notAllowed: text(raw?.notAllowed) || null,
     match: raw?.match ?? null,
@@ -1742,7 +1763,7 @@ async function listPile() {
       const offer = it.choice === 'offer' ? pileMatch(it) : null;
       const body = {
         ownerId, photoId: it.photoId, title: it.title.trim(), description: it.description.trim(),
-        condition: it.condition, category: it.category, aiDraft: it.aiDraft,
+        condition: it.condition, category: it.category, price: priceValue(it.price), aiDraft: it.aiDraft,
       };
       if (offer) body.offerToRequestId = offer.id;
       const item = await api('POST', '/api/items', body);
@@ -1824,6 +1845,16 @@ const actions = {
   'give-mode': (el) => {
     setGiveMode(el.dataset.mode);
     state.focusTarget = `#mode-${el.dataset.mode}`;
+    render();
+  },
+  'price-mode': (el) => {
+    const pile = el.dataset.scope === 'pile';
+    const target = pile ? state.pile.items[Number(el.dataset.index)] : state.give.form;
+    if (!target) return;
+    const paid = el.dataset.mode === 'paid';
+    target.price = paid ? (target.price ?? '') : null;
+    if (!pile) markChecked();
+    state.focusTarget = `#${pile ? `p${el.dataset.index}-` : 'f-'}price${paid ? '' : '-free'}`;
     render();
   },
   'pile-list': listPile,

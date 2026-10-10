@@ -273,6 +273,8 @@ img { max-width: 100%; }
 .chip-withdrawn, .chip-closed { background: var(--cream); color: var(--muted); border-style: dashed; }
 /* "yours": the only mark of what this tab posted (SPEC5). */
 .chip-yours { background: var(--cream); border-style: dashed; }
+/* Price sticker: FREE or $10 (Loop only shows a price, it never handles money). */
+.chip-price { background: var(--cream); }
 .chip-collected.dot::before, .chip-fulfilled.dot::before {
   content: "";
   flex: none;
@@ -1041,6 +1043,12 @@ select.input {
 .segment:hover { text-decoration: underline 2px; text-underline-offset: 4px; }
 .segment[aria-pressed="true"] { background: var(--cream); color: var(--ink); }
 .segment:focus-visible { box-shadow: none; } /* the coral ring sits on ink: 6.95:1 */
+/* Price: a compact Free | $ pill and a whole-dollar box beside it. */
+.price-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.segmented.inline { display: inline-grid; grid-template-columns: auto auto; }
+.segmented.inline .segment { min-width: 64px; }
+.price-row .input { width: 7em; }
+.ticket-pay { margin: 10px 0 0; font: 700 var(--fs-5)/1.3 var(--mono); letter-spacing: .04em; text-transform: uppercase; }
 
 /* The figure hugs the photo, so box percentages land on the right pixels at any width. */
 .photo-frame.pile-photo { aspect-ratio: auto; width: fit-content; max-width: 100%; margin-inline: auto; }

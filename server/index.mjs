@@ -71,6 +71,17 @@ function isoTime(b, key) {
   return new Date(ms).toISOString();
 }
 
+// Optional price in whole US dollars: absent, null or empty = free (null). Loop never handles money; it only shows it.
+const MAX_PRICE = 500;
+function dollars(b, key) {
+  const value = b[key];
+  if (value === undefined || value === null || value === '') return null;
+  if (!Number.isInteger(value) || value < 1 || value > MAX_PRICE) {
+    throw new ApiError(400, 'invalid_field', `${key} must be a whole number of dollars from 1 to ${MAX_PRICE}, or empty for free.`);
+  }
+  return value;
+}
+
 const looksLike = (buf, mime) =>
   SIGNATURES[mime].every(([at, hex]) => buf.subarray(at, at + hex.length / 2).toString('hex') === hex);
 
@@ -162,6 +173,7 @@ app.post('/api/items', (req, res) => {
     description: text(b, 'description', 240, false),
     condition: oneOf(b, 'condition', CONDITIONS),
     category: oneOf(b, 'category', CATEGORIES),
+    price: dollars(b, 'price'),
     aiDraft,
     offerToRequestId: text(b, 'offerToRequestId', ID_MAX, false) || null,
   }));
