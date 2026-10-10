@@ -41,8 +41,9 @@ history.
 | sizes | h1 `clamp(38px, 32px + 1.6vw, 44px)`/1.02 at `"opsz" 144` (board greeting 44–52, item title 32–40), h2 24, h3 19, section titles 26 with a 2 px tangerine underline; body 16/1.5; labels 13 px uppercase, tracking .06em, ink-2; pickup digits Fraunces 56 | |
 | gutters | 16 px below 640 px, 32 px from 640 px; card padding 20 / 24 | |
 
-Avatars (white initials): ethan ink `#15130f`, jerry slate `#3b5b8a`, jack moss `#2f6b3a`, tom
-`#b5401a`, thomas `#8a5a12`; anyone else ink-2.
+Avatars (white initials) take their ink from the person's place in the list, never from a name:
+ink `#15130f`, slate `#3b5b8a`, moss `#2f6b3a`, `#b5401a`, `#8a5a12`, then repeat; unknown ids get
+ink-2. (The seed is anonymous now, nicknames only; a follow-up lane removes identities from the UI.)
 
 ### Surfaces
 
@@ -117,7 +118,16 @@ Avatars (white initials): ethan ink `#15130f`, jerry slate `#3b5b8a`, jack moss 
 - **Control edges use `--field` `#857f71`, not the spec rule.** `rgba(21,19,15,.14)` is 1.34:1 on
   paper, fine for card edges but not for inputs. `--field` is 3.54 on paper and 3.89 on card. The
   secondary-button rule starts at ink-2 (6.48) so it can "darken" to ink on hover.
-- **Avatars.** "ethan ink-accent" read as ink; all five are ≥ 5.66:1 with white initials.
+- **Avatars.** "ethan ink-accent" read as ink for the first person; all five inks are ≥ 5.66:1
+  with white initials.
+
+Layout deviations (not contrast):
+
+- **Top bar order** is wordmark · ear · person button, not wordmark · person button · line. The
+  button stays at the far right because `placeMenu` anchors the popover to the button's right edge;
+  with the button on the left the menu would open off-screen at 390 px.
+- **Item-card photos** take the card's 16 px corner radius (they run edge to edge inside it).
+  Standalone photos (item page, Give preview, pile) use the spec's 12 px.
 
 ### Contrast (v3, measured 2026-10-10)
 
@@ -192,6 +202,14 @@ outlines (ink at 40 %, 2.58 on card), the ear's divider, and the ruled-paper lin
   4. Fox: **I'm here** → Ethan: **Enter code** → one wrong code (403, intentional) → the right
      code → **Collected** and the stamp.
 - **Pile review** on `/seed/pile.jpg` at 390 and 700 px: 3 items, #2 unticked.
+- **Anonymous seed re-run.** After the seed switched to nicknames (Heron, Fox, Kite, Owl, Wolf) the
+  390 px flow was run again end to end (picker, board, Give, draft + match, ticket, thread, wrong
+  code, collected, pile); those are the 390 px screenshots. The 700 px set and the translation and
+  menu shots are from the first run and still show the old seed names; the layout is the same.
+- **44 px sweep** (every visible `a`, `button`, field, `label.pick`, `label.pile-check` measured
+  with `getBoundingClientRect`) on board, open menu, Give, draft, item + thread, pile: nothing under
+  44 px except the hidden radios inside 44 px pick labels and the 22 px pile checkboxes inside 44 px
+  labels. The Give-page link was 42 px and was fixed; the narrow-phone ear was 36 px and was fixed.
 - **Language row.** Fox → 中文: POST 200, the menu closed, focus went back to the person button,
   "Language: 中文." was announced; then back to English. A forced 404 (fetch stubbed in the page)
   changed nothing and announced nothing.

@@ -14,7 +14,10 @@ const PLACES = ['Davis Library lobby', 'Student Union', 'Dorm front desk'];
 const TIMES = ['Today 5 pm', 'Today 8 pm', 'Tomorrow noon'];
 const CONDITIONS = ['good', 'fair', 'worn'];
 const CATEGORIES = ['furniture', 'lighting', 'kitchen', 'textbooks', 'electronics', 'clothing', 'bedding', 'sports', 'other'];
-const AVATAR_COLORS = { ethan: '#1f6fd3', jerry: '#6a4fe0', jack: '#1b7f45' };
+// Avatar inks by a person's place in the list (no name mapping: Loop is anonymous). White initials on each:
+// 18.6, 6.89, 6.39, 5.66 and 5.91 to 1 (DESIGN.md v3).
+const AVATAR_COLORS = ['#15130f', '#3b5b8a', '#2f6b3a', '#b5401a', '#8a5a12'];
+const LANGS = [['en', 'English'], ['zh', '中文'], ['es', 'Español']]; // SPEC4 §D person-menu row
 const COND_LABEL = { good: 'Good condition', fair: 'Fair condition', worn: 'Worn' };
 const STATUS_LABEL = { available: 'Available', offered: 'Offered', reserved: 'Reserved', collected: 'Collected', withdrawn: 'Taken back' };
 const REQUEST_LABEL = { open: 'Open need', matched: 'Matched', fulfilled: 'Fulfilled', closed: 'Closed' };
@@ -99,6 +102,7 @@ const freshUi = () => ({
   revealCode: '', // item id whose pickup code scales in once
   ask: { title: '', details: '' },
   askResult: null,
+  original: new Set(), // message ids showing the original instead of my-language translation
 });
 const freshGive = () => ({
   phase: 'pick', // pick | uploading | drafting | review | failed
@@ -133,7 +137,7 @@ const state = {
   db: null,
   online: true,
   mock: false,
-  health: { imessage: false, linkedPhones: [] },
+  health: { imessage: false, linkedPhones: [], lineNumber: null },
   me: loadMe(),
   route: parseRoute(),
   busy: '',
@@ -429,7 +433,8 @@ function currentView() {
 /* ---------- shared pieces ---------- */
 
 const initials = (name) => name.split(/\s+/).map((w) => w.charAt(0)).join('').slice(0, 2).toUpperCase();
-const avatar = (p) => html`<span class="avatar" style="background-color:${AVATAR_COLORS[p.id] ?? '#3d5a78'}" aria-hidden="true">${initials(p.name)}</span>`;
+const avatarColor = (id) => AVATAR_COLORS[(state.db?.people.findIndex((p) => p.id === id) ?? -1) % AVATAR_COLORS.length] ?? '#5c5649';
+const avatar = (p) => html`<span class="avatar" style="background-color:${avatarColor(p.id)}" aria-hidden="true">${initials(p.name)}</span>`;
 const condChip = (c) => html`<span class="chip">${COND_LABEL[c] ?? 'Condition not set'}</span>`;
 const statusChip = (item) => html`<span class="chip dot chip-${item.status}">${STATUS_LABEL[item.status] ?? item.status}</span>`;
 const requestChip = (r) => html`<span class="chip dot chip-${r.status}">${REQUEST_LABEL[r.status] ?? r.status}</span>`;
@@ -438,6 +443,21 @@ const noticeBlock = (where = 'action') => {
   return n && (n.where ?? 'action') === where ? html`<p class="notice ${n.tone}">${n.text}</p>` : '';
 };
 const backLink = () => html`<a class="back" href="#/">${icon('back')} Board</a>`;
+
+/* Loop's shared iMessage line (SPEC4 §A) from /api/health: top bar, board footer, Give page; hidden while unknown. */
+const lineLabel = (e164) => e164.replace(/^\+1(\d{3})(\d{3})(\d{4})$/, '($1) $2-$3');
+const smsHref = () => `sms:${state.health.lineNumber}`;
+const textIn = () => (state.health.lineNumber
+  ? html`<p class="text-in">No app? Text a photo to Loop at <a href="${smsHref()}">${lineLabel(state.health.lineNumber)}</a></p>`
+  : '');
+function renderLine() {
+  const n = state.health.lineNumber;
+  const line = $('#line');
+  line.hidden = !n;
+  if (!n) return;
+  line.href = smsHref();
+  line.innerHTML = String(html`<span class="ear-label">Text Loop</span><span class="ear-dot" aria-hidden="true"> · </span><span class="ear-num">${lineLabel(n)}</span>`);
+}
 
 let whoKey = '';
 function renderWho() {
@@ -458,6 +478,10 @@ const whoMarkup = (me) => html`
         <span class="menu-text"><strong>${p.name}</strong><span class="small muted">${p.spot}</span></span>
         ${p.id === me.id ? icon('check') : ''}
       </button>`)}
+    <div class="menu-lang" role="group" aria-labelledby="lang-title">
+      <p class="menu-title" id="lang-title">Language</p>
+      <div class="lang-row">${LANGS.map(([code, label]) => html`<button class="lang" data-action="set-lang" data-lang="${code}" lang="${code}" aria-pressed="${String((me.lang ?? 'en') === code)}">${label}</button>`)}</div>
+    </div>
   </div>`;
 function placeMenu(event) {
   if (event.newState !== 'open') return;
@@ -478,7 +502,7 @@ const pickerView = () => html`<div class="stack">
   </section>
   <section class="glass card" aria-labelledby="pick-title">
     <h2 id="pick-title">Who are you?</h2>
-    <p class="muted small">This demo has three students. Each browser tab is one person, so open a second tab to play the other side.</p>
+    <p class="muted small">Loop shows a nickname, never your name or number. The 4-digit code proves it's you at the handoff.</p>
     <ul class="list people">${state.db.people.map((p) => html`
       <li><button class="menu-item person-pick" id="pick-${p.id}" data-action="pick-person" data-id="${p.id}">
         ${avatar(p)}<span class="menu-text"><strong>${p.name}</strong><span class="small muted">${p.spot}</span></span>${icon('next')}
@@ -504,7 +528,7 @@ function boardView() {
   const grabs = live.filter((i) => !bannerFor(i));
   const kept = items.filter((i) => i.status === 'collected').length;
   return html`<div class="stack">
-    <section class="hero glass">
+    <section class="hero glass ruled">
       <h1>Hi, ${firstName(state.me)}</h1>
       <p class="lead">Give what you don't need. Ask for what you do.</p>
       <div class="actions hero-actions">
@@ -524,6 +548,7 @@ function boardView() {
     <footer class="foot">
       ${kept ? html`<span>${kept} ${kept === 1 ? 'item' : 'items'} kept in use</span><span aria-hidden="true">·</span>` : ''}
       <button class="btn btn-ghost btn-small" id="reset" data-action="reset">${busyText('reset', 'Reset demo', 'Resetting…')}</button>
+      ${state.health.lineNumber ? html`<span class="foot-line"><a class="line-link" href="${smsHref()}">Text Loop · ${lineLabel(state.health.lineNumber)}</a></span>` : ''}
     </footer>
   </div>`;
 }
@@ -651,14 +676,14 @@ function reserveBlock(item, offeredReq) {
         <p class="muted">For your request: <em>${offeredReq.title}</em>. Accept to reserve it and plan the pickup with ${owner}, or say no thanks and it goes back on the board.</p>
         ${noticeBlock()}
         <div class="actions">
-          <button class="btn btn-primary" id="open-reserve" data-action="open-reserve">Accept &amp; reserve</button>
+          <button class="btn btn-primary btn-moment" id="open-reserve" data-action="open-reserve">Accept &amp; reserve</button>
           <button class="btn btn-secondary" id="decline" data-action="decline">${busyText('decline', 'No thanks', 'Saying no…')}</button>
         </div>`;
     }
     return html`<h2 id="action-title">Want it?</h2>
       <p class="muted">Reserve it, then sort out where and when with ${owner}. You'll get a pickup code to show at the handoff.</p>
       ${noticeBlock()}
-      <div class="actions"><button class="btn btn-primary btn-block" id="open-reserve" data-action="open-reserve">Reserve</button></div>`;
+      <div class="actions"><button class="btn btn-primary btn-moment btn-block" id="open-reserve" data-action="open-reserve">Reserve</button></div>`;
   }
   const { place, time } = state.ui.reserve;
   return html`<form class="stack-sm" data-form="reserve" data-request="${offeredReq?.id ?? ''}" novalidate>
@@ -667,7 +692,7 @@ function reserveBlock(item, offeredReq) {
     ${placeTimeFields('reserve', place, time)}
     ${noticeBlock()}
     <div class="actions">
-      <button class="btn btn-primary" type="submit" id="reserve-submit">${busyText('reserve', offeredReq ? 'Accept & reserve' : 'Reserve', 'Reserving…')}</button>
+      <button class="btn btn-primary btn-moment" type="submit" id="reserve-submit">${busyText('reserve', offeredReq ? 'Accept & reserve' : 'Reserve', 'Reserving…')}</button>
       <button class="btn btn-ghost" type="button" data-action="close-reserve">Cancel</button>
     </div>
   </form>`;
@@ -695,7 +720,10 @@ const meetGrid = (place, time) => html`<dl class="meet"><div><dt>Where</dt><dd>$
 function recipientBlock(item) {
   const res = item.reservation;
   return html`<h2 id="action-title">Your pickup code</h2>
-    <p class="code ${state.ui.revealCode === item.id ? 'reveal' : ''}"><span aria-hidden="true">${res.code}</span><span class="sr-only">${spaced(res.code)}</span></p>
+    <div class="ticket ${state.ui.revealCode === item.id ? 'reveal' : ''}">
+      <div class="ticket-main"><p class="ticket-label" aria-hidden="true">Show this at pickup</p><p class="code"><span aria-hidden="true">${res.code}</span><span class="sr-only">${spaced(res.code)}</span></p></div>
+      <span class="ticket-stub" aria-hidden="true">${LOOP_MARK}</span>
+    </div>
     <p class="center">Show this code to <strong>${firstName(item.ownerId)}</strong> at pickup.</p>
     ${meetGrid(res.place, res.time)}
     ${noticeBlock()}
@@ -716,7 +744,7 @@ function ownerReservedBlock(item) {
         <p id="code-help" class="${error ? 'error' : 'hint'}">${error || `${who} has a 4-digit code on their screen. Type it in when you meet.`}</p>
       </div>
       <div class="actions">
-        <button class="btn btn-primary" type="submit" id="confirm-submit">${busyText('confirm', 'Confirm handoff', 'Checking…')}</button>
+        <button class="btn btn-primary btn-moment" type="submit" id="confirm-submit">${busyText('confirm', 'Confirm handoff', 'Checking…')}</button>
         <button class="btn btn-ghost" type="button" id="release" data-action="release">${busyText('release', 'Release', 'Releasing…')}</button>
       </div>
     </form>
@@ -728,9 +756,9 @@ function collectedBlock(item) {
   state.seenCollected.add(item.id);
   const who = item.reservation?.personId;
   const label = who ? `Collected by ${who === state.me ? 'you' : firstName(who)}` : 'Collected';
-  return html`<div class="success ${animate ? 'animate' : ''}">
-      <span class="check-badge">${icon('check')}</span>
-      <div><h2 id="action-title">${label}</h2><p class="muted">${formatTime(stampFormat, item.collectedAt)}</p></div>
+  return html`<div class="success collected ${animate ? 'animate' : ''}">
+      <span class="stamp" aria-hidden="true">Kept in use</span>
+      <h2 id="action-title">${label}</h2><p class="muted">${formatTime(stampFormat, item.collectedAt)}</p>
     </div>
     <p class="muted thanks">Handed over and kept in use.</p>`;
 }
@@ -753,7 +781,7 @@ function markAllHeard() {
 function announceNew(t) {
   const fresh = t.messages.filter((m) => !heardIds.has(m.id));
   fresh.forEach((m) => heardIds.add(m.id));
-  const said = fresh.filter((m) => m.from !== state.me).map((m) => `${m.from === 'loop' ? 'Loop' : firstName(m.from)}: ${m.text}`);
+  const said = fresh.filter((m) => m.from !== state.me).map((m) => `${m.from === 'loop' ? 'Loop' : firstName(m.from)}: ${shownText(m).text}`);
   if (said.length) announce(said.join(' '));
 }
 
@@ -818,7 +846,21 @@ function actionsFor(t, m) {
   });
 }
 
-const LOOP_ORB = raw('<svg class="loop-orb" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="16" cy="16" r="15" fill="url(#brand-orb)"/><circle cx="16" cy="16" r="15" fill="url(#brand-glow)"/><ellipse cx="16" cy="8.4" rx="10" ry="5.6" fill="url(#brand-gloss)"/><circle cx="16" cy="16" r="14.5" fill="none" stroke="#fff" stroke-opacity=".55"/><g fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21.4 11.5A7 7 0 1 0 22.8 17.8"/><path d="M22.3 8.9 22 12.3 18.6 12"/></g></svg>');
+// Loop's voice: one hand-drawn ink stroke (same path as the top bar and favicon.svg).
+const LOOP_MARK = raw('<svg class="loop-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2 18.6c3.1.2 6.9-.9 9.7-3.6 3.9-3.7 5.3-10 1.3-11.4-3.6-1.3-6.1 2.6-5.2 7.1.9 4.6 5.6 8.6 14.2 7.3"/></svg>');
+
+/* SPEC4 §D: a message in another language shows my language's translation with a "translated" tag; the tag
+   toggles the original. Loop's messages follow the same rule. */
+const myLang = () => person(state.me).lang ?? 'en';
+function shownText(m) {
+  const tr = m.translations?.[myLang()];
+  const translated = typeof tr === 'string' && tr.trim() !== '' && tr !== m.text;
+  return { translated, text: translated && !state.ui.original.has(m.id) ? tr : m.text };
+}
+function trTag(m) {
+  const original = state.ui.original.has(m.id);
+  return html` <button type="button" class="tr ${original ? 'is-original' : ''}" id="tr-${m.id}" data-action="toggle-original" data-id="${m.id}"><span class="tr-tag">${original ? 'original' : 'translated'}</span><span class="sr-only">${original ? ', show the translation' : ', show the original'}</span></button>`;
+}
 
 function messageItem(t, m, actions) {
   const loop = m.from === 'loop';
@@ -827,14 +869,15 @@ function messageItem(t, m, actions) {
   if (loop) side = 'loop';
   else if (mine) side = 'mine';
   let face = avatar(person(m.from));
-  if (loop) face = LOOP_ORB;
+  if (loop) face = LOOP_MARK;
   else if (mine) face = '';
+  const shown = shownText(m);
   return html`<li class="msg msg-${side}">
     ${face}
     <div class="msg-body">
-      <p class="msg-meta"><strong>${loop ? 'Loop' : nameIn(m.from)}</strong> · <time datetime="${m.at}">${formatTime(clockFormat, m.at)}</time>${m.via === 'imessage' ? html` <span class="via">iMessage</span>` : ''}</p>
-      <p class="msg-text">${m.text}</p>
-      ${actions.length ? html`<div class="msg-actions">${actions.map((a) => html`<button class="btn btn-small ${PRIMARY_ACTIONS.includes(a.action) ? 'btn-primary' : 'btn-secondary'}" id="act-${a.action}" data-action="thread-action" data-thread="${t.id}" data-kind="${a.action}">${busyText(`thread:${a.action}`, a.label, 'Saving…')}</button>`)}</div>` : ''}
+      <p class="msg-meta"><strong>${loop ? 'Loop' : nameIn(m.from)}</strong> · <time datetime="${m.at}">${formatTime(clockFormat, m.at)}</time>${m.via === 'imessage' ? html` <span class="via">iMessage</span>` : ''}${shown.translated ? trTag(m) : ''}</p>
+      <p class="msg-text">${shown.text}</p>
+      ${actions.length ? html`<div class="msg-actions">${actions.map((a) => html`<button class="btn btn-small ${PRIMARY_ACTIONS.includes(a.action) ? 'btn-primary btn-moment' : 'btn-secondary'}" id="act-${a.action}" data-action="thread-action" data-thread="${t.id}" data-kind="${a.action}">${busyText(`thread:${a.action}`, a.label, 'Saving…')}</button>`)}</div>` : ''}
     </div>
   </li>`;
 }
@@ -867,10 +910,10 @@ function composer(t) {
 
 function giveView() {
   const g = state.give;
-  const head = html`${backLink()}<h1>Give something</h1>`;
+  const head = html`${backLink()}<h1>Give something</h1><p class="appear">You'll appear as ${person(state.me).name}.</p>`;
   if (state.giveMode === 'pile') return pileView(head);
   if (g.phase === 'pick') {
-    return html`<div class="stack">${head}${modeSwitch()}${g.error ? html`<p class="notice error">${g.error}</p>` : ''}${dropZone()}</div>`;
+    return html`<div class="stack">${head}${modeSwitch()}${g.error ? html`<p class="notice error">${g.error}</p>` : ''}${dropZone()}${textIn()}</div>`;
   }
   const busy = g.phase === 'uploading' || g.phase === 'drafting';
   let body = reviewCards(g);
@@ -995,7 +1038,7 @@ function matchCard(g) {
     ${m.reason ? html`<p class="muted">${m.reason}</p>` : ''}
     ${hint}${noticeBlock()}
     <div class="actions">
-      <button class="btn btn-primary" id="publish-offer" data-action="publish" data-offer="${req.id}" data-needs-check ${lock}>${busyText(`publish:${req.id}`, `Offer to ${who}`, 'Offering…')}</button>
+      <button class="btn btn-primary btn-moment" id="publish-offer" data-action="publish" data-offer="${req.id}" data-needs-check ${lock}>${busyText(`publish:${req.id}`, `Offer to ${who}`, 'Offering…')}</button>
       ${board('Post to board instead')}
     </div>
   </section>`;
@@ -1014,7 +1057,7 @@ function pileView(head) {
   const p = state.pile;
   if (p.phase === 'pick') {
     return html`<div class="stack">${head}${modeSwitch()}${p.error ? html`<p class="notice error">${p.error}</p>` : ''}
-      ${dropZone('Take or choose a photo of a pile', "Up to six things in one photo. Gemini outlines each one and drafts its listing. You check them, and nothing goes up until you say so.")}</div>`;
+      ${dropZone('Take or choose a photo of a pile', "Up to six things in one photo. Gemini outlines each one and drafts its listing. You check them, and nothing goes up until you say so.")}${textIn()}</div>`;
   }
   let body = pileReview(p);
   if (p.phase === 'sorting') body = draftingCard(p, 'Gemini is sorting the pile…');
@@ -1220,6 +1263,22 @@ function pickPerson(id) {
   state.focusTarget = 'h1';
   render();
   announce(`You're now ${person(id).name}.`);
+}
+
+/* SPEC4 §D: the server keeps the language; nothing is stored here. A 404 means the route isn't there yet: stay quiet. */
+async function setLang(lang) {
+  const me = state.me;
+  if (!me || myLang() === lang) return;
+  try {
+    await api('POST', `/api/people/${encodeURIComponent(me)}/lang`, { lang });
+  } catch (err) {
+    if (err.status !== 404) announce(err.message);
+    return;
+  }
+  await refresh();
+  render(); // the menu re-renders (and closes) with the new choice
+  $('#who-btn')?.focus();
+  announce(`Language: ${LANGS.find(([code]) => code === lang)?.[1] ?? lang}.`);
 }
 
 async function resetDemo() {
@@ -1748,6 +1807,12 @@ const actions = {
     render();
   },
   'thread-action': (el) => threadAction(el.dataset.thread, el.dataset.kind),
+  'set-lang': (el) => setLang(el.dataset.lang),
+  'toggle-original': (el) => {
+    const ids = state.ui.original;
+    if (!ids.delete(el.dataset.id)) ids.add(el.dataset.id);
+    render(); // the tag keeps focus: render() restores it by id
+  },
   'close-propose': () => {
     state.ui.propose = null;
     state.ui.notice = null;
@@ -1875,7 +1940,12 @@ addEventListener('hashchange', onRouteChange);
 render();
 api('GET', '/api/health').then((health) => {
   setMock(Boolean(health?.mock));
-  state.health = { imessage: health?.imessage === true, linkedPhones: Array.isArray(health?.linkedPhones) ? health.linkedPhones : [] };
-  if (state.health.imessage) requestRender();
+  state.health = {
+    imessage: health?.imessage === true,
+    linkedPhones: Array.isArray(health?.linkedPhones) ? health.linkedPhones : [],
+    lineNumber: typeof health?.lineNumber === 'string' && health.lineNumber ? health.lineNumber : null,
+  };
+  renderLine();
+  if (state.health.imessage || state.health.lineNumber) requestRender();
 }).catch(() => { /* no health route: rely on per-response flags */ });
 pollLoop();
