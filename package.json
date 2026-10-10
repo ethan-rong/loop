@@ -1,0 +1,20 @@
+{
+  "name": "loop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pass usable belongings to students who need them. HackNC 2026.",
+  "type": "module",
+  "scripts": {
+    "start": "node server/index.mjs",
+    "dev": "node server/index.mjs",
+    "seed": "node server/seed.mjs",
+    "e2e": "GEMINI_MOCK=1 PORT=3100 DATA_DIR=.tmp-e2e node scripts/e2e.mjs",
+    "photo-test": "node scripts/photo-test.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "express": "^5.3.0"
+  }
+}
