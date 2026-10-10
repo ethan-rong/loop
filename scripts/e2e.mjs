@@ -33,7 +33,7 @@ const meet = { place: 'Davis Library lobby', time: 'Today 5 pm' };
 
 async function mainLoop() {
   const seed = await ok(call('POST', '/api/reset'));
-  assert.deepEqual([seed.people.length, seed.requests.length, seed.items.length], [3, 3, 2]);
+  assert.deepEqual([seed.people.length, seed.requests.length, seed.items.length], [5, 5, 2]);
 
   // Jerry posts a need.
   const posted = await ok(call('POST', '/api/requests', { personId: 'jerry', title: 'Desk lamp for late reading', details: 'Mine broke.' }));
