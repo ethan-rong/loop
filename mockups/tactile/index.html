@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Loop mockup · Tactile</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<!-- Static design mockup. Five screens; the tabs (or #board #draft #thread #ticket #collected) pick one. No JS. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8.5C4 7.7 4.7 7 5.5 7H8l1.6-2h4.8L16 7h2.5c.8 0 1.5.7 1.5 1.5v9c0 .8-.7 1.5-1.5 1.5h-13c-.8 0-1.5-.7-1.5-1.5z"/><circle cx="12" cy="12.8" r="3.4"/></symbol>
+  <symbol id="i-ask" viewBox="0 0 24 24"><path d="M5 5h14c.6 0 1 .4 1 1v9c0 .6-.4 1-1 1h-8l-4 3v-3H5c-.6 0-1-.4-1-1V6c0-.6.4-1 1-1z"/><path d="M12 8v5M9.5 10.5h5"/></symbol>
+  <symbol id="i-sparkle" viewBox="0 0 24 24"><path fill="currentColor" stroke="none" d="M11 4c.6 4.3 3.7 7.4 8 8-4.3.6-7.4 3.7-8 8-.6-4.3-3.7-7.4-8-8 4.3-.6 7.4-3.7 8-8z"/><path fill="currentColor" stroke="none" d="M19 2l.7 2.3L22 5l-2.3.7L19 8l-.7-2.3L16 5l2.3-.7z"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 6.5C4 5.7 4.7 5 5.5 5h13c.8 0 1.5.7 1.5 1.5v8c0 .8-.7 1.5-1.5 1.5H10l-4 3v-3h-.5C4.7 16 4 15.3 4 14.5z"/></symbol>
+  <symbol id="loop-mark" viewBox="0 0 24 24"><path d="M2 18.6c3.1.2 6.9-.9 9.7-3.6 3.9-3.7 5.3-10 1.3-11.4-3.6-1.3-6.1 2.6-5.2 7.1.9 4.6 5.6 8.6 14.2 7.3"/></symbol>
+</svg>
+
+<nav class="mock-tabs" aria-label="Mockup screens">
+  <a href="#board">Board</a><a href="#draft">Draft</a><a href="#thread">Thread</a><a href="#ticket">Ticket</a><a href="#collected">Collected</a>
+</nav>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="#board">
+      <svg class="brand-mark" aria-hidden="true"><use href="#loop-mark"/></svg>
+      <svg class="brand-blob" viewBox="0 0 40 40" aria-hidden="true"><circle class="blob-ring" cx="20" cy="21" r="12.5"/><circle class="blob-eye" cx="15.5" cy="13" r="2.1"/><circle class="blob-eye" cx="24.5" cy="13" r="2.1"/><circle class="blob-cheek" cx="11" cy="17.5" r="1.8"/><circle class="blob-cheek" cx="29" cy="17.5" r="1.8"/></svg>
+      <span>Loop</span>
+    </a>
+    <div class="lang" role="group" aria-label="Language">
+      <button type="button" lang="en" aria-pressed="true">EN</button><button type="button" lang="zh" aria-pressed="false">中文</button><button type="button" lang="es" aria-pressed="false">ES</button>
+    </div>
+  </div>
+  <a class="ear" href="sms:+17739123997"><span class="ear-label">Text Loop</span><span aria-hidden="true"> · </span><span class="ear-num">(773) 912-3997</span></a>
+</header>
+
+<main class="screens">
+
+<!-- 1. BOARD -->
+<section class="screen" id="board" aria-labelledby="board-h">
+  <div class="wrap stack">
+    <section class="hero">
+      <h1 id="board-h">Pass it <span class="hl">on.</span></h1>
+      <p class="lead">Give what you don't need. Ask for what you do.</p>
+      <div class="actions">
+        <a class="btn btn-primary" href="#draft"><svg class="i" aria-hidden="true"><use href="#i-camera"/></svg>Give something</a>
+        <a class="btn btn-secondary" href="#board"><svg class="i" aria-hidden="true"><use href="#i-ask"/></svg>Ask for something</a>
+      </div>
+      <p class="privacy"><svg class="i" aria-hidden="true"><use href="#i-lock"/></svg><span>Nothing identifies you. The pickup code proves it's you at the handoff.</span></p>
+    </section>
+
+    <section class="block block-needs" aria-labelledby="h-needs">
+      <h2 class="section-title" id="h-needs">People need <span class="count" aria-label="4 open">4</span></h2>
+      <ul class="list">
+        <li class="need">
+          <h3>Desk fan, any size</h3>
+          <p class="need-details">Third floor, no AC. Anything that moves air.</p>
+          <div class="need-foot"><span class="chip chip-open">Open need</span><time datetime="PT25M">25 minutes ago</time></div>
+        </li>
+        <li class="need">
+          <h3 lang="zh">小电饭煲</h3>
+          <p class="need-details" lang="zh">两个人用的就够了，带内胆就行。</p>
+          <div class="need-foot"><span class="chip chip-open">Open need</span><time datetime="PT35M">35 minutes ago</time></div>
+        </li>
+        <li class="need">
+          <h3>Winter coat, size M-ish</h3>
+          <p class="need-details">First real winter for me. Anything warm works.</p>
+          <div class="need-foot"><span class="chip chip-open">Open need</span><time datetime="PT70M">1 hour ago</time></div>
+        </li>
+        <li class="need">
+          <h3>Reading lamp for my desk</h3>
+          <p class="need-details">Anything that clips or stands. My room light is awful.</p>
+          <div class="need-foot"><span class="chip chip-open">Open need</span><time datetime="PT95M">2 hours ago</time></div>
+        </li>
+      </ul>
+    </section>
+
+    <section class="block block-grabs" aria-labelledby="h-grabs">
+      <h2 class="section-title" id="h-grabs">Up for grabs <span class="count" aria-label="2 items">2</span></h2>
+      <ul class="grid">
+        <li><a class="item-card" href="#board">
+          <img class="thumb" src="../../public/seed/fan.jpg" alt="">
+          <div class="item-body"><h3 class="item-title">Small desk fan</h3><div class="chips"><span class="chip">Fair condition</span><span class="chip chip-available">Available</span></div></div>
+        </a></li>
+        <li><a class="item-card" href="#board">
+          <img class="thumb" src="../../public/seed/textbook.jpg" alt="">
+          <div class="item-body"><h3 class="item-title">Intro to Psychology textbook (8th ed.)</h3><div class="chips"><span class="chip">Fair condition</span><span class="chip chip-available">Available</span></div></div>
+        </a></li>
+      </ul>
+    </section>
+
+    <footer class="foot">
+      <a class="line-link" href="sms:+17739123997">Text Loop · (773) 912-3997</a>
+      <button class="btn btn-ghost btn-small" type="button">Reset demo</button>
+    </footer>
+  </div>
+</section>
+
+<!-- 2. DRAFT + MATCH -->
+<section class="screen" id="draft" aria-labelledby="draft-h">
+  <div class="wrap stack">
+    <a class="back" href="#board"><svg class="i" aria-hidden="true"><use href="#i-back"/></svg>Board</a>
+    <h1 id="draft-h" class="page-title">Give something</h1>
+    <figure class="photo-frame"><img src="../../public/seed/lamp.jpg" alt="Your photo"></figure>
+    <form class="card draft is-draft" aria-label="Listing details">
+      <p class="tag tag-ai"><svg class="i" aria-hidden="true"><use href="#i-sparkle"/></svg>Drafted by Gemini — check it</p>
+      <div class="field">
+        <label class="label" for="f-title">Title</label>
+        <input id="f-title" class="input" value="Adjustable desk lamp" maxlength="60" autocomplete="off">
+      </div>
+      <div class="field">
+        <label class="label" for="f-desc">Description</label>
+        <textarea id="f-desc" class="input" rows="3" maxlength="240">Desk lamp with a jointed arm, a round base, and a metal shade.</textarea>
+      </div>
+      <fieldset class="field">
+        <legend class="label">Condition</legend>
+        <div class="picks">
+          <label class="pick"><input type="radio" name="cond" value="good" checked><svg class="i tick" aria-hidden="true"><use href="#i-check"/></svg>Good</label>
+          <label class="pick"><input type="radio" name="cond" value="fair"><svg class="i tick" aria-hidden="true"><use href="#i-check"/></svg>Fair</label>
+          <label class="pick"><input type="radio" name="cond" value="worn"><svg class="i tick" aria-hidden="true"><use href="#i-check"/></svg>Worn</label>
+        </div>
+      </fieldset>
+      <div class="field">
+        <label class="label" for="f-cat">Category</label>
+        <select id="f-cat" class="input"><option>Furniture</option><option selected>Lighting</option><option>Kitchen</option><option>Textbooks</option><option>Electronics</option></select>
+      </div>
+      <div class="actions"><button type="button" class="btn btn-secondary approve"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Looks right</button></div>
+    </form>
+
+    <section class="card match" aria-labelledby="match-h">
+      <p class="tag tag-ai"><svg class="i" aria-hidden="true"><use href="#i-sparkle"/></svg>Gemini's suggestion</p>
+      <h2 id="match-h">Fits an open request: <em>Reading lamp for my desk</em></h2>
+      <p class="reason">This is a desk lamp, which is what the request asks for.</p>
+      <div class="actions">
+        <button class="btn btn-moment" type="button">Offer it to them</button>
+        <button class="btn btn-secondary" type="button">Post to board instead</button>
+      </div>
+    </section>
+  </div>
+</section>
+
+<!-- 3. HANDOFF THREAD (the giver's view) -->
+<section class="screen" id="thread" aria-labelledby="thread-h">
+  <div class="wrap stack">
+    <a class="back" href="#board"><svg class="i" aria-hidden="true"><use href="#i-back"/></svg>Board</a>
+    <div class="item-strip">
+      <img src="../../public/seed/lamp.jpg" alt="">
+      <div><p class="strip-title">Adjustable desk lamp</p><div class="chips"><span class="chip">Good condition</span><span class="chip chip-reserved">Reserved</span></div></div>
+    </div>
+
+    <section class="card plan" aria-labelledby="thread-h">
+      <div class="plan-head"><h2 id="thread-h">Pickup plan</h2><span class="chip chip-planning">Planning</span></div>
+      <figure class="map">
+        <svg viewBox="0 0 340 224" role="img" aria-labelledby="map-title">
+          <title id="map-title">Campus map. The suggested spot, Davis Library, is highlighted.</title>
+          <rect class="map-zone z1" x="6" y="40" width="150" height="38" rx="19"/>
+          <rect class="map-zone z2" x="14" y="86" width="318" height="62" rx="26"/>
+          <rect class="map-zone z3" x="10" y="158" width="324" height="58" rx="26"/>
+          <path class="map-road road-main" d="M0 26H340"/>
+          <path class="map-road" d="M150 26C150 60 146 82 150 112S168 168 226 176"/>
+          <path class="map-road" d="M22 118H322"/>
+          <path class="map-road" d="M62 190C120 192 190 196 300 200"/>
+          <path class="map-road" d="M276 118L300 200"/>
+          <path class="map-road" d="M34 46L96 106"/>
+          <text class="map-label map-street" x="334" y="18" text-anchor="end">Franklin St</text>
+          <circle class="map-spot" cx="34" cy="46" r="5"/><text class="map-label" x="44" y="50">Granville Towers</text>
+          <circle class="map-spot" cx="214" cy="100" r="5"/><text class="map-label" x="222" y="96">Student Union</text>
+          <circle class="map-spot" cx="282" cy="132" r="5"/><text class="map-label" x="272" y="146" text-anchor="end">Carmichael</text>
+          <circle class="map-spot" cx="226" cy="176" r="5"/><text class="map-label" x="235" y="172">Ehringhaus</text>
+          <circle class="map-spot" cx="70" cy="190" r="5"/><text class="map-label" x="80" y="182">Craige</text>
+          <circle class="map-spot" cx="300" cy="200" r="5"/><text class="map-label" x="290" y="216" text-anchor="end">Hinton James</text>
+          <g class="map-meet" transform="translate(96 106)">
+            <circle class="meet-halo" r="17"/>
+            <circle class="meet-dot" r="8"/>
+            <path class="meet-pin" d="M0 0C-4-8-11-12-11-20A11 11 0 1 1 11-20C11-12 4-8 0 0Z"/>
+            <circle class="meet-pin-eye" cy="-20" r="4"/>
+            <text class="map-label meet-label" x="-14" y="-24">Davis Library</text>
+            <rect class="meet-chip" x="-28" y="16" width="86" height="20" rx="10"/>
+            <text class="meet-chip-text" x="15" y="30" text-anchor="middle">Meet · 6 pm</text>
+          </g>
+        </svg>
+        <figcaption class="map-note">Public spots only. Nobody's room is on the map.</figcaption>
+      </figure>
+      <dl class="meet"><div><dt>Where</dt><dd>Davis Library lobby</dd></div><div><dt>When</dt><dd>Today 6 pm</dd></div></dl>
+      <ul class="agree" aria-label="Who agreed to this plan">
+        <li><span class="agree-dot" aria-hidden="true"></span><span><strong>You</strong> · not yet</span></li>
+        <li class="yes"><span class="agree-dot" aria-hidden="true"><svg class="i"><use href="#i-check"/></svg></span><span><strong>Taker</strong> · agreed</span></li>
+      </ul>
+      <p class="note"><svg class="i" aria-hidden="true"><use href="#i-chat"/></svg><span>The taker also gets this thread on iMessage.</span></p>
+    </section>
+
+    <ol class="msgs" aria-label="Conversation">
+      <li class="msg msg-loop">
+        <span class="disc disc-l" aria-hidden="true">L</span>
+        <div class="msg-body">
+          <p class="msg-meta"><strong>Loop</strong> · <time>5:12 pm</time></p>
+          <p class="msg-text">Someone reserved your Adjustable desk lamp. You're the one handing it over, so you pick: when and where works for you?</p>
+        </div>
+      </li>
+      <li class="msg msg-mine">
+        <div class="msg-body">
+          <p class="msg-meta"><strong>You</strong> · <time>5:14 pm</time></p>
+          <p class="msg-text">Hi! I'm free any time after 5 today.</p>
+        </div>
+      </li>
+      <li class="msg msg-theirs">
+        <span class="disc disc-t" aria-hidden="true">T</span>
+        <div class="msg-body">
+          <p class="msg-meta"><strong>Taker</strong> · <time>5:19 pm</time> <span class="via">iMessage</span> <button type="button" class="tr"><span class="tr-tag">translated</span><span class="sr-only">, show the original</span></button></p>
+          <p class="msg-text">Can we meet at the library at 6?</p>
+        </div>
+      </li>
+      <li class="msg msg-loop">
+        <span class="disc disc-l" aria-hidden="true">L</span>
+        <div class="msg-body">
+          <p class="msg-meta"><strong>Loop</strong> · <time>5:19 pm</time></p>
+          <p class="msg-text">New suggestion from the taker: Davis Library lobby, Today 6 pm. Does that work for you?</p>
+          <div class="msg-actions"><button class="btn btn-small btn-moment" type="button">Works for me</button><button class="btn btn-small btn-secondary" type="button">Suggest another time</button></div>
+        </div>
+      </li>
+    </ol>
+
+    <form class="composer" aria-label="Message">
+      <label class="sr-only" for="composer">Message the taker and Loop</label>
+      <textarea id="composer" class="input composer-input" rows="1" maxlength="300" placeholder="Message the thread…"></textarea>
+      <button class="btn btn-primary composer-send" type="button">Send</button>
+    </form>
+  </div>
+</section>
+
+<!-- 4. PICKUP CODE (the taker's view) -->
+<section class="screen" id="ticket" aria-labelledby="ticket-h">
+  <div class="wrap stack">
+    <a class="back" href="#board"><svg class="i" aria-hidden="true"><use href="#i-back"/></svg>Board</a>
+    <figure class="photo-frame detail-photo"><img src="../../public/seed/lamp.jpg" alt="Photo of Adjustable desk lamp"></figure>
+    <section class="card detail-head">
+      <div class="chips"><span class="chip">Good condition</span><span class="chip chip-reserved">Reserved</span></div>
+      <h1 class="item-h1">Adjustable desk lamp</h1>
+      <p class="desc">Desk lamp with a jointed arm, a round base, and a metal shade.</p>
+      <p class="provenance"><svg class="i" aria-hidden="true"><use href="#i-sparkle"/></svg>Gemini drafted this listing. The giver checked it.</p>
+    </section>
+    <ol class="timeline" aria-label="Progress">
+      <li class="reached done"><span class="step-dot"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg></span><span class="step-label">Posted</span><span class="step-time">5:02 pm</span></li>
+      <li class="reached current" aria-current="step"><span class="step-dot">2</span><span class="step-label">Reserved</span><span class="step-time">5:10 pm</span></li>
+      <li><span class="step-dot">3</span><span class="step-label">Collected<span class="sr-only">, not yet</span></span><span class="step-time">&nbsp;</span></li>
+    </ol>
+    <section class="card action" aria-labelledby="ticket-h">
+      <h2 id="ticket-h">Your pickup code</h2>
+      <div class="ticket">
+        <div class="ticket-main">
+          <p class="ticket-label" aria-hidden="true">Show this at pickup</p>
+          <p class="code"><span class="digits" aria-hidden="true"><span>8</span><span>0</span><span>9</span><span>1</span></span><span class="sr-only">8 0 9 1</span></p>
+        </div>
+        <div class="ticket-stub" aria-hidden="true"><svg class="stub-mark"><use href="#loop-mark"/></svg><span>Loop handoff</span></div>
+      </div>
+      <p class="center">Show this code to <strong>the giver</strong> at pickup.</p>
+      <dl class="meet"><div><dt>Where</dt><dd>Davis Library lobby</dd></div><div><dt>When</dt><dd>Today 6 pm</dd></div></dl>
+      <div class="actions"><button class="btn btn-secondary" type="button">Cancel reservation</button></div>
+    </section>
+  </div>
+</section>
+
+<!-- 5. COLLECTED (the giver's view) -->
+<section class="screen" id="collected" aria-labelledby="collected-h">
+  <div class="wrap stack">
+    <a class="back" href="#board"><svg class="i" aria-hidden="true"><use href="#i-back"/></svg>Board</a>
+    <figure class="photo-frame detail-photo"><img src="../../public/seed/lamp.jpg" alt="Photo of Adjustable desk lamp"></figure>
+    <section class="card detail-head">
+      <div class="chips"><span class="chip">Good condition</span><span class="chip chip-collected">Collected</span></div>
+      <h1 class="item-h1">Adjustable desk lamp</h1>
+      <p class="desc">Desk lamp with a jointed arm, a round base, and a metal shade.</p>
+    </section>
+    <ol class="timeline" aria-label="Progress">
+      <li class="reached done"><span class="step-dot"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg></span><span class="step-label">Posted</span><span class="step-time">5:02 pm</span></li>
+      <li class="reached done"><span class="step-dot"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg></span><span class="step-label">Reserved</span><span class="step-time">5:10 pm</span></li>
+      <li class="reached done current final" aria-current="step"><span class="step-dot"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg></span><span class="step-label">Collected</span><span class="step-time">6:04 pm</span></li>
+    </ol>
+    <section class="card action success" aria-labelledby="collected-h2">
+      <span class="pop" aria-hidden="true"><svg class="i"><use href="#i-check"/></svg></span>
+      <span class="stamp" aria-hidden="true">Kept in use</span>
+      <h2 id="collected-h2">Collected</h2>
+      <p class="when">Oct 10, 6:04 pm</p>
+      <p class="thanks">Handed over and kept in use.</p>
+    </section>
+    <p class="closed-note">This conversation is closed.</p>
+  </div>
+</section>
+
+</main>
+</body>
+</html>
