@@ -34,3 +34,12 @@ Same v4 language, far less of it. Rules:
 - Chrome: borders 1.5 px (3 px only on the hero card / ticket), hard shadows 3 px (6 px only on ticket and stamp card), chips 11 px mono with 1 px border and no rotation except stickers on the ticket/map, Loop's cards keep the lime title bar but lighter (28 px tall).
 - Item page: collapse the "Gemini drafted this listing…" line into a small mono footnote; timeline stays; the Hand it over / ticket card first, plan card second, thread third; composer stays at the bottom.
 - Keep: contrast targets, 44 px targets, reduced motion, all copy (except the moved/removed decorations), all behaviour.
+
+## Hairline figures (user, 18:40 EDT: "use some of this and give me a glimpse at the UI")
+Library: `@lucasmarkes/hairline` 0.5.0 (MIT, installed; ESM `dist/index.js` 212 KB, no deps). Vendor it: copy `node_modules/@lucasmarkes/hairline/dist/index.js` to `public/vendor/hairline.js` (+ its LICENSE as `public/vendor/hairline-LICENSE.txt`) and load it with a dynamic `import('/vendor/hairline.js')` only when a page that uses a figure renders; no network at runtime.
+Where (one figure per page, ink on cream, never decoration everywhere):
+- Board hero: **riffle** (a tray of cards that stands up under the pointer = posts on a board), right of the title on ≥ 700 px, under the title on phones, max 220 px tall, `intensity` 0.45, `play: true`, `theme: "light"`, CSS vars: `--hairline-plate` = cream `#f6f1e3`, strokes ink `#0b0d17`, edge/mid/lo as lighter inks.
+- Post page: **phone** (opens in layers) beside "No app? Text a photo to Loop at …", 160 px, intensity 0.4.
+- Empty states (no items / no needs): **basket**, 140 px, muted.
+- Respect reduced motion (the library does), label each figure (`label`), pause off-screen (library default). Do not add figures to item pages, threads, tickets or the pile review.
+Credit Hairline in README attribution (MIT, Lucas Marques).

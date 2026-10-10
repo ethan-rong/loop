@@ -18,6 +18,7 @@
     "node": ">=22"
   },
   "dependencies": {
+    "@lucasmarkes/hairline": "^0.5.0",
     "express": "^5.3.0",
     "spectrum-ts": "^12.10.1"
   }
