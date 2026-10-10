@@ -19,3 +19,6 @@ User chose direction 2 (poster) "but keep it the light background". Reference: `
 
 ## Out of scope
 Dark mode (the user wants light), new copy, new behaviour.
+
+## Logo (user pick, 17:30 EDT): Knot
+Use `brand/knot.svg` (64-unit, currentColor) as the mark: top bar at cap height of the wordmark (12 px gap at 26 px, scale with em), Loop's message disc (knot in ink on lime), the ticket's corner mark, and `brand/favicon-knot.svg` copied to `public/favicon.svg`. Remove the hand-drawn loop mark from v3. The wordmark "Loop" is Space Grotesk 700 in v4.
