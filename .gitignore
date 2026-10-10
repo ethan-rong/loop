@@ -9,3 +9,10 @@ npm-debug.log
 demo-photos/
 mockups/shots/
 .tmp*
+film/out/
+film/assets/
+film/footage/
+film/**/*.webm
+film/**/*.mp4
+film/**/*.mp3
+film/**/*.aiff
