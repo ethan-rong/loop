@@ -35,13 +35,16 @@ Rehearse with a timer three times. Cut words, not steps.
 
 ## How it works (for the two minutes of questions)
 
-- **Flow:** photo → client resizes to ≤1024 px JPEG → `POST /api/items/draft` → server stores the photo, calls Gemini `generateContent` with the image + the open requests + a JSON schema → server validates (known request IDs only, string clamps, blocked categories) → browser shows an editable draft → owner publishes or offers → recipient reserves (server issues 4-digit code) → owner confirms with code → server flips item to `collected` and request to `fulfilled`.
-- **State machine:** `available → reserved → collected`, plus `offered` (to one person) and `withdrawn`. Illegal transitions return 409/403; nothing is mutated in place; `version` increments so both windows re-render.
+- **Flow:** photo → client resizes to ≤1024 px JPEG → `POST /api/items/draft` (or `/api/items/pile` for a pile) → server stores the photo, calls Gemini `generateContent` with the image + the open requests + a JSON schema → server validates (known request IDs only, reason written before the id, string clamps, blocked categories) → editable draft → owner publishes or offers → recipient reserves → **handoff thread** opens with Loop as coordinator → both confirm a plan → reminder → "I'm here" → giver enters (or texts) the 4-digit code → `collected` + `fulfilled`.
+- **Two state machines, both pure functions on a JSON store:** items `available → offered → reserved → collected` (plus `withdrawn`); threads `planning → set → meeting → done | cancelled`. Illegal moves return 409/403; `version` increments so both windows re-render by polling.
+- **The coordinator:** button taps change state without any AI call. Typed messages go to Gemini with the thread context and the current New York time, and come back as one action (`propose | accept | arrived | cancel | chat | decline`) plus a one-sentence reply. The server validates the action (can't accept on someone's behalf, can't say "arrived" before the plan is set, times must be in the future) and applies it through the same transitions as the buttons. The giver's availability has priority by rule in the prompt. Loop never sees or sends the pickup code to the giver.
+- **Pile detection:** one call returns up to six objects with boxes in 0–1000 units; the client crops each box (plus 6 %) from the original photo on a canvas and lists each as its own item. A request can be matched by only one item.
+- **iMessage:** Photon's Spectrum on a shared line forwards thread messages to linked phones and routes replies back into the same thread (text-a-photo giving and code-by-text are described in SPEC3.md; say exactly what was verified live).
 - **Why Gemini only drafts:** condition claims affect a stranger's decision; the owner is accountable, so the model's text stays a dashed draft until a person edits or approves it.
-- **What's checked:** three consecutive scripted end-to-end runs (mock AI, no quota use) + two real-photo calls (lamp → matched the lamp request; unrelated object → no match). Latency and token counts in README.
-- **Limits, said plainly:** no accounts (demo identities), single-server JSON store, no notifications, image accuracy only spot-checked, no real users yet, no environmental impact measured.
-- **What I built vs. reused:** everything in `server/` and `public/` was written during the event with AI coding assistance that I reviewed and tested; Express and Nunito are third-party; seed photos are Wikimedia Commons (credited).
-- **Frutiger Aero fit:** reuse is the sustainability substance; the sky/mint glass look is the aesthetic. Both are needed for that track.
+- **What's checked:** scripted end-to-end runs (items ×3, threads ×3, mock AI) + real-photo calls (lamp → matched; fan → no match and honest "dusty"; pile → 6 items, 1 correct match, 5 honest no-matches) + full UI loop with the live model.
+- **Limits, said plainly:** no accounts (demo identities), single-server JSON store, free-tier iMessage line (10 people, must text the line once), image accuracy spot-checked only, no real users yet, no environmental impact measured.
+- **What I built vs. reused:** everything in `server/` and `public/` was written during the event with AI coding assistance that I directed, reviewed and tested; Express, spectrum-ts and Nunito are third-party; seed photos are Wikimedia Commons (credited).
+- **Frutiger Aero fit:** reuse is the sustainability substance; the sky ribbon, glossy orb and code badge are the aesthetic accent on a modern base.
 
 ## Backup plan
 
