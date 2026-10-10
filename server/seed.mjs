@@ -22,14 +22,14 @@ export function resetToSeed(dataDir, prevVersion = 0) {
   });
   const db = {
     version: prevVersion + 1,
-    // Privacy by design: Loop shows a nickname and a coarse campus area, never a real name, dorm or number.
-    // Demo mapping (for the operator only): ethan = Heron (the phone), jerry = Fox (web recipient), jack = Kite, tom = Owl (zh), thomas = Wolf.
+    // SPEC5: no names, nicknames or areas. A person is an opaque id (internal, never shown) and a thread language.
+    // Demo mapping (operator only): ethan = the phone (PHONE_ETHAN), jerry = the web taker, tom reads Chinese.
     people: [
-      { id: 'ethan', name: 'Heron', spot: 'South Campus' },
-      { id: 'jerry', name: 'Fox', spot: 'South Campus' },
-      { id: 'jack', name: 'Kite', spot: 'Franklin St area' },
-      { id: 'tom', name: 'Owl', spot: 'South Campus', lang: 'zh' },
-      { id: 'thomas', name: 'Wolf', spot: 'Mid Campus' },
+      { id: 'ethan', lang: 'en' },
+      { id: 'jerry', lang: 'en' },
+      { id: 'jack', lang: 'en' },
+      { id: 'tom', lang: 'zh' },
+      { id: 'thomas', lang: 'en' },
     ],
     requests: [
       request('r_lamp', 'jerry', 'Reading lamp for my desk', 'Anything that clips or stands. My room light is awful.', 95),

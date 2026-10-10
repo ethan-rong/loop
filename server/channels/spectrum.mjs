@@ -246,19 +246,18 @@ export function sendToPerson(personId, text) {
   return deliver(personId, text);
 }
 
-const firstNameIn = (db, id) => db.people.find((p) => p.id === id)?.name.split(' ')[0] ?? 'Someone';
 const langIn = (db, id) => db.people.find((p) => p.id === id)?.lang ?? 'en';
 
-// One thread message on one participant's phone, prefixed with the sender; body = its text or a translation of it.
+// One thread message on one participant's phone, prefixed with the sender: "Loop", or the other person's role
+// (SPEC5: "Giver:" / "Taker:", never a name); body = its text or a translation of it.
 // null when it isn't for them: their own, or addressed to the other person (forPersonId). Buttons meant for them
-// become one trailing hint line; when the recipient arrives, the owner is asked to text the code instead of typing it
+// become one trailing hint line; when the taker arrives, the giver is asked to text the code instead of typing it
 // on the item page (SPEC3 §2).
-function phoneText(db, thread, m, personId, body) {
+function phoneText(thread, m, personId, body) {
   if (personId === m.from || (m.forPersonId && m.forPersonId !== personId)) return null;
-  const sender = m.from === 'loop' ? 'Loop' : firstNameIn(db, m.from);
+  const sender = m.from === 'loop' ? 'Loop' : m.from === thread.ownerId ? 'Giver' : 'Taker';
   if (personId === thread.ownerId && m.actions.some((a) => a.action === 'enter_code')) {
-    const recipient = firstNameIn(db, thread.recipientId);
-    return `${sender}: ${recipient} is at ${thread.plan.place}. Ask ${recipient} for the 4-digit code and text it to me.`;
+    return `${sender}: The taker is at ${thread.plan.place}. Ask for the 4-digit code and text it to me.`;
   }
   const replyable = m.actions.some((a) => a.action !== 'enter_code' && (a.forPersonId ?? m.forPersonId ?? personId) === personId);
   return `${sender}: ${body}${replyable ? `\n${HINT}` : ''}`;
@@ -278,7 +277,7 @@ export function threadTexts(before, after, translating = []) {
     for (const m of thread.messages.slice(seen.get(thread.id) ?? 0)) {
       for (const personId of [thread.ownerId, thread.recipientId]) {
         if (later.has(`${m.id} ${langIn(after, personId)}`)) continue;
-        const text = phoneText(after, thread, m, personId, m.text);
+        const text = phoneText(thread, m, personId, m.text);
         if (text) texts.push({ personId, text });
       }
     }
@@ -298,7 +297,7 @@ export function translationTexts(after, job, translated) {
   if (!m) return [];
   return [thread.ownerId, thread.recipientId]
     .filter((personId) => langIn(after, personId) === job.lang)
-    .map((personId) => ({ personId, text: phoneText(after, thread, m, personId, translated ?? m.text) }))
+    .map((personId) => ({ personId, text: phoneText(thread, m, personId, translated ?? m.text) }))
     .filter((t) => t.text);
 }
 

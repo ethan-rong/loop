@@ -98,11 +98,20 @@ app.get('/api/health', (req, res) => {
     translate: translateOn(),
   });
 });
-app.get('/api/state', (req, res) => res.json(db));
+// SPEC5: people go out as {id, lang} only. Names never leave the server, even from an older db.json that still has them.
+const publicPerson = ({ id, lang }) => ({ id, lang: lang ?? 'en' });
+const publicDb = (d) => ({ ...d, people: d.people.map(publicPerson) });
+
+app.get('/api/state', (req, res) => res.json(publicDb(db)));
+
+// SPEC5, demo only (no auth): a new browser tab gets an anonymous person {id, lang: 'en'}.
+app.post('/api/people', (req, res) => {
+  res.json(publicPerson(commit(store.createPerson(db)).person));
+});
 
 // SPEC4 §C, demo only (no auth): a person's thread language, en | zh | es.
 app.post('/api/people/:id/lang', (req, res) => {
-  res.json(commit(store.setPersonLang(db, req.params.id, body(req).lang)).person);
+  res.json(publicPerson(commit(store.setPersonLang(db, req.params.id, body(req).lang)).person));
 });
 
 app.post('/api/requests', async (req, res) => {
@@ -189,8 +198,8 @@ app.post('/api/items/:id/withdraw', (req, res) => {
 });
 
 app.post('/api/reset', (req, res) => {
-  db = resetToSeed(DATA_DIR, db.version);
-  res.json(db);
+  db = resetToSeed(DATA_DIR, db.version); // SPEC5: also drops every person POST /api/people added
+  res.json(publicDb(db));
 });
 
 // Pile photo (SPEC2 §2, Lane E): POST /api/items/pile and POST /api/photos.
@@ -206,7 +215,7 @@ const NO_PICKUP_REPLY = 'You have no active pickup right now.';
 async function converse(threadId, personId, said, via) {
   const { thread } = commit(store.postHumanMessage(db, threadId, { personId, text: said, via }));
   const item = db.items.find((i) => i.id === thread.itemId);
-  const { reply, action, aiError } = await coordinate({ thread, item, people: db.people, speakerId: personId, text: said, now: new Date() });
+  const { reply, action, aiError } = await coordinate({ thread, item, speakerId: personId, text: said, now: new Date() });
   // Gemini can take seconds: re-check against the current state, not the snapshot it saw.
   if (!store.isOpenThread(store.getThread(db, threadId))) return store.getThread(db, threadId);
   try {

@@ -41,7 +41,15 @@ function find(list, id, what) {
   return found;
 }
 export const getPerson = (db, id) => find(db.people, id, 'person');
-const firstName = (db, id) => db.people.find((p) => p.id === id)?.name.split(' ')[0] ?? 'Someone';
+
+// SPEC5: nobody has a name. In a pickup the two people are "the giver" and "the taker" ("you" to themselves);
+// anywhere else a person is "someone".
+export const who = (personId, { viewer = null, thread = null } = {}) => {
+  if (personId && personId === viewer) return 'you';
+  if (personId && personId === thread?.ownerId) return 'the giver';
+  if (personId && personId === thread?.recipientId) return 'the taker';
+  return 'someone';
+};
 
 // Bilingual threads (SPEC4 §C): a person may carry `lang` (absent = English).
 export const LANGUAGES = { en: 'English', zh: 'Simplified Chinese', es: 'Spanish' };
@@ -54,6 +62,15 @@ export function setPersonLang(db, id, lang) {
   return { db: next(db, { people: db.people.map((p) => (p.id === id ? updated : p)) }), person: updated };
 }
 
+// SPEC5: an anonymous person (a new browser tab) is an opaque id and a thread language, nothing else.
+// ponytail: a flat cap instead of a rate limit; reset clears the extras.
+const MAX_PEOPLE = 50;
+export function createPerson(db) {
+  if (db.people.length >= MAX_PEOPLE) throw new ApiError(429, 'too_many_people', 'This demo is full. Reset it to make room.');
+  const person = { id: newId('p'), lang: 'en' };
+  return { db: next(db, { people: [...db.people, person] }), person };
+}
+
 const putItem = (db, item) => db.items.map((x) => (x.id === item.id ? item : x));
 const patchRequest = (requests, id, patch) => (id ? requests.map((r) => (r.id === id ? { ...r, ...patch } : r)) : requests);
 const threadsOf = (db) => db.threads ?? []; // older db.json files have no threads key
@@ -63,9 +80,7 @@ const reopen = { status: 'open', matchedItemId: null };
 
 function claimedError(db, item) {
   const holder = item.reservation?.personId ?? db.requests.find((r) => r.id === item.offeredToRequestId)?.personId;
-  return new ApiError(409, 'already_claimed', holder
-    ? `${firstName(db, holder)} got there first.`
-    : `${firstName(db, item.ownerId)} took this back.`);
+  return new ApiError(409, 'already_claimed', holder ? 'Someone got there first.' : 'The giver took this back.');
 }
 
 export function createRequest(db, { personId, title, details }) {
@@ -87,7 +102,7 @@ export function createItem(db, { ownerId, photo, title, description, condition, 
   getPerson(db, ownerId);
   const offer = offerToRequestId ? find(db.requests, offerToRequestId, 'request') : null;
   if (offer?.personId === ownerId) throw new ApiError(400, 'own_request', "You can't offer something to your own request.");
-  if (offer && offer.status !== 'open') throw new ApiError(409, 'request_not_open', `${firstName(db, offer.personId)}'s request already has a match.`);
+  if (offer && offer.status !== 'open') throw new ApiError(409, 'request_not_open', 'That request already has a match.');
   const item = {
     id: newId('i'), ownerId, photo, title, description, condition, category, aiDraft,
     status: offer ? 'offered' : 'available', offeredToRequestId: offer?.id ?? null,
@@ -121,8 +136,7 @@ export function reserveItem(db, id, { personId, requestId, place = null, time = 
     ...item, status: 'reserved', offeredToRequestId: null,
     reservation: { personId, requestId: link, place, time, code: newCode(), at: now() },
   };
-  const owner = firstName(db, item.ownerId), recipient = firstName(db, personId);
-  const hello = `Hi ${owner} — ${recipient} reserved your ${item.title}`;
+  const hello = `Someone reserved your ${item.title}`;
   const thread = {
     id: newId('t'), itemId: item.id, ownerId: item.ownerId, recipientId: personId, status: 'planning',
     plan: place
@@ -133,7 +147,7 @@ export function reserveItem(db, id, { personId, requestId, place = null, time = 
       ? [message('loop', `${hello} and suggested ${place}, ${time}. Does that work?`, { actions: PLAN_ACTIONS, forPersonId: item.ownerId })]
       : [
         message('loop', `${hello}. You're the one handing it over, so you pick: when and where works for you?`, { actions: PICK_ACTIONS, forPersonId: item.ownerId }),
-        message('loop', `${recipient}, ${owner} will suggest a time and place; you can reply here too.`, { forPersonId: personId }),
+        message('loop', 'The giver will suggest a time and place; you can reply here too.', { forPersonId: personId }),
       ],
   };
   return { db: next(db, { items: putItem(db, reserved), requests, threads: [...threadsOf(db), thread] }), item: reserved, thread };
@@ -155,7 +169,7 @@ export function releaseItem(db, id, personId, say = null) {
   getPerson(db, personId);
   if (item.status !== 'reserved') throw new ApiError(409, 'not_reserved', 'This is not reserved right now.');
   if (personId !== item.ownerId && personId !== item.reservation.personId) {
-    throw new ApiError(403, 'not_allowed', 'Only the owner or the person who reserved it can cancel.');
+    throw new ApiError(403, 'not_allowed', 'Only the giver or the taker can cancel.');
   }
   const available = { ...item, status: 'available', reservation: null };
   const requests = patchRequest(db.requests, item.reservation.requestId, reopen);
@@ -167,11 +181,10 @@ export function releaseItem(db, id, personId, say = null) {
 export function confirmItem(db, id, personId, code) {
   const item = find(db.items, id, 'item');
   getPerson(db, personId);
-  if (item.ownerId !== personId) throw new ApiError(403, 'not_owner', 'Only the owner can confirm the handoff.');
+  if (item.ownerId !== personId) throw new ApiError(403, 'not_owner', 'Only the giver can confirm the handoff.');
   if (item.status !== 'reserved') throw new ApiError(409, 'not_reserved', 'This is not reserved right now.');
   if (code !== item.reservation.code) {
-    const name = firstName(db, item.reservation.personId);
-    throw new ApiError(403, 'wrong_code', `That code doesn't match. Ask ${name} to show the code on their screen.`);
+    throw new ApiError(403, 'wrong_code', "That code doesn't match. Ask the taker to show the code on their screen.");
   }
   const collected = { ...item, status: 'collected', collectedAt: now() };
   const requests = patchRequest(db.requests, item.reservation.requestId, { status: 'fulfilled' });
@@ -182,7 +195,7 @@ export function confirmItem(db, id, personId, code) {
 export function withdrawItem(db, id, personId) {
   const item = find(db.items, id, 'item');
   getPerson(db, personId);
-  if (item.ownerId !== personId) throw new ApiError(403, 'not_owner', 'Only the owner can take this back.');
+  if (item.ownerId !== personId) throw new ApiError(403, 'not_owner', 'Only the giver can take this back.');
   if (item.status !== 'available' && item.status !== 'offered') {
     throw new ApiError(409, 'cant_withdraw', item.status === 'reserved'
       ? 'Cancel the reservation before taking this back.'
@@ -261,7 +274,7 @@ export function proposePlan(db, id, { personId, place = null, time = null, timeI
   if (!plan.place) throw new ApiError(400, 'missing_field', 'Add a place too, like Davis Library lobby.');
   if (!plan.time) throw new ApiError(400, 'missing_field', 'Add a time too, like Today 5 pm.');
   const other = otherOf(thread, personId);
-  const text = say || `New suggestion from ${firstName(db, personId)}: ${plan.place}, ${plan.time}. ${firstName(db, other)}, does that work?`;
+  const text = say || `New suggestion from ${who(personId, { thread })}: ${plan.place}, ${plan.time}. Does that work for you?`;
   const updated = withMessage(thread, message('loop', text, { actions: PLAN_ACTIONS, forPersonId: other }),
     { status: 'planning', plan, remindAt: null, reminded: false });
   const item = db.items.find((i) => i.id === thread.itemId);
@@ -289,8 +302,7 @@ export function acceptPlan(db, id, { personId, say = null }) {
   const demo = reminderDemoSeconds();
   const due = Date.parse(plan.timeISO) - REMIND_LEAD_MS; // NaN without timeISO -> no reminder
   const remindAt = demo ? new Date(Date.now() + demo * 1000).toISOString() : due > Date.now() ? new Date(due).toISOString() : null;
-  const recipient = firstName(db, thread.recipientId);
-  const text = say || `Pickup set: ${plan.place}, ${plan.time}.${remindAt ? " I'll remind you both 30 minutes before." : ''} ${recipient}, tap 'I'm here' when you arrive.`;
+  const text = say || `Pickup set: ${plan.place}, ${plan.time}.${remindAt ? " I'll remind you both 30 minutes before." : ''} Taker, tap 'I'm here' when you arrive.`;
   const actions = [{ label: "I'm here", action: 'arrived', forPersonId: thread.recipientId }, { label: "Can't make it", action: 'cancel' }];
   return saved(db, withMessage(thread, message('loop', text, { actions }),
     { status: 'set', plan: { ...plan, confirmedBy }, remindAt, reminded: false }));
@@ -298,13 +310,11 @@ export function acceptPlan(db, id, { personId, say = null }) {
 
 export function markArrived(db, id, { personId, say = null }) {
   const thread = participantThread(db, id, personId);
-  const recipient = firstName(db, thread.recipientId);
-  if (personId !== thread.recipientId) throw new ApiError(403, 'not_recipient', `Only ${recipient} can say they've arrived.`);
+  if (personId !== thread.recipientId) throw new ApiError(403, 'not_recipient', "Only the taker can say they've arrived.");
   if (thread.status !== 'set') {
     throw new ApiError(409, 'not_set', thread.status === 'meeting' ? "You're already marked as here." : 'Agree on a time and place first.');
   }
-  const owner = firstName(db, thread.ownerId);
-  const text = say || `${recipient} is at ${thread.plan.place}. ${owner}, ask ${recipient} for the 4-digit code and type it on the item page.`;
+  const text = say || `The taker is at ${thread.plan.place}. Ask for the 4-digit code and type it on the item page.`;
   // enter_code is client-side only: it opens the code input on the item page.
   return saved(db, withMessage(thread, message('loop', text, { actions: [{ label: 'Enter code', action: 'enter_code' }], forPersonId: thread.ownerId }),
     { status: 'meeting' }));

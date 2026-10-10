@@ -30,19 +30,29 @@ const state = () => ok(call('GET', '/api/state'));
 const requestStatus = async (id) => (await state()).requests.find((r) => r.id === id).status;
 const draftLamp = () => ok(call('POST', '/api/items/draft', { ownerId: 'ethan', imageBase64: LAMP, mimeType: 'image/jpeg' }));
 const meet = { place: 'Davis Library lobby', time: 'Today 5 pm' };
+const MAX_PEOPLE = 50;
+
+// SPEC5: no "name" or "spot" key anywhere in what the server sends, at any depth (the replacer visits every key).
+function noNames(data) {
+  JSON.stringify(data, (key, value) => {
+    assert.ok(key !== 'name' && key !== 'spot', `the server sent a "${key}" key`);
+    return value;
+  });
+  return data;
+}
 
 async function mainLoop() {
   const seed = await ok(call('POST', '/api/reset'));
   assert.deepEqual([seed.people.length, seed.requests.length, seed.items.length], [5, 5, 2]);
 
-  // Fox posts a need.
+  // jerry posts a need.
   const posted = await ok(call('POST', '/api/requests', { personId: 'jerry', title: 'Desk lamp for late reading', details: 'Mine broke.' }));
   const need = posted.request;
   assert.equal(need.status, 'open');
   assert.ok(Array.isArray(posted.suggestions));
   assert.equal(posted.mock, true);
 
-  // Heron photographs a lamp: photo stored, mock draft returned, nothing published.
+  // ethan photographs a lamp: photo stored, mock draft returned, nothing published.
   const drafted = await draftLamp();
   assert.equal(drafted.aiError, null);
   assert.equal(drafted.mock, true);
@@ -51,7 +61,7 @@ async function mainLoop() {
   assert.ok(lampNeeds.includes(drafted.draft.match.requestId), 'draft matched an open lamp request');
   assert.equal((await fetch(BASE + drafted.photo)).status, 200, 'photo is served');
 
-  // Heron posts it, offered to Fox's need.
+  // ethan posts it, offered to jerry's need.
   const { title, description, condition, category } = drafted.draft;
   const item = await ok(call('POST', '/api/items', {
     ownerId: 'ethan', photoId: drafted.photoId, title, description, condition, category, aiDraft: drafted.draft, offerToRequestId: need.id,
@@ -59,7 +69,7 @@ async function mainLoop() {
   assert.equal(item.status, 'offered');
   assert.equal(await requestStatus(need.id), 'matched');
 
-  // Fox accepts and reserves.
+  // jerry accepts and reserves.
   const reserved = await ok(call('POST', `/api/items/${item.id}/reserve`, { personId: 'jerry', ...meet }));
   assert.equal(reserved.status, 'reserved');
   assert.match(reserved.reservation.code, /^\d{4}$/);
@@ -72,22 +82,24 @@ async function mainLoop() {
   const collected = await ok(call('POST', `/api/items/${item.id}/confirm`, { personId: 'ethan', code }));
   assert.equal(collected.status, 'collected');
   assert.ok(collected.collectedAt);
-  const after = await state();
+  const after = noNames(await state());
   assert.equal(after.requests.find((r) => r.id === need.id).status, 'fulfilled');
   assert.ok(after.version > seed.version, 'version went up');
 
   // Reserving a collected item conflicts.
-  await expect(call('POST', `/api/items/${item.id}/reserve`, { personId: 'jack', ...meet }), 409, 'already_claimed');
+  const late = await expect(call('POST', `/api/items/${item.id}/reserve`, { personId: 'jack', ...meet }), 409, 'already_claimed');
+  assert.equal(late.message, 'Someone got there first.');
 }
 
 async function sideFlows() {
-  // Offer to Kite -> others can't take it -> Kite declines -> Fox reserves, cancels -> Heron takes it back.
+  // Offer to jack -> others can't take it -> jack declines -> jerry reserves, cancels -> ethan takes it back.
   const drafted = await draftLamp();
   const item = await ok(call('POST', '/api/items', {
     ownerId: 'ethan', photoId: drafted.photoId, title: 'Spare lamp', condition: 'fair', category: 'lighting', aiDraft: null, offerToRequestId: 'r_coat',
   }));
   assert.equal(await requestStatus('r_coat'), 'matched');
-  await expect(call('POST', `/api/items/${item.id}/reserve`, { personId: 'jerry', ...meet }), 409, 'already_claimed');
+  const offered = await expect(call('POST', `/api/items/${item.id}/reserve`, { personId: 'jerry', ...meet }), 409, 'already_claimed');
+  assert.equal(offered.message, 'Someone got there first.');
   assert.equal((await ok(call('POST', `/api/items/${item.id}/decline`, { personId: 'jack' }))).status, 'available');
   assert.equal(await requestStatus('r_coat'), 'open');
   await expect(call('POST', `/api/items/${item.id}/reserve`, { personId: 'ethan', ...meet }), 403, 'own_item');
@@ -97,9 +109,39 @@ async function sideFlows() {
   assert.equal(released.status, 'available');
   assert.equal(released.reservation, null);
   assert.equal((await ok(call('POST', `/api/items/${item.id}/withdraw`, { personId: 'ethan' }))).status, 'withdrawn');
-  await expect(call('POST', `/api/items/${item.id}/reserve`, { personId: 'jerry', ...meet }), 409, 'already_claimed');
+  const gone = await expect(call('POST', `/api/items/${item.id}/reserve`, { personId: 'jerry', ...meet }), 409, 'already_claimed');
+  assert.equal(gone.message, 'The giver took this back.');
   await expect(call('DELETE', '/api/requests/r_lamp', { personId: 'jack' }), 403, 'not_yours');
   assert.equal((await ok(call('DELETE', '/api/requests/r_lamp', { personId: 'jerry' }))).status, 'closed');
+}
+
+// SPEC5: a fresh anonymous person (a new browser tab) can reserve and chat. People are {id, lang} only; at most 50;
+// reset drops the added ones.
+async function anonymousPerson() {
+  noNames(await ok(call('POST', '/api/reset')));
+  const me = await ok(call('POST', '/api/people'));
+  assert.match(me.id, /^p_[0-9a-f]{8}$/);
+  assert.deepEqual(me, { id: me.id, lang: 'en' });
+  assert.equal((await ok(call('POST', '/api/items/i_book/reserve', { personId: me.id }))).reservation.personId, me.id);
+  const s = noNames(await state());
+  assert.ok(s.people.every((p) => Object.keys(p).join() === 'id,lang'), 'people are {id, lang} only');
+  assert.deepEqual(s.people.find((p) => p.id === me.id), me);
+  const t = s.threads.findLast((x) => x.itemId === 'i_book');
+  assert.deepEqual([t.ownerId, t.recipientId], ['jack', me.id]);
+  assert.deepEqual(t.messages.map((m) => [m.forPersonId, m.text]), [
+    ['jack', "Someone reserved your Intro to Psychology textbook (8th ed.). You're the one handing it over, so you pick: when and where works for you?"],
+    [me.id, 'The giver will suggest a time and place; you can reply here too.'],
+  ]);
+  const said = (text) => ok(call('POST', `/api/threads/${t.id}/messages`, { personId: me.id, text })).then((r) => r.thread.messages);
+  assert.deepEqual((await said('hello there')).slice(-2).map((m) => [m.from, m.text]), [[me.id, 'hello there'], ['loop', 'Got it.']]);
+  assert.match((await said('Davis at 5 pm?')).at(-1).text, /^New suggestion from the taker: Davis Library lobby, (Today|Tomorrow) 5 pm\. Does that work for you\?$/);
+  assert.equal((await ok(call('POST', `/api/people/${me.id}/lang`, { lang: 'es' }))).lang, 'es');
+  noNames(await state());
+
+  for (let n = s.people.length; n < MAX_PEOPLE; n++) await ok(call('POST', '/api/people'));
+  await expect(call('POST', '/api/people'), 429, 'too_many_people');
+  const reset = await ok(call('POST', '/api/reset'));
+  assert.deepEqual(reset.people.map((p) => p.id), ['ethan', 'jerry', 'jack', 'tom', 'thomas']);
 }
 
 async function badInput() {
@@ -129,6 +171,7 @@ for (let run = 1; run <= RUNS; run++) {
     await mainLoop();
     await sideFlows();
     await badInput();
+    await anonymousPerson();
     console.log(`run ${run}: PASS`);
   } catch (err) {
     failed++;

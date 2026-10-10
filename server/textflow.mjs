@@ -30,7 +30,7 @@ const HELP_WORD = /^help[\s.!?]*$/i;
 const CODE = /^\D*(\d{4})\D*$/; // exactly one 4-digit number: "4821", "it's 4821"
 
 const HELP = "Text me a photo of something you don't need and I'll draft the listing. Reply STOP to unlink.";
-const welcome = (name) => `Hi ${name} — this is Loop. Text me a photo of something you don't need and I'll draft the listing.`;
+const WELCOME = "Hi — this is Loop. Text me a photo of something you don't need and I'll draft the listing.";
 const ACK = 'Got it — looking at your photo…';
 const AGAIN = "Send another photo when you're ready.";
 const NOT_A_PHOTO = "That doesn't look like a photo. Send a JPEG or PNG.";
@@ -53,7 +53,6 @@ export function startTextflow(d) {
 }
 
 const now = () => new Date().toISOString();
-const firstName = (db, id) => db.people.find((p) => p.id === id)?.name.split(' ')[0] ?? 'Someone';
 const noun = (title) => (/^[A-Z][a-z]/.test(title) ? title[0].toLowerCase() + title.slice(1) : title); // as in store.mjs
 const article = (s) => `${/^[aeiou]/i.test(s) ? 'an' : 'a'} ${s}`;
 const sentence = (s) => (s ? `${s[0].toUpperCase()}${s.slice(1)}${/[.?!]$/.test(s) ? '' : '.'}` : '');
@@ -112,7 +111,7 @@ async function answer(personId, said) {
     default:
       if (session?.welcomed) return HELP;
       save(personId, { welcomed: true });
-      return welcome(firstName(db, personId));
+      return WELCOME;
   }
 }
 
@@ -160,14 +159,12 @@ function draftLine(d) {
   return /[.?]$/.test(line) ? line : `${line}.`;
 }
 
-// Who it fits (the request must still be open and not the owner's own) and what to reply.
+// The request it fits (still open and not the owner's own; SPEC5: never who asked) and what to reply.
 function nextStep(db, ownerId, requestId) {
   const request = openMatch(db, ownerId, requestId);
   if (!request) return 'No open request fits yet. Reply BOARD to post it, or type a correction.';
-  const name = firstName(db, request.personId);
-  const spot = db.people.find((p) => p.id === request.personId)?.spot;
-  return `${name}${spot ? ` (${spot})` : ''} asked for "${request.title}" ${ago(request.createdAt)} ago — it fits. `
-    + `Reply YES to offer it to ${name}, BOARD to post it for anyone, or type a correction (e.g. 'condition fair, dent on base').`;
+  return `Someone nearby asked for "${request.title}" ${ago(request.createdAt)} ago — it fits. `
+    + 'Reply YES to offer it, BOARD to post it for anyone, or type a correction.';
 }
 
 function ago(iso) {
@@ -205,9 +202,8 @@ function publish(personId, session, offer) {
   const items = result.db.items.map((i) => (i.id === item.id ? item : i));
   deps.commit({ db: withSession({ ...result.db, items }, personId, { state: offer ? 'offered' : 'posted', itemId: item.id }) });
   if (!offer) itemPosted(item);
-  const name = request && firstName(db, request.personId);
   return offer
-    ? `Offered to ${name}. I'll tell you when ${name} accepts and we'll sort out the pickup here.`
+    ? "Offered. I'll tell you when they accept and we'll sort out the pickup here."
     : "Posted to the board. I'll text you when someone reserves it.";
 }
 
@@ -278,7 +274,7 @@ export function itemPosted(item) {
   if (!deps.linked(request.personId)) return;
   const suggestion = { itemId: item.id, requestId: request.id, at: now() };
   save(request.personId, { suggestion });
-  const text = `${firstName(db, item.ownerId)} just posted ${article(noun(item.title))} that fits your request "${request.title}". `
+  const text = `Someone just posted ${article(noun(item.title))} that fits your request for "${request.title}". `
     + 'Reply YES to reserve it, or ignore this.';
   deps.send(request.personId, text).then((sent) => {
     // Not sent: the channel keeps it and sends it right before answering their next text.

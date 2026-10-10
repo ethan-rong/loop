@@ -38,7 +38,7 @@ async function waitFor(id, done, ms) {
   throw new Error(`thread ${id} did not reach the expected state within ${ms} ms`);
 }
 
-// Heron lists a lamp (mock draft for the photo, his own title).
+// ethan (the giver) lists a lamp (mock draft for the photo, his own title).
 async function ethanListsLamp() {
   const lamp = (await import('node:fs')).readFileSync(new URL('../public/seed/lamp.jpg', import.meta.url)).toString('base64');
   const drafted = await ok(call('POST', '/api/items/draft', { ownerId: 'ethan', imageBase64: lamp, mimeType: 'image/jpeg' }));
@@ -63,7 +63,7 @@ async function fullLoop() {
   const [opening] = t.messages;
   assert.match(opening.id, /^m_[0-9a-f]{8}$/);
   assert.deepEqual([opening.from, opening.via, opening.forPersonId], ['loop', 'system', 'ethan']);
-  assert.equal(opening.text, `Hi Heron — Fox reserved your ${TITLE} and suggested Davis Library lobby, Today 5 pm. Does that work?`);
+  assert.equal(opening.text, `Someone reserved your ${TITLE} and suggested Davis Library lobby, Today 5 pm. Does that work?`);
   assert.deepEqual(opening.actions, [{ label: 'Works for me', action: 'accept' }, { label: 'Suggest another time', action: 'propose' }]);
 
   // Only the two participants; the proposer can't accept their own plan; no "I'm here" before it is set.
@@ -78,7 +78,7 @@ async function fullLoop() {
   assert.deepEqual(t.plan.confirmedBy, ['jerry', 'ethan']);
   assert.ok(Date.parse(t.remindAt) > Date.now() - 1000, 'remindAt set');
   let last = t.messages.at(-1);
-  assert.equal(last.text, "Pickup set: Davis Library lobby, Today 5 pm. I'll remind you both 30 minutes before. Fox, tap 'I'm here' when you arrive.");
+  assert.equal(last.text, "Pickup set: Davis Library lobby, Today 5 pm. I'll remind you both 30 minutes before. Taker, tap 'I'm here' when you arrive.");
   assert.deepEqual(last.actions, [{ label: "I'm here", action: 'arrived', forPersonId: 'jerry' }, { label: "Can't make it", action: 'cancel' }]);
   assert.equal(last.forPersonId, null);
   assert.deepEqual(t.messages[0].actions, [], 'superseded buttons are retired');
@@ -97,7 +97,7 @@ async function fullLoop() {
   assert.ok(Date.parse(t.plan.timeISO) > Date.now(), 'timeISO in the future');
   assert.deepEqual([t.plan.proposedBy, t.plan.confirmedBy, t.reminded, t.remindAt], ['jerry', ['jerry'], false, null]);
   last = t.messages.at(-1);
-  assert.equal(last.text, `New suggestion from Fox: Student Union, ${t.plan.time}. Heron, does that work?`);
+  assert.equal(last.text, `New suggestion from the taker: Student Union, ${t.plan.time}. Does that work for you?`);
   assert.deepEqual([last.from, last.forPersonId, last.actions.map((a) => a.action)], ['loop', 'ethan', ['accept', 'propose']]);
   const reservation = (await state()).items.find((i) => i.id === item.id).reservation;
   assert.deepEqual([reservation.place, reservation.time], ['Student Union', t.plan.time], 'item page stays in sync');
@@ -111,11 +111,11 @@ async function fullLoop() {
   assert.equal(t.messages.filter((m) => m.text.startsWith('Reminder:')).length, 2, 'one reminder per agreed plan');
 
   // Only the recipient can say "I'm here".
-  await expect(act(t, 'ethan', 'arrived'), 403, 'not_recipient');
+  assert.equal((await expect(act(t, 'ethan', 'arrived'), 403, 'not_recipient')).message, "Only the taker can say they've arrived.");
   t = (await ok(act(t, 'jerry', 'arrived'))).thread;
   assert.equal(t.status, 'meeting');
   last = t.messages.at(-1);
-  assert.equal(last.text, 'Fox is at Student Union. Heron, ask Fox for the 4-digit code and type it on the item page.');
+  assert.equal(last.text, 'The taker is at Student Union. Ask for the 4-digit code and type it on the item page.');
   assert.deepEqual([last.forPersonId, last.actions], ['ethan', [{ label: 'Enter code', action: 'enter_code' }]]);
   assert.ok(!JSON.stringify(t.messages.map((m) => m.text)).includes(reserved.reservation.code), 'Loop never posts the code');
 
@@ -141,9 +141,9 @@ async function ownerPicks() {
   assert.deepEqual([t.status, t.plan], ['planning', { place: null, time: null, timeISO: null, proposedBy: null, confirmedBy: [] }]);
   assert.equal(t.messages.length, 2);
   const [opening, note] = t.messages;
-  assert.equal(opening.text, `Hi Heron — Fox reserved your ${TITLE}. You're the one handing it over, so you pick: when and where works for you?`);
+  assert.equal(opening.text, `Someone reserved your ${TITLE}. You're the one handing it over, so you pick: when and where works for you?`);
   assert.deepEqual([opening.forPersonId, opening.actions], ['ethan', [{ label: 'Suggest a time and place', action: 'propose' }]]);
-  assert.deepEqual([note.from, note.text, note.forPersonId, note.actions], ['loop', 'Fox, Heron will suggest a time and place; you can reply here too.', 'jerry', []]);
+  assert.deepEqual([note.from, note.text, note.forPersonId, note.actions], ['loop', 'The giver will suggest a time and place; you can reply here too.', 'jerry', []]);
 
   // Nothing to agree to yet, and a proposal on an empty plan needs both a time and a place.
   await expect(act(t, 'jerry', 'accept'), 409, 'plan_incomplete');
@@ -157,16 +157,16 @@ async function ownerPicks() {
   t = (await ok(say(t, 'ethan', 'Davis at 5 pm?'))).thread;
   assert.deepEqual([t.plan.place, t.plan.proposedBy, t.plan.confirmedBy], ['Davis Library lobby', 'ethan', ['ethan']]);
   assert.match(t.plan.time, /^(Today|Tomorrow) 5 pm$/);
-  assert.equal(t.messages.at(-1).text, `New suggestion from Heron: Davis Library lobby, ${t.plan.time}. Fox, does that work?`);
+  assert.equal(t.messages.at(-1).text, `New suggestion from the giver: Davis Library lobby, ${t.plan.time}. Does that work for you?`);
   assert.deepEqual([t.messages.at(-1).forPersonId, t.messages[0].actions], ['jerry', []]);
   const reservation = (await state()).items.find((i) => i.id === item.id).reservation;
   assert.deepEqual([reservation.place, reservation.time], ['Davis Library lobby', t.plan.time]);
   t = (await ok(say(t, 'jerry', 'sounds good'))).thread;
   assert.equal(t.status, 'set');
-  assert.equal(t.messages.at(-1).text, `Pickup set: Davis Library lobby, ${t.plan.time}. I'll remind you both 30 minutes before. Fox, tap 'I'm here' when you arrive.`);
+  assert.equal(t.messages.at(-1).text, `Pickup set: Davis Library lobby, ${t.plan.time}. I'll remind you both 30 minutes before. Taker, tap 'I'm here' when you arrive.`);
   t = (await ok(say(t, 'jerry', "I'm here"))).thread;
   assert.equal(t.status, 'meeting');
-  assert.equal(t.messages.at(-1).text, 'Fox is at Davis Library lobby. Heron, ask Fox for the 4-digit code and type it on the item page.');
+  assert.equal(t.messages.at(-1).text, 'The taker is at Davis Library lobby. Ask for the 4-digit code and type it on the item page.');
   await ok(call('POST', `/api/items/${item.id}/confirm`, { personId: 'ethan', code: reserved.reservation.code }));
   assert.equal((await thread(t.id)).status, 'done');
 }
@@ -225,7 +225,7 @@ async function badInput(item) {
   // Owner-side proposal by button keeps the place when only the time changes.
   const moved = (await ok(act(t, 'ethan', 'propose', { time: 'Today 8 pm' }))).thread;
   assert.deepEqual([moved.plan.place, moved.plan.time, moved.plan.timeISO, moved.plan.proposedBy], ['Davis Library lobby', 'Today 8 pm', null, 'ethan']);
-  assert.equal(moved.messages.at(-1).text, 'New suggestion from Heron: Davis Library lobby, Today 8 pm. Fox, does that work?');
+  assert.equal(moved.messages.at(-1).text, 'New suggestion from the giver: Davis Library lobby, Today 8 pm. Does that work for you?');
   assert.equal(moved.messages.at(-1).forPersonId, 'jerry');
 }
 
