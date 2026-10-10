@@ -112,7 +112,7 @@ img { max-width: 100%; }
 
 /* ---------- layout ---------- */
 
-.wrap { max-width: 592px; margin: 0 auto; padding: 24px 16px 72px; }
+.wrap { max-width: 592px; margin: 0 auto; padding: 24px 16px 72px; overflow-x: clip; } /* the stamp starts at 1.8x: no sideways scroll */
 .stack > * + * { margin-top: 16px; }
 .stack > .stack-sm:not(.card) { margin-top: 36px; } /* board sections breathe; cards inside a flow stay close */
 .stack-sm > * + * { margin-top: 12px; }
@@ -200,23 +200,25 @@ img { max-width: 100%; }
   text-align: center;
 }
 
-.who-btn {
+/* SPEC5: no person menu. The far-right control is a globe and the current language; its menu holds three toggles. */
+.lang-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   min-height: 44px;
-  padding: 6px 6px 6px 12px;
+  padding: 6px 14px 6px 10px;
   border: 1px solid var(--ink-2);
   border-radius: 999px;
   background: var(--card);
   color: var(--ink);
-  font: 400 var(--fs-4)/1.2 var(--sans);
+  font: 600 var(--fs-5)/1.2 var(--sans);
+  letter-spacing: .04em;
   white-space: nowrap;
   cursor: pointer;
   transition: transform 160ms var(--ease), border-color 160ms var(--ease);
 }
-.who-btn:hover { border-color: var(--ink); transform: translateY(-1px); }
-.who-btn .i { color: var(--ink-2); }
+.lang-btn:hover { border-color: var(--ink); transform: translateY(-1px); }
+.lang-btn .i { width: 18px; height: 18px; }
 
 .menu {
   position: fixed;
@@ -243,31 +245,8 @@ img { max-width: 100%; }
   text-transform: uppercase;
   color: var(--ink-2);
 }
-.menu-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  min-height: 52px;
-  padding: 8px 10px;
-  border: 0;
-  border-radius: 10px;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition: background-color 150ms var(--ease);
-}
-.menu-item:hover { background: var(--paper); }
-.menu-item[aria-current="true"] { background: var(--paper); box-shadow: inset 3px 0 0 var(--tangerine); }
-.menu-item > .i { margin-left: auto; color: var(--ink); }
-.menu-text { display: grid; line-height: 1.3; }
-
-/* Language row (SPEC4 §D): three toggles; the server keeps the choice. */
-.menu-lang { margin-top: 6px; padding: 4px 4px 6px; border-top: 1px solid var(--rule); }
-.menu-lang .menu-title { margin-inline: 6px; }
-.lang-row { display: flex; flex-wrap: wrap; gap: 6px; }
+/* Language toggles (SPEC4 §D): the server keeps the choice. */
+.lang-row { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 4px 4px; }
 .lang {
   flex: 1 1 auto;
   min-height: 44px;
@@ -353,6 +332,8 @@ img { max-width: 100%; }
 .chip-reserved { --dot: var(--ochre); }
 /* Collected / fulfilled: moss text and edge, a tiny check instead of the dot. */
 .chip-collected, .chip-fulfilled { color: var(--moss); border-color: var(--moss); }
+/* "yours": the only mark of what this tab posted (SPEC5). Dashed, ink-2 (7.11:1 on card). */
+.chip-yours { border-style: dashed; border-color: var(--ink-2); color: var(--ink-2); }
 .chip-collected.dot::before, .chip-fulfilled.dot::before {
   width: 11px;
   height: 11px;
@@ -380,26 +361,13 @@ img { max-width: 100%; }
 .list { list-style: none; margin-bottom: 0; padding: 0; display: grid; gap: 12px; }
 .empty { padding: 20px; color: var(--ink-2); text-align: center; font-size: var(--fs-4); }
 
-.need { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 14px; padding: 16px 18px; }
+/* Need cards read like classifieds with no byline (SPEC5): when, what, details, status. */
+.need { padding: 16px 18px; }
 .need-meta { font-size: var(--fs-5); color: var(--ink-2); }
-.need-meta strong { color: var(--ink); }
 .need h3 { margin-top: 4px; font-size: 21px; overflow-wrap: anywhere; }
 .need-details { margin-top: 4px; font-size: var(--fs-4); color: var(--ink-2); overflow-wrap: anywhere; }
 .need-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; min-height: 28px; }
 .need-foot .btn { margin: -8px -10px -8px 0; }
-
-.avatar {
-  flex: none;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  color: #fff;
-  font-size: var(--fs-4);
-  font-weight: 650;
-  letter-spacing: .02em;
-}
 
 .grid { list-style: none; margin-bottom: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .grid > li { display: flex; }
@@ -606,7 +574,7 @@ select.input {
 .drop .muted { max-width: 34ch; font-size: var(--fs-4); }
 .drop .btn { margin-top: 8px; pointer-events: none; }
 .text-in { text-align: center; font-size: var(--fs-4); color: var(--ink-2); }
-/* "You'll appear as Heron." under the Give title: Loop is anonymous, people see only the nickname. */
+/* "Nothing identifies you…" under the Post title (SPEC5). */
 .appear { font-size: var(--fs-4); color: var(--ink-2); }
 .stack > h1 + .appear { margin-top: 6px; }
 .text-in a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 2px; color: var(--ink); font-weight: 600; text-decoration: underline 1px var(--tangerine); text-underline-offset: 4px; }
@@ -858,14 +826,6 @@ select.input {
 .loading { display: flex; align-items: center; gap: 12px; }
 .loading h1 { font-size: var(--fs-3); }
 
-/* Five people: one ruled directory, not five cards. */
-.list.people { margin-top: 16px; gap: 0; border: 1px solid var(--rule-strong); border-radius: 12px; overflow: hidden; }
-.people li + li { border-top: 1px solid var(--rule); }
-.person-pick { min-height: 64px; border-radius: 0; background: var(--card); }
-.person-pick > .i { margin-left: auto; color: var(--ink); }
-.person-pick:hover { background: var(--paper); }
-.picker-note { margin-top: 4px; }
-
 /* Headings get focus after a route change so screen readers land on them; no ring needed there. */
 [tabindex="-1"]:focus { outline: none; }
 
@@ -902,7 +862,23 @@ select.input {
 /* Conversation: Loop and the other person on the left, me on the right. It sits on the paper, not in a card. */
 .msgs { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
 .msg { display: flex; align-items: flex-start; gap: 8px; }
-.msg > .avatar { margin-top: 22px; } /* level with the bubble, below the name line */
+/* Roles, not people (SPEC5): a plain disc with Y, G or T, level with the bubble; mine sits on the right. */
+.role {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin-top: 22px;
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--ink);
+  font-size: var(--fs-5);
+  font-weight: 650;
+  line-height: 1;
+}
+.msg-mine > .role { order: 1; }
 .msg > .loop-mark { width: 32px; height: 20px; margin-top: 28px; }
 .msg-mine { justify-content: flex-end; }
 .msg-body { min-width: 0; max-width: 85%; }
@@ -952,7 +928,6 @@ select.input {
 .msg-loop .msg-text { background: var(--paper); border: 1px dashed var(--ink-2); border-bottom-left-radius: 4px; }
 .msg-theirs .msg-text { background: var(--card); border: 1px solid var(--rule-strong); border-bottom-left-radius: 4px; }
 .msg-mine .msg-text { color: var(--paper); background: var(--ink); border-bottom-right-radius: 4px; }
-.msg .avatar { width: 32px; height: 32px; font-size: 12px; }
 .msg-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 
 /* The composer is one field: the dock carries the ink edge and the focus ring, the textarea inside is bare. */
@@ -982,6 +957,33 @@ select.input {
 .composer .composer-input:focus-visible { outline: none; }
 .composer .btn { flex: none; min-height: 44px; padding: 10px 18px; }
 .closed-note { text-align: center; font-size: var(--fs-5); font-weight: 600; color: var(--ink-2); }
+
+/* ---------- campus map (SPEC4 §F): ink lines on paper, a tangerine ring on the spot ---------- */
+
+.campus-map {
+  display: block;
+  width: 100%;
+  height: auto; /* 320 x 180 viewBox: about 180 px tall on a phone */
+  max-height: 220px;
+  margin-top: 14px;
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  border-radius: 10px;
+  font: 500 11px/1 var(--sans);
+}
+.picks + .campus-map { margin-top: 12px; }
+.map-street { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; }
+.map-walk { fill: none; stroke: var(--ink); stroke-opacity: .3; stroke-width: 1.25; stroke-linecap: round; stroke-linejoin: round; }
+.map-route { fill: none; stroke: var(--tangerine); stroke-width: 2; stroke-dasharray: 1 5; stroke-linecap: round; }
+.spot-dot { fill: var(--card); stroke: var(--ink); stroke-width: 1.5; transition: fill 150ms var(--ease), stroke 150ms var(--ease); }
+.spot-ring { fill: none; stroke: var(--tangerine); stroke-width: 3; } /* 3.27:1 on paper */
+.spot-hit { fill: transparent; }
+/* Labels: ink-2 on paper (6.48:1) with a paper halo, so a footpath under a label never cuts through it. */
+.spot text { fill: var(--ink-2); paint-order: stroke; stroke: var(--paper); stroke-width: 3px; stroke-linejoin: round; }
+.spot.is-on .spot-dot { fill: var(--ink); }
+.spot.is-on text { fill: var(--ink); font-weight: 650; }
+.is-picker .spot { cursor: pointer; }
+.is-picker .spot:hover .spot-dot { fill: var(--tangerine); stroke: var(--ink); }
 
 /* ---------- give: one thing or a pile ---------- */
 
@@ -1087,7 +1089,7 @@ select.input {
   .ear-dot { display: inline; white-space: pre; }
 }
 
-/* Narrow phones: the ear takes its own row under the wordmark and the person menu. */
+/* Narrow phones: the ear takes its own row under the wordmark and the language button. */
 @media (max-width: 379px) {
   .ear { order: 3; flex-basis: 100%; flex-direction: row; justify-content: flex-end; align-items: center; gap: 6px; border-left: 0; padding-left: 0; }
 }

@@ -14,10 +14,15 @@ const PLACES = ['Davis Library lobby', 'Student Union', 'Dorm front desk'];
 const TIMES = ['Today 5 pm', 'Today 8 pm', 'Tomorrow noon'];
 const CONDITIONS = ['good', 'fair', 'worn'];
 const CATEGORIES = ['furniture', 'lighting', 'kitchen', 'textbooks', 'electronics', 'clothing', 'bedding', 'sports', 'other'];
-// Avatar inks by a person's place in the list (no name mapping: Loop is anonymous). White initials on each:
-// 18.6, 6.89, 6.39, 5.66 and 5.91 to 1 (DESIGN.md v3).
-const AVATAR_COLORS = ['#15130f', '#3b5b8a', '#2f6b3a', '#b5401a', '#8a5a12'];
-const LANGS = [['en', 'English'], ['zh', '中文'], ['es', 'Español']]; // SPEC4 §D person-menu row
+const LANGS = [['en', 'English'], ['zh', '中文'], ['es', 'Español']]; // the top bar's language menu (SPEC5)
+const LANG_SHORT = { en: 'EN', zh: '中文', es: 'ES' };
+/* SPEC4 §F campus map: schematic spots on a 0-100 grid (x right, y down), Franklin St on top, South Campus at the
+   bottom. The 4th field puts the label beside the dot so no two labels touch. */
+const SPOTS = [
+  ['Franklin St', 50, 9, 'up'], ['Granville Towers', 12, 22], ['Lenoir', 60, 31], ['Davis Library', 34, 47, 'left'],
+  ['Student Union', 62, 50], ['Carmichael', 85, 64, 'below'], ['Craige', 25, 77, 'left'], ['Ehringhaus', 49, 84],
+  ['Hinton James', 72, 93],
+];
 const COND_LABEL = { good: 'Good condition', fair: 'Fair condition', worn: 'Worn' };
 const STATUS_LABEL = { available: 'Available', offered: 'Offered', reserved: 'Reserved', collected: 'Collected', withdrawn: 'Taken back' };
 const REQUEST_LABEL = { open: 'Open need', matched: 'Matched', fulfilled: 'Fulfilled', closed: 'Closed' };
@@ -28,7 +33,7 @@ const AI_ERRORS = {
   timeout: 'Gemini took too long. Try again or fill this in yourself.',
 };
 const AI_ERROR_OTHER = "Gemini couldn't look at this photo right now. Fill this in yourself.";
-const NOT_IDENTIFIED = "Gemini couldn't pick out one clear thing to give away. Try a closer photo of a single item, or fill this in yourself.";
+const NOT_IDENTIFIED = "Gemini couldn't pick out one clear thing to post. Try a closer photo of a single item, or fill this in yourself.";
 const DONE_TEXT = {
   decline: "You said no thanks. It's back on the board.",
   release: "Reservation cancelled. It's back on the board.",
@@ -50,7 +55,7 @@ const PILE_AI_ERRORS = {
   timeout: 'Gemini took too long. Try again, or list it as one thing.',
 };
 const PILE_AI_ERROR_OTHER = "Gemini couldn't sort this photo right now. List it as one thing instead.";
-const PILE_NOT_FOUND = "Gemini couldn't pick out separate things to give away here. List it as one thing, or try a photo with the things spread out a little.";
+const PILE_NOT_FOUND = "Gemini couldn't pick out separate things to post here. List it as one thing, or try a photo with the things spread out a little.";
 
 /* ---------- markup: escape by default ---------- */
 
@@ -81,6 +86,7 @@ const ICONS = {
   pencil: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
   retry: '<path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/>',
   gift: '<path d="M4 11h16v9H4z"/><path d="M3 7.5h18V11H3zM12 7.5V20"/><path d="M12 7.5C10.5 4 7 4 7 6s3 1.5 5 1.5zM12 7.5C13.5 4 17 4 17 6s-3 1.5-5 1.5z"/>',
+  globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.4 2.5 3.6 5.5 3.6 9s-1.2 6.5-3.6 9c-2.4-2.5-3.6-5.5-3.6-9s1.2-6.5 3.6-9z"/>',
 };
 const icon = (name, cls = 'i') => raw(`<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${ICONS[name]}</svg>`);
 
@@ -154,11 +160,14 @@ function loadMe() {
   try { return sessionStorage.getItem('loop.person'); } catch { return null; }
 }
 function saveMe(id) {
-  try { sessionStorage.setItem('loop.person', id); } catch { /* private mode: identity stays in memory */ }
+  try {
+    if (id) sessionStorage.setItem('loop.person', id);
+    else sessionStorage.removeItem('loop.person');
+  } catch { /* private mode: the id stays in memory */ }
 }
 
-const person = (id) => state.db?.people.find((p) => p.id === id) ?? { id, name: 'Someone', spot: '' };
-const firstName = (id) => person(id).name.split(' ')[0];
+// SPEC5: no names anywhere. A tab is an anonymous person, known only by an opaque id the page never shows.
+const hasMe = () => Boolean(state.me && state.db?.people.some((p) => p.id === state.me));
 const requestOf = (id) => state.db?.requests.find((r) => r.id === id) ?? null;
 const itemOf = (id) => state.db?.items.find((i) => i.id === id) ?? null;
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -288,7 +297,38 @@ async function refresh() {
 }
 async function pollLoop() {
   if (await refresh()) requestRender();
+  ensureMe();
   setTimeout(pollLoop, POLL_MS);
+}
+
+/* SPEC5: a tab with no id (first visit, after a reset, or a server with a fresh db) becomes a new anonymous person.
+   One join at a time; offline retries on the next poll. */
+let joining = false;
+let joinError = ''; // a refusal to join, e.g. 429 "This demo is full. Reset it to make room."
+async function ensureMe() {
+  if (!state.db || !state.online || joining || hasMe()) return;
+  joining = true;
+  try {
+    const res = await api('POST', '/api/people').catch((err) => {
+      if (err.status === 404) return null; // a backend without SPEC5's route yet
+      throw err;
+    });
+    // ponytail: on that 404 the tab silently acts as the first seed person; drop once every backend has the route
+    const id = res?.id ?? state.db.people[0]?.id;
+    if (!id) return;
+    joinError = '';
+    state.me = id;
+    saveMe(id);
+    await refresh();
+    render();
+  } catch (err) {
+    if (!err.status || err.message === joinError) return; // offline: setOnline already shows it
+    joinError = err.message; // shown instead of "Loading Loop…"; the next poll tries again
+    render();
+    announce(err.message);
+  } finally {
+    joining = false;
+  }
 }
 function setOnline(online) {
   if (state.online === online) return;
@@ -333,11 +373,10 @@ for (const type of ['pointerup', 'pointercancel']) {
 
 function render() {
   state.pendingRender = false;
-  if (state.db && state.me && !state.db.people.some((p) => p.id === state.me)) state.me = null;
   const active = view.contains(document.activeElement) ? document.activeElement : null;
   const focusId = active?.id ?? '';
   const caret = active?.matches('textarea, input[type=text], input:not([type])') ? [active.selectionStart, active.selectionEnd] : null;
-  renderWho();
+  renderLangControl();
   view.innerHTML = String(currentView());
   document.title = pageTitle();
   const target = state.focusTarget ? view.querySelector(state.focusTarget) : focusId && document.getElementById(focusId);
@@ -412,9 +451,9 @@ function onRouteChange() {
 }
 
 function pageTitle() {
-  if (!state.db || !state.me) return 'Loop';
+  if (!hasMe()) return 'Loop';
   const { name, id } = state.route;
-  if (name === 'give') return 'Give something · Loop';
+  if (name === 'give') return 'Post something · Loop';
   if (name === 'ask') return 'Ask for something · Loop';
   if (name === 'item') return `${itemOf(id)?.title ?? 'Not found'} · Loop`;
   return 'Board · Loop';
@@ -422,7 +461,7 @@ function pageTitle() {
 
 function currentView() {
   if (!state.db) return state.online ? loadingView() : offlineView();
-  if (!state.me) return pickerView();
+  if (!hasMe()) return joinError ? joinErrorView() : loadingView(); // ensureMe() is joining
   const { name, id } = state.route;
   if (name === 'give') return giveView();
   if (name === 'ask') return askView();
@@ -432,12 +471,10 @@ function currentView() {
 
 /* ---------- shared pieces ---------- */
 
-const initials = (name) => name.split(/\s+/).map((w) => w.charAt(0)).join('').slice(0, 2).toUpperCase();
-const avatarColor = (id) => AVATAR_COLORS[(state.db?.people.findIndex((p) => p.id === id) ?? -1) % AVATAR_COLORS.length] ?? '#5c5649';
-const avatar = (p) => html`<span class="avatar" style="background-color:${avatarColor(p.id)}" aria-hidden="true">${initials(p.name)}</span>`;
 const condChip = (c) => html`<span class="chip">${COND_LABEL[c] ?? 'Condition not set'}</span>`;
 const statusChip = (item) => html`<span class="chip dot chip-${item.status}">${STATUS_LABEL[item.status] ?? item.status}</span>`;
 const requestChip = (r) => html`<span class="chip dot chip-${r.status}">${REQUEST_LABEL[r.status] ?? r.status}</span>`;
+const yoursChip = (mine) => (mine ? html`<span class="chip chip-yours">yours</span>` : ''); // SPEC5: the only sign of "mine"
 const noticeBlock = (where = 'action') => {
   const n = state.ui.notice;
   return n && (n.where ?? 'action') === where ? html`<p class="notice ${n.tone}">${n.text}</p>` : '';
@@ -459,67 +496,49 @@ function renderLine() {
   line.innerHTML = String(html`<span class="ear-label">Text Loop</span><span class="ear-dot" aria-hidden="true"> · </span><span class="ear-num">${lineLabel(n)}</span>`);
 }
 
-let whoKey = '';
-function renderWho() {
-  const me = state.db && state.me ? person(state.me) : null;
-  const key = me ? JSON.stringify([me.id, state.db.people]) : '';
-  if (key === whoKey) return;
-  whoKey = key;
-  $('#who').innerHTML = me ? String(whoMarkup(me)) : '';
-  $('#who-menu')?.addEventListener('beforetoggle', placeMenu);
+/* SPEC5 top bar: a globe button and a small menu of three languages; the server keeps the choice. Redrawn only when
+   my language changes, so other people joining never close an open menu. */
+const myLang = () => state.db?.people.find((p) => p.id === state.me)?.lang ?? 'en';
+let langKey = '';
+function renderLangControl() {
+  const key = hasMe() ? myLang() : '';
+  if (key === langKey) return;
+  langKey = key;
+  $('#lang-control').innerHTML = key ? String(langMarkup(key)) : '';
+  $('#lang-menu')?.addEventListener('beforetoggle', placeMenu);
 }
-const whoMarkup = (me) => html`
-  <button class="who-btn" id="who-btn" popovertarget="who-menu">You're <strong>${firstName(me.id)}</strong>${icon('chevron')}<span class="sr-only">, switch person</span></button>
-  <div class="menu" id="who-menu" popover>
-    <p class="menu-title">Switch person</p>
-    ${state.db.people.map((p) => html`
-      <button class="menu-item" data-action="pick-person" data-id="${p.id}" ${p.id === me.id ? raw('aria-current="true"') : ''}>
-        ${avatar(p)}
-        <span class="menu-text"><strong>${p.name}</strong><span class="small muted">${p.spot}</span></span>
-        ${p.id === me.id ? icon('check') : ''}
-      </button>`)}
-    <div class="menu-lang" role="group" aria-labelledby="lang-title">
-      <p class="menu-title" id="lang-title">Language</p>
-      <div class="lang-row">${LANGS.map(([code, label]) => html`<button class="lang" data-action="set-lang" data-lang="${code}" lang="${code}" aria-pressed="${String((me.lang ?? 'en') === code)}">${label}</button>`)}</div>
-    </div>
+const langMarkup = (lang) => html`
+  <button class="lang-btn" id="lang-btn" popovertarget="lang-menu"><span class="sr-only">Language: </span>${icon('globe')}<span lang="${lang}">${LANG_SHORT[lang] ?? lang}</span></button>
+  <div class="menu" id="lang-menu" popover>
+    <p class="menu-title" id="lang-title">Language</p>
+    <div class="lang-row" role="group" aria-labelledby="lang-title">${LANGS.map(([code, label]) => html`<button class="lang" data-action="set-lang" data-lang="${code}" lang="${code}" aria-pressed="${String(lang === code)}">${label}</button>`)}</div>
   </div>`;
 function placeMenu(event) {
   if (event.newState !== 'open') return;
-  const box = $('#who-btn').getBoundingClientRect();
+  const box = $('#lang-btn').getBoundingClientRect();
   event.currentTarget.style.top = `${Math.round(box.bottom + 8)}px`;
   event.currentTarget.style.right = `${Math.max(8, Math.round(document.documentElement.clientWidth - box.right))}px`;
 }
 
-/* ---------- views: first run, loading ---------- */
+/* ---------- views: loading ---------- */
 
 const loadingView = () => html`<div class="glass card loading"><span class="spinner" aria-hidden="true"></span><h1>Loading Loop…</h1></div>`;
+const joinErrorView = () => html`<section class="glass card stack-sm"><h1>Can't join Loop right now</h1><p class="muted">${joinError}</p>
+  <div class="actions"><button class="btn btn-secondary" id="reset" data-action="reset">${busyText('reset', 'Reset demo', 'Resetting…')}</button></div></section>`;
 const offlineView = () => html`<section class="glass card stack-sm"><h1>Can't reach Loop</h1><p class="muted">Retrying every few seconds. If this keeps up, check that the Loop server is running.</p></section>`;
-
-const pickerView = () => html`<div class="stack">
-  <section class="hero glass">
-    <h1>Pass it on.</h1>
-    <p class="lead">Loop helps students hand usable things to people nearby who need them. Snap a photo, Gemini drafts the listing, you check it, then you meet up to hand it over.</p>
-  </section>
-  <section class="glass card" aria-labelledby="pick-title">
-    <h2 id="pick-title">Who are you?</h2>
-    <p class="muted small">Loop shows a nickname, never your name or number. The 4-digit code proves it's you at the handoff.</p>
-    <ul class="list people">${state.db.people.map((p) => html`
-      <li><button class="menu-item person-pick" id="pick-${p.id}" data-action="pick-person" data-id="${p.id}">
-        ${avatar(p)}<span class="menu-text"><strong>${p.name}</strong><span class="small muted">${p.spot}</span></span>${icon('next')}
-      </button></li>`)}</ul>
-  </section>
-</div>`;
 
 /* ---------- views: board ---------- */
 
 function bannerFor(item) {
-  if (item.status === 'offered' && requestOf(item.offeredToRequestId)?.personId === state.me) return `${firstName(item.ownerId)} offered you this`;
+  if (item.status === 'offered' && requestOf(item.offeredToRequestId)?.personId === state.me) return 'Someone offered you this';
   if (item.status !== 'reserved' || !item.reservation) return '';
   if (item.reservation.personId === state.me) return 'You reserved this · your pickup code is inside';
-  if (item.ownerId === state.me) return `${firstName(item.reservation.personId)} reserved this · confirm at pickup`;
+  if (item.ownerId === state.me) return 'Someone reserved this · confirm at pickup';
   return '';
 }
 
+/* SPEC5 framing, "a platform for people to post stuff": the stuff leads (photos), the asks follow. "For you" stays on
+   top because it only appears when an offer or a pickup needs this tab. */
 function boardView() {
   const { requests, items } = state.db;
   const needs = requests.filter((r) => r.status === 'open' || r.status === 'matched').sort(newest);
@@ -529,21 +548,21 @@ function boardView() {
   const kept = items.filter((i) => i.status === 'collected').length;
   return html`<div class="stack">
     <section class="hero glass ruled">
-      <h1>Hi, ${firstName(state.me)}</h1>
-      <p class="lead">Give what you don't need. Ask for what you do.</p>
+      <h1>Post what you don't need.</h1>
+      <p class="lead">Someone nearby takes it. No names, no accounts.</p>
       <div class="actions hero-actions">
-        <a class="btn btn-primary" href="#/give">${icon('camera')} Give something</a>
+        <a class="btn btn-primary" href="#/give">${icon('camera')} Post something</a>
         <a class="btn btn-secondary" href="#/ask">${icon('ask')} Ask for something</a>
       </div>
     </section>
     ${forYou.length ? html`<section class="stack-sm" aria-labelledby="h-you"><h2 id="h-you" class="section-title">For you</h2><ul class="list">${forYou.map(forYouCard)}</ul></section>` : ''}
+    <section class="stack-sm" aria-labelledby="h-grabs">
+      <h2 id="h-grabs" class="section-title">Up for grabs</h2>
+      ${grabs.length ? html`<ul class="grid">${grabs.map(itemCard)}</ul>` : html`<p class="empty glass">Nothing up for grabs yet. Got something you don't use? Post it.</p>`}
+    </section>
     <section class="stack-sm" aria-labelledby="h-needs">
       <h2 id="h-needs" class="section-title">People need</h2>
       ${needs.length ? html`<ul class="list">${needs.map(needCard)}</ul>` : html`<p class="empty glass">No open requests right now.</p>`}
-    </section>
-    <section class="stack-sm" aria-labelledby="h-grabs">
-      <h2 id="h-grabs" class="section-title">Up for grabs</h2>
-      ${grabs.length ? html`<ul class="grid">${grabs.map(itemCard)}</ul>` : html`<p class="empty glass">Nothing up for grabs yet. Got something you don't use? Give it.</p>`}
     </section>
     <footer class="foot">
       ${kept ? html`<span>${kept} ${kept === 1 ? 'item' : 'items'} kept in use</span><span aria-hidden="true">·</span>` : ''}
@@ -555,12 +574,12 @@ function boardView() {
 
 function forYouCard(item) {
   const offered = item.status === 'offered';
-  const from = item.ownerId === state.me ? 'Your listing' : `from ${firstName(item.ownerId)} · ${person(item.ownerId).spot}`;
+  const sub = item.ownerId === state.me ? 'Your listing' : `Posted ${timeAgo(item.createdAt)}`;
   return html`<li><a class="foryou glass ${offered ? 'is-offered' : 'is-reserved'}" href="#/item/${item.id}">
     <span class="banner">${icon(offered ? 'gift' : 'pin')}${bannerFor(item)}</span>
     <span class="foryou-row">
       <img src="${item.photo}" alt="" style="view-transition-name:${vtName(item.id)}">
-      <span class="foryou-text"><span class="foryou-title">${item.title}</span><span class="small muted">${from}</span></span>
+      <span class="foryou-text"><span class="foryou-title">${item.title}</span><span class="small muted">${sub}</span></span>
       ${icon('next')}
     </span>
   </a></li>`;
@@ -568,20 +587,16 @@ function forYouCard(item) {
 
 const itemCard = (item) => html`<li><a class="item-card glass" href="#/item/${item.id}">
   <img class="thumb" src="${item.photo}" alt="" loading="lazy" style="view-transition-name:${vtName(item.id)}">
-  <div class="item-body"><h3 class="item-title">${item.title}</h3><div class="chips">${condChip(item.condition)}${statusChip(item)}</div></div>
+  <div class="item-body"><h3 class="item-title">${item.title}</h3><div class="chips">${condChip(item.condition)}${statusChip(item)}${yoursChip(item.ownerId === state.me)}</div></div>
 </a></li>`;
 
 function needCard(r) {
-  const p = person(r.personId);
   const mine = r.personId === state.me;
   return html`<li class="need glass">
-    ${avatar(p)}
-    <div>
-      <p class="need-meta"><strong>${mine ? 'You' : p.name}</strong> · ${p.spot} · <time datetime="${r.createdAt}">${timeAgo(r.createdAt)}</time></p>
-      <h3>${r.title}</h3>
-      ${r.details ? html`<p class="need-details">${r.details}</p>` : ''}
-      <div class="need-foot">${requestChip(r)}${mine && r.status === 'open' ? html`<button class="btn btn-ghost btn-small" id="remove-${r.id}" data-action="remove-request" data-id="${r.id}">Remove<span class="sr-only"> request: ${r.title}</span></button>` : ''}</div>
-    </div>
+    <p class="need-meta">Asked <time datetime="${r.createdAt}">${timeAgo(r.createdAt)}</time></p>
+    <h3>${r.title}</h3>
+    ${r.details ? html`<p class="need-details">${r.details}</p>` : ''}
+    <div class="need-foot"><span class="chips">${requestChip(r)}${yoursChip(mine)}</span>${mine && r.status === 'open' ? html`<button class="btn btn-ghost btn-small" id="remove-${r.id}" data-action="remove-request" data-id="${r.id}">Remove<span class="sr-only"> request: ${r.title}</span></button>` : ''}</div>
   </li>`;
 }
 
@@ -597,17 +612,15 @@ function itemView(id) {
   const item = itemOf(id);
   if (!item) return notFoundView();
   const mine = item.ownerId === state.me;
-  const owner = person(item.ownerId);
-  const ownerName = mine ? 'you' : firstName(item.ownerId);
   return html`<div class="stack">
     ${backLink()}
     <figure class="photo-frame glass detail-photo"><img src="${item.photo}" alt="Photo of ${item.title}" style="view-transition-name:${vtName(item.id)}"></figure>
     <section class="glass card detail-head">
-      <div class="chips">${condChip(item.condition)}${statusChip(item)}</div>
+      <div class="chips">${condChip(item.condition)}${statusChip(item)}${yoursChip(mine)}</div>
       <h1>${item.title}</h1>
-      <p class="from">from <strong>${ownerName}</strong> · ${owner.spot}</p>
+      <p class="from">Posted <time datetime="${item.createdAt}">${timeAgo(item.createdAt)}</time></p>
       ${item.description ? html`<p class="desc">${item.description}</p>` : ''}
-      ${item.aiDraft ? html`<p class="provenance">${icon('sparkle')} Gemini drafted this listing. ${cap(ownerName)} checked it.</p>` : ''}
+      ${item.aiDraft ? html`<p class="provenance">${icon('sparkle')} Gemini drafted this listing. ${mine ? 'You' : 'The giver'} checked it.</p>` : ''}
     </section>
     ${item.status === 'withdrawn' ? '' : timeline(item)}
     <section class="glass card action" aria-labelledby="action-title">${actionArea(item)}</section>
@@ -641,39 +654,37 @@ function actionArea(item) {
   if (item.status === 'available') return mine ? ownerWaitingBlock() : reserveBlock(item, null);
   if (item.status === 'offered') {
     const req = requestOf(item.offeredToRequestId);
-    return req?.personId === state.me ? reserveBlock(item, req) : offeredElsewhereBlock(item, req, mine);
+    return req?.personId === state.me ? reserveBlock(item, req) : offeredElsewhereBlock(mine);
   }
   if (item.status === 'reserved') {
     if (res?.personId === state.me) return recipientBlock(item);
     if (mine) return ownerReservedBlock(item);
-    return html`<h2 id="action-title">Reserved by ${firstName(res?.personId)}</h2>
+    return html`<h2 id="action-title">Reserved</h2>
       <p class="muted">It's spoken for. Check the board for other things up for grabs.</p>${noticeBlock()}`;
   }
   if (item.status === 'collected') return collectedBlock(item);
-  return html`<h2 id="action-title">${mine ? 'You took this back' : `${firstName(item.ownerId)} took this back`}</h2>
+  return html`<h2 id="action-title">${mine ? 'You took this back' : 'The giver took this back'}</h2>
     <p class="muted">It's no longer up for grabs.</p>${noticeBlock()}`;
 }
 
 const withdrawButton = () => html`<div class="actions"><button class="btn btn-ghost" id="withdraw" data-action="withdraw">${busyText('withdraw', 'Take it back', 'Taking it back…')}</button></div>`;
 
-const ownerWaitingBlock = () => html`<h2 id="action-title">On the board</h2>
+const ownerWaitingBlock = () => html`<h2 id="action-title">Posted to the board</h2>
   <p class="muted">Anyone can reserve it. Their pickup place and time will show up here.</p>
   ${noticeBlock()}${withdrawButton()}`;
 
-function offeredElsewhereBlock(item, req, mine) {
-  const who = firstName(req?.personId);
+function offeredElsewhereBlock(mine) {
   const text = mine
-    ? `Waiting for ${who} to accept. If they say no thanks, it goes on the board.`
-    : `${firstName(item.ownerId)} offered this to ${who} for their request.`;
-  return html`<h2 id="action-title">Offered to ${who}</h2><p class="muted">${text}</p>${noticeBlock()}${mine ? withdrawButton() : ''}`;
+    ? 'Waiting for them to accept. If they say no thanks, it goes on the board.'
+    : 'The giver offered this to someone who asked for one. If they say no thanks, it comes back on the board.';
+  return html`<h2 id="action-title">Offered to someone who asked</h2><p class="muted">${text}</p>${noticeBlock()}${mine ? withdrawButton() : ''}`;
 }
 
 function reserveBlock(item, offeredReq) {
-  const owner = firstName(item.ownerId);
   if (!state.ui.reserveOpen) {
     if (offeredReq) {
-      return html`<h2 id="action-title">${owner} offered you this</h2>
-        <p class="muted">For your request: <em>${offeredReq.title}</em>. Accept to reserve it and plan the pickup with ${owner}, or say no thanks and it goes back on the board.</p>
+      return html`<h2 id="action-title">Someone offered you this</h2>
+        <p class="muted">For your request: <em>${offeredReq.title}</em>. Accept to reserve it and plan the pickup with the giver, or say no thanks and it goes back on the board.</p>
         ${noticeBlock()}
         <div class="actions">
           <button class="btn btn-primary btn-moment" id="open-reserve" data-action="open-reserve">Accept &amp; reserve</button>
@@ -681,14 +692,14 @@ function reserveBlock(item, offeredReq) {
         </div>`;
     }
     return html`<h2 id="action-title">Want it?</h2>
-      <p class="muted">Reserve it, then sort out where and when with ${owner}. You'll get a pickup code to show at the handoff.</p>
+      <p class="muted">Reserve it, then sort out where and when with the giver. You'll get a pickup code to show at the handoff.</p>
       ${noticeBlock()}
       <div class="actions"><button class="btn btn-primary btn-moment btn-block" id="open-reserve" data-action="open-reserve">Reserve</button></div>`;
   }
   const { place, time } = state.ui.reserve;
   return html`<form class="stack-sm" data-form="reserve" data-request="${offeredReq?.id ?? ''}" novalidate>
     <h2 id="action-title">Suggest a time and place <span class="optional">(optional)</span></h2>
-    <p class="muted small">Or leave it blank and work it out with ${owner} in the chat; ${owner} is giving it, so ${owner}'s availability comes first.</p>
+    <p class="muted small">Or leave it blank and work it out with the giver in the chat; they're handing it over, so their time comes first.</p>
     ${placeTimeFields('reserve', place, time)}
     ${noticeBlock()}
     <div class="actions">
@@ -705,6 +716,7 @@ function placeTimeFields(scope, place, time) {
   return html`<fieldset class="field">
       <legend class="label">Meet at</legend>
       <div class="picks">${PLACES.map((v, i) => pickButton(scope, 'place', v, i, place))}</div>
+      ${campusMap({ highlight: place, pick: scope })}
       <label class="sr-only" for="${id('place')}">Or type a place</label>
       <input id="${id('place')}" class="input" name="place" data-scope="${scope}" maxlength="60" autocomplete="off" placeholder="Or type a place" value="${place}">
     </fieldset>
@@ -717,6 +729,46 @@ function placeTimeFields(scope, place, time) {
 }
 const meetGrid = (place, time) => html`<dl class="meet"><div><dt>Where</dt><dd>${place || NOT_SET}</dd></div><div><dt>When</dt><dd>${time || NOT_SET}</dd></div></dl>`;
 
+/* SPEC4 §F: a schematic campus map, ink on paper, in a 320 x 180 box (a phone's width, so 11 px labels stay 11 px).
+   A place matches a spot by prefix ("Davis Library lobby" -> Davis Library). With `pick` (a form scope) a tap on a
+   spot fills the place field, the same as a quick pick; the chips and the text field stay the real controls.
+   `from`/`to` draw a dotted route, but under SPEC5 people have no home spot, so nothing passes them today. */
+const MAP_W = 320;
+const MAP_H = 180;
+const LABEL_AT = { right: [12, 4, 'start'], left: [-12, 4, 'end'], up: [12, -6, 'start'], below: [0, 20, 'middle'] }; // clear of the ring
+// Footpaths between the spots above (in map px), drawn once under them.
+const MAP_WALKS = 'M38 40V16M160 16L192 56L198 90M109 85L198 90L272 115M198 90L157 151M109 85L80 139L157 151L230 167';
+const spotXY = ([, x, y]) => [Math.round((x * MAP_W) / 100), Math.round((y * MAP_H) / 100)];
+const spotFor = (place) => {
+  const p = String(place ?? '').trim().toLowerCase();
+  return p ? SPOTS.find(([name]) => p.startsWith(name.toLowerCase())) : undefined;
+};
+console.assert(spotFor('Davis Library lobby')?.[0] === 'Davis Library' && !spotFor('Dorm front desk') && !spotFor(''), 'map: prefix match');
+const spotValue = (name) => PLACES.find((p) => p.startsWith(name)) ?? name; // a quick pick's own wording wins
+
+function campusMap({ highlight, from, to, pick } = {}) {
+  const on = spotFor(highlight);
+  const [a, b] = [spotFor(from), spotFor(to)];
+  const route = a && b && a !== b ? raw(`<path class="map-route" d="M${spotXY(a)}L${spotXY(b)}"/>`) : '';
+  let title = on ? `Campus map: ${on[0]}` : 'Campus map';
+  if (pick) title += '. Tap a spot to meet there.';
+  return html`<svg class="campus-map ${pick ? 'is-picker' : ''}" viewBox="0 0 ${MAP_W} ${MAP_H}" role="img"><title>${title}</title>
+    <path class="map-street" d="M8 16H${MAP_W - 8}"/><path class="map-walk" d="${MAP_WALKS}"/>${route}
+    ${SPOTS.map((spot) => spotMark(spot, spot === on, pick))}
+  </svg>`;
+}
+
+function spotMark(spot, on, pick) {
+  const [name, , , side = 'right'] = spot;
+  const [x, y] = spotXY(spot);
+  const [dx, dy, anchor] = LABEL_AT[side];
+  const tap = pick ? html` data-action="pick" data-scope="${pick}" data-field="place" data-value="${spotValue(name)}"` : '';
+  return html`<g class="spot ${on ? 'is-on' : ''}"${tap}>
+    ${pick ? html`<circle class="spot-hit" cx="${x}" cy="${y}" r="16"/>` : ''}${on ? html`<circle class="spot-ring" cx="${x}" cy="${y}" r="8"/>` : ''}
+    <circle class="spot-dot" cx="${x}" cy="${y}" r="4"/><text x="${x + dx}" y="${y + dy}" text-anchor="${anchor}">${name}</text>
+  </g>`;
+}
+
 function recipientBlock(item) {
   const res = item.reservation;
   return html`<h2 id="action-title">Your pickup code</h2>
@@ -724,7 +776,7 @@ function recipientBlock(item) {
       <div class="ticket-main"><p class="ticket-label" aria-hidden="true">Show this at pickup</p><p class="code"><span aria-hidden="true">${res.code}</span><span class="sr-only">${spaced(res.code)}</span></p></div>
       <span class="ticket-stub" aria-hidden="true">${LOOP_MARK}</span>
     </div>
-    <p class="center">Show this code to <strong>${firstName(item.ownerId)}</strong> at pickup.</p>
+    <p class="center">Show this code to the giver at pickup.</p>
     ${meetGrid(res.place, res.time)}
     ${noticeBlock()}
     <div class="actions"><button class="btn btn-secondary" id="release" data-action="release">${busyText('release', 'Cancel reservation', 'Cancelling…')}</button></div>`;
@@ -732,16 +784,15 @@ function recipientBlock(item) {
 
 function ownerReservedBlock(item) {
   const res = item.reservation;
-  const who = firstName(res.personId);
   const error = state.ui.codeError;
   const when = [res.place, res.time].filter(Boolean).join(' · ') || 'time and place not set yet';
   return html`<h2 id="action-title">Hand it over</h2>
-    <p class="muted">Reserved by <strong>${who}</strong> · ${when}</p>
+    <p class="muted">Reserved · ${when}</p>
     <form data-form="confirm" novalidate>
       <div class="field">
-        <label class="label" for="code-input">${who}'s pickup code</label>
+        <label class="label" for="code-input">The taker's pickup code</label>
         <input id="code-input" class="input code-input" name="code" data-scope="code" inputmode="numeric" autocomplete="one-time-code" value="${state.ui.code}" aria-describedby="code-help" ${error ? raw('aria-invalid="true"') : ''}>
-        <p id="code-help" class="${error ? 'error' : 'hint'}">${error || `${who} has a 4-digit code on their screen. Type it in when you meet.`}</p>
+        <p id="code-help" class="${error ? 'error' : 'hint'}">${error || "Ask the taker for the code: 4 digits on their screen. Type it in when you meet."}</p>
       </div>
       <div class="actions">
         <button class="btn btn-primary btn-moment" type="submit" id="confirm-submit">${busyText('confirm', 'Confirm handoff', 'Checking…')}</button>
@@ -754,8 +805,9 @@ function ownerReservedBlock(item) {
 function collectedBlock(item) {
   const animate = !state.seenCollected.has(item.id); // the success ripple plays once per tab
   state.seenCollected.add(item.id);
-  const who = item.reservation?.personId;
-  const label = who ? `Collected by ${who === state.me ? 'you' : firstName(who)}` : 'Collected';
+  let label = 'Collected';
+  if (item.reservation?.personId === state.me) label = 'Collected by you';
+  else if (item.ownerId === state.me) label = 'Collected by the taker';
   return html`<div class="success collected ${animate ? 'animate' : ''}">
       <span class="stamp" aria-hidden="true">Kept in use</span>
       <h2 id="action-title">${label}</h2><p class="muted">${formatTime(stampFormat, item.collectedAt)}</p>
@@ -771,7 +823,11 @@ const threadById = (id) => (state.db.threads ?? []).find((t) => t.id === id) ?? 
 const inThread = (t) => Boolean(t) && (t.ownerId === state.me || t.recipientId === state.me);
 const isOpenThread = (t) => OPEN_THREAD.includes(t.status);
 const otherIn = (t) => (t.ownerId === state.me ? t.recipientId : t.ownerId);
-const nameIn = (id) => (id === state.me ? 'You' : firstName(id));
+// SPEC5: in a thread people are roles, never names: "giver" (the owner) and "taker"; the reader is "You".
+const roleIn = (t, id) => (id === t.ownerId ? 'giver' : 'taker');
+const whoIn = (t, id) => (id === state.me ? 'You' : cap(roleIn(t, id)));
+// Loop's lines meant for one person (forPersonId) say so to the other reader: "Loop to the taker".
+const toWhom = (t, m) => (m.from === 'loop' && m.forPersonId && m.forPersonId !== state.me ? ` to the ${roleIn(t, m.forPersonId)}` : '');
 
 /* New messages from the other two are read out once; everything already on screen counts as heard. */
 const heardIds = new Set();
@@ -781,7 +837,7 @@ function markAllHeard() {
 function announceNew(t) {
   const fresh = t.messages.filter((m) => !heardIds.has(m.id));
   fresh.forEach((m) => heardIds.add(m.id));
-  const said = fresh.filter((m) => m.from !== state.me).map((m) => `${m.from === 'loop' ? 'Loop' : firstName(m.from)}: ${shownText(m).text}`);
+  const said = fresh.filter((m) => m.from !== state.me).map((m) => `${m.from === 'loop' ? 'Loop' : whoIn(t, m.from)}${toWhom(t, m)}: ${shownText(m).text}`);
   if (said.length) announce(said.join(' '));
 }
 
@@ -805,13 +861,14 @@ function planCard(t) {
   // A plan with a blank place or time is still being worked out (Lane C keeps such threads in planning anyway).
   const status = t.status === 'set' && !(place && time) ? 'planning' : t.status;
   const [label, chip] = THREAD_CHIP[status] ?? [status, ''];
-  const people = [t.ownerId, t.recipientId];
+  const people = [state.me, otherIn(t)];
   return html`<div class="glass card plan">
     <div class="plan-head"><h2 id="thread-title">Pickup plan</h2><span class="chip dot chip-${chip}">${label}</span></div>
     ${meetGrid(place, time)}
+    ${spotFor(place) ? campusMap({ highlight: place }) : ''}
     ${isOpenThread(t) && (place || time) ? html`<ul class="agree" aria-label="Who agreed to this plan">${people.map((id) => {
       const yes = (t.plan.confirmedBy ?? []).includes(id);
-      return html`<li class="${yes ? 'yes' : ''}"><span class="agree-dot" aria-hidden="true">${yes ? icon('check') : ''}</span><span><strong>${nameIn(id)}</strong> · ${yes ? 'agreed' : 'not yet'}</span></li>`;
+      return html`<li class="${yes ? 'yes' : ''}"><span class="agree-dot" aria-hidden="true">${yes ? icon('check') : ''}</span><span><strong>${whoIn(t, id)}</strong> ${yes ? 'agreed' : 'not yet'}</span></li>`;
     })}</ul>` : ''}
     ${imessageNote(t)}
   </div>`;
@@ -822,8 +879,8 @@ function imessageNote(t) {
   if (!imessage || !isOpenThread(t)) return '';
   const linked = [otherIn(t), state.me].filter((id) => linkedPhones.includes(id));
   if (!linked.length) return '';
-  const other = linked[0] === state.me ? '' : firstName(linked[0]);
-  let text = `${other} also gets this thread on iMessage.`;
+  const other = linked[0] === state.me ? '' : `the ${roleIn(t, linked[0])}`;
+  let text = `${cap(other)} also gets this thread on iMessage.`;
   if (!other) text = 'You also get this thread on iMessage.';
   else if (linked.length === 2) text = `You and ${other} also get this thread on iMessage.`;
   return html`<p class="note">${icon('ask')}<span>${text}</span></p>`;
@@ -851,7 +908,6 @@ const LOOP_MARK = raw('<svg class="loop-mark" viewBox="0 0 24 24" fill="none" st
 
 /* SPEC4 §D: a message in another language shows my language's translation with a "translated" tag; the tag
    toggles the original. Loop's messages follow the same rule. */
-const myLang = () => person(state.me).lang ?? 'en';
 function shownText(m) {
   const tr = m.translations?.[myLang()];
   const translated = typeof tr === 'string' && tr.trim() !== '' && tr !== m.text;
@@ -868,14 +924,12 @@ function messageItem(t, m, actions) {
   let side = 'theirs';
   if (loop) side = 'loop';
   else if (mine) side = 'mine';
-  let face = avatar(person(m.from));
-  if (loop) face = LOOP_MARK;
-  else if (mine) face = '';
+  const who = loop ? 'Loop' : whoIn(t, m.from);
   const shown = shownText(m);
   return html`<li class="msg msg-${side}">
-    ${face}
+    ${loop ? LOOP_MARK : html`<span class="role" aria-hidden="true">${who.charAt(0)}</span>`}
     <div class="msg-body">
-      <p class="msg-meta"><strong>${loop ? 'Loop' : nameIn(m.from)}</strong> · <time datetime="${m.at}">${formatTime(clockFormat, m.at)}</time>${m.via === 'imessage' ? html` <span class="via">iMessage</span>` : ''}${shown.translated ? trTag(m) : ''}</p>
+      <p class="msg-meta"><strong>${who}</strong>${toWhom(t, m)} · <time datetime="${m.at}">${formatTime(clockFormat, m.at)}</time>${m.via === 'imessage' ? html` <span class="via">iMessage</span>` : ''}${shown.translated ? trTag(m) : ''}</p>
       <p class="msg-text">${shown.text}</p>
       ${actions.length ? html`<div class="msg-actions">${actions.map((a) => html`<button class="btn btn-small ${PRIMARY_ACTIONS.includes(a.action) ? 'btn-primary btn-moment' : 'btn-secondary'}" id="act-${a.action}" data-action="thread-action" data-thread="${t.id}" data-kind="${a.action}">${busyText(`thread:${a.action}`, a.label, 'Saving…')}</button>`)}</div>` : ''}
     </div>
@@ -890,14 +944,14 @@ function proposeForm(t) {
     <h3 id="propose-title">${title}</h3>
     ${placeTimeFields('propose', p.place, p.time)}
     <div class="actions">
-      <button class="btn btn-primary" type="submit" id="propose-submit">${busyText('thread:propose', `Suggest to ${firstName(otherIn(t))}`, 'Sending…')}</button>
+      <button class="btn btn-primary" type="submit" id="propose-submit">${busyText('thread:propose', `Suggest to the ${roleIn(t, otherIn(t))}`, 'Sending…')}</button>
       <button class="btn btn-ghost" type="button" data-action="close-propose">Cancel</button>
     </div>
   </form>`;
 }
 
 function composer(t) {
-  const other = firstName(otherIn(t));
+  const other = `the ${roleIn(t, otherIn(t))}`;
   const sending = state.busy === 'thread:send';
   return html`<form class="composer glass" data-form="message" data-thread="${t.id}" novalidate>
     <label class="sr-only" for="composer-${t.id}">Message ${other} and Loop</label>
@@ -910,7 +964,7 @@ function composer(t) {
 
 function giveView() {
   const g = state.give;
-  const head = html`${backLink()}<h1>Give something</h1><p class="appear">You'll appear as ${person(state.me).name}.</p>`;
+  const head = html`${backLink()}<h1>Post something</h1><p class="appear">Nothing identifies you. The pickup code proves it's you at the handoff.</p>`;
   if (state.giveMode === 'pile') return pileView(head);
   if (g.phase === 'pick') {
     return html`<div class="stack">${head}${modeSwitch()}${g.error ? html`<p class="notice error">${g.error}</p>` : ''}${dropZone()}${textIn()}</div>`;
@@ -991,7 +1045,7 @@ function draftForm(g, manual) {
   else if (g.checked) cls = 'is-checked';
   const head = manual
     ? html`<p class="tag tag-human">${icon('pencil')} Your details</p>`
-    : html`<p class="tag tag-ai">${icon('sparkle')} Drafted by Gemini — check it</p><p class="tag tag-human">${icon('check')} Checked by ${firstName(state.me)}</p>`;
+    : html`<p class="tag tag-ai">${icon('sparkle')} Drafted by Gemini — check it</p><p class="tag tag-human">${icon('check')} Checked by you</p>`;
   return html`<form id="draft-card" class="glass card draft ${cls}" data-form="publish" novalidate aria-label="Listing details">
     <div class="draft-head">${head}</div>
     <div class="field">
@@ -1031,14 +1085,13 @@ function matchCard(g) {
       <div class="actions">${board('Post to board')}</div>
     </section>`;
   }
-  const who = firstName(req.personId);
   return html`<section class="glass card match ai-box" aria-labelledby="match-title">
     <p class="tag tag-ai">${icon('sparkle')} Gemini's suggestion</p>
-    <h2 id="match-title">Fits <strong>${who}</strong>'s request: <em>${req.title}</em></h2>
+    <h2 id="match-title">Fits someone's request: <em>${req.title}</em></h2>
     ${m.reason ? html`<p class="muted">${m.reason}</p>` : ''}
     ${hint}${noticeBlock()}
     <div class="actions">
-      <button class="btn btn-primary btn-moment" id="publish-offer" data-action="publish" data-offer="${req.id}" data-needs-check ${lock}>${busyText(`publish:${req.id}`, `Offer to ${who}`, 'Offering…')}</button>
+      <button class="btn btn-primary btn-moment" id="publish-offer" data-action="publish" data-offer="${req.id}" data-needs-check ${lock}>${busyText(`publish:${req.id}`, 'Offer to them', 'Offering…')}</button>
       ${board('Post to board instead')}
     </div>
   </section>`;
@@ -1117,7 +1170,7 @@ function pileCard(it) {
   if (it.itemId) {
     return html`<div class="glass card pile-item is-listed" role="group" aria-label="${it.n}. ${name}">
       <p class="pile-check"><span class="pile-num" aria-hidden="true">${it.n}</span><span class="pile-label">${it.title}</span>
-        <span class="chip dot ${it.offeredTo ? 'chip-offered' : 'chip-collected'}">${it.offeredTo ? `Offered to ${firstName(it.offeredTo)}` : 'Listed'}</span></p>
+        <span class="chip dot ${it.offeredTo ? 'chip-offered' : 'chip-collected'}">${it.offeredTo ? 'Offered' : 'Listed'}</span></p>
     </div>`;
   }
   const on = isPending(it);
@@ -1156,10 +1209,9 @@ function pileCard(it) {
 function pileMatchLine(it, id, attrs) {
   const req = pileMatch(it);
   if (!req) return html`<p class="note">${icon('pin')}<span>No open request fits this one. It goes on the board.</span></p>`;
-  const who = firstName(req.personId);
-  const choices = [['offer', `Offer to ${who}`], ['board', 'Post to board']];
+  const choices = [['offer', 'Offer to them'], ['board', 'Post to board']];
   return html`<fieldset class="field pile-match">
-    <legend class="label">Fits <strong>${who}</strong>'s request: <em>${req.title}</em></legend>
+    <legend class="label">Fits someone's request: <em>${req.title}</em></legend>
     ${it.match.reason ? html`<p class="note">${icon('sparkle')}<span>Gemini: ${it.match.reason}</span></p>` : ''}
     <div class="picks">${choices.map(([value, label]) => html`<label class="pick"><input type="radio" id="${id(`choice-${value}`)}" name="${id('choice')}" value="${value}" ${attrs} data-field="choice" ${it.choice === value ? raw('checked') : ''}>${icon('check', 'tick')}${label}</label>`)}</div>
   </fieldset>`;
@@ -1184,7 +1236,6 @@ function askView() {
         <label class="label" for="a-details">Details <span class="muted small">(optional)</span></label>
         <textarea id="a-details" class="input" name="details" data-scope="ask" maxlength="240" rows="3" placeholder="Size, color, anything that helps">${details}</textarea>
       </div>
-      <p class="note">${icon('pin')}<span>Pickup near ${person(state.me).spot}, from your profile.</span></p>
       ${state.ui.notice ? html`<div class="field">${noticeBlock()}</div>` : ''}
       <div class="actions"><button class="btn btn-primary btn-block" type="submit" id="ask-submit">${busyText('ask', 'Post', 'Posting…')}</button></div>
     </form>
@@ -1204,11 +1255,11 @@ function askDoneView(result) {
           <h2 id="sugg-title" class="section-title sugg-title">Already on the board</h2>
           <ul class="suggestions">${suggestions.map(({ item, reason }) => html`<li class="suggestion">
             <img src="${item.photo}" alt="">
-            <div><p><strong>${firstName(item.ownerId)}</strong>'s <em>${item.title}</em> might fit</p>${reason ? html`<p class="muted small">${reason}</p>` : ''}</div>
+            <div><p><em>${item.title}</em> might fit</p>${reason ? html`<p class="muted small">${reason}</p>` : ''}</div>
             <a class="btn btn-secondary btn-small" href="#/item/${item.id}">View<span class="sr-only"> ${item.title}</span></a>
           </li>`)}</ul>
         </section>`
-      : html`<p class="glass card muted">You'll see it on the board; owners get your request when they photograph something.</p>`}
+      : html`<p class="glass card muted">It's on the board now. When someone posts something that fits, they can offer it to you.</p>`}
     <div class="actions">
       <a class="btn btn-primary" href="#/">Back to the board</a>
       <button class="btn btn-secondary" id="ask-again" data-action="ask-again">Ask for something else</button>
@@ -1231,6 +1282,7 @@ async function mutate(kind, request, onDone) {
   }
   state.busy = '';
   await refresh();
+  ensureMe(); // a reset elsewhere drops this tab's id (the write fails with unknown_person): join again right away
   // onDone returns false when it navigates away; the route change renders, so the old view never shows stale data.
   if (result && onDone?.(result) === false) return result;
   render();
@@ -1252,23 +1304,11 @@ function showError(err) {
   announce(err.message);
 }
 
-function pickPerson(id) {
-  if (!state.db?.people.some((p) => p.id === id)) return;
-  state.me = id;
-  saveMe(id);
-  state.ui = freshUi();
-  resetGive();
-  resetPile();
-  markAllHeard();
-  state.focusTarget = 'h1';
-  render();
-  announce(`You're now ${person(id).name}.`);
-}
-
 /* SPEC4 §D: the server keeps the language; nothing is stored here. A 404 means the route isn't there yet: stay quiet. */
 async function setLang(lang) {
   const me = state.me;
-  if (!me || myLang() === lang) return;
+  if (!me) return;
+  if (myLang() === lang) return $('#lang-menu')?.hidePopover();
   try {
     await api('POST', `/api/people/${encodeURIComponent(me)}/lang`, { lang });
   } catch (err) {
@@ -1277,7 +1317,7 @@ async function setLang(lang) {
   }
   await refresh();
   render(); // the menu re-renders (and closes) with the new choice
-  $('#who-btn')?.focus();
+  $('#lang-btn')?.focus();
   announce(`Language: ${LANGS.find(([code]) => code === lang)?.[1] ?? lang}.`);
 }
 
@@ -1288,6 +1328,10 @@ async function resetDemo() {
   resetGive();
   resetPile();
   state.seenCollected.clear();
+  // SPEC5: a reset also forgets this tab's anonymous id; ensureMe() joins again as a new person.
+  state.me = null;
+  saveMe(null);
+  ensureMe();
   announce('Demo reset.');
 }
 
@@ -1322,8 +1366,7 @@ async function reserveItem(requestId) {
 async function confirmHandoff() {
   const code = state.ui.code;
   if (!/^\d{4}$/.test(code)) {
-    const who = firstName(itemOf(state.route.id)?.reservation?.personId);
-    state.ui.codeError = `Type the 4-digit code from ${who}'s screen.`;
+    state.ui.codeError = "Type the 4-digit code from the taker's screen.";
     state.ui.codeAlert = true;
     render();
     announce(state.ui.codeError);
@@ -1333,7 +1376,7 @@ async function confirmHandoff() {
   await mutate('confirm', () => api('POST', itemPath('confirm'), { personId: state.me, code }), (item) => {
     state.ui.code = '';
     state.focusTarget = '#action-title';
-    announce(`Handoff confirmed. Collected by ${firstName(item.reservation?.personId)}.`);
+    announce('Handoff confirmed. Collected.');
   });
 }
 
@@ -1341,7 +1384,7 @@ function confirmQuestion(kind, item) {
   if (kind === 'withdraw') return 'Take this back? It comes off the board.';
   if (kind !== 'release') return '';
   if (item?.reservation?.personId === state.me) return 'Cancel your reservation? It goes back on the board.';
-  return `Release ${firstName(item?.reservation?.personId)}'s reservation? Their code stops working and it goes back on the board.`;
+  return "Release the taker's reservation? Their code stops working and it goes back on the board.";
 }
 
 async function itemAction(kind) {
@@ -1549,7 +1592,7 @@ function reviewAnnouncement(g) {
   if (g.draft?.notAllowed) return "This can't go on Loop.";
   if (isManual(g)) return "Gemini couldn't draft this. Fill in the details yourself.";
   const req = requestOf(g.draft.match?.requestId);
-  return req ? `Gemini drafted the listing. It may fit ${firstName(req.personId)}'s request. Check the details.` : 'Gemini drafted the listing. Check the details.';
+  return req ? "Gemini drafted the listing. It may fit someone's request. Check the details." : 'Gemini drafted the listing. Check the details.';
 }
 
 /* Editing any field or tapping "Looks right" turns the dashed Gemini draft into a solid, human-checked one. */
@@ -1562,7 +1605,7 @@ function markChecked() {
   card.classList.replace('is-draft', 'is-checked');
   document.querySelectorAll('[data-needs-check]').forEach((button) => { button.disabled = false; });
   $('#check-hint')?.remove();
-  announce(`Checked by ${firstName(state.me)}.`);
+  announce('Checked by you.');
 }
 
 async function publish(offerTo) {
@@ -1582,10 +1625,9 @@ async function publish(offerTo) {
     aiDraft: isManual(g) ? null : g.draft, // the untouched Gemini draft, kept for the record
   };
   if (offerTo) body.offerToRequestId = offerTo;
-  const who = offerTo ? firstName(requestOf(offerTo)?.personId) : '';
   await mutate(`publish:${offerTo ?? 'board'}`, () => api('POST', '/api/items', body), (item) => {
     resetGive();
-    announce(offerTo ? `Offered to ${who}.` : 'Posted to the board.');
+    announce(offerTo ? 'Offered.' : 'Posted to the board.');
     location.hash = `#/item/${item.id}`;
     return false;
   });
@@ -1724,7 +1766,7 @@ async function listPile() {
   state.ui.notice = null;
   render();
   announce(`Listing ${todo.length} ${todo.length === 1 ? 'item' : 'items'}…`);
-  const ownerId = state.me; // a person switch mid-way must not list the rest under someone else
+  const ownerId = state.me; // a reset mid-way gives this tab a new id: the rest must not list under it
   let bitmap = null;
   try {
     bitmap = await createImageBitmap(p.file);
@@ -1732,7 +1774,7 @@ async function listPile() {
     state.ui.notice = { text: "This photo couldn't be opened here. Try another photo.", tone: 'error' };
   }
   for (const it of bitmap ? todo : []) {
-    if (state.pile !== p) break; // reset or person switch: stop here
+    if (state.pile !== p) break; // reset: stop here
     try {
       if (!it.photoId) {
         const crop = { ownerId, imageBase64: cropToJpeg(bitmap, it.box), mimeType: 'image/jpeg' };
@@ -1765,8 +1807,7 @@ async function listPile() {
 function finishPile() {
   const done = state.pile.items.filter((it) => it.itemId);
   const offered = done.filter((it) => it.offeredTo);
-  const names = [...new Set(offered.map((it) => firstName(it.offeredTo)))].join(' and ');
-  const text = `${done.length} ${done.length === 1 ? 'item' : 'items'} listed${offered.length ? ` · ${offered.length} offered to ${names}` : ''}`;
+  const text = `${done.length} ${done.length === 1 ? 'item' : 'items'} listed${offered.length ? ` · ${offered.length} offered` : ''}`;
   resetPile();
   location.hash = '#/';
   showToast(text);
@@ -1785,7 +1826,6 @@ function showToast(text) {
 /* ---------- events ---------- */
 
 const actions = {
-  'pick-person': (el) => pickPerson(el.dataset.id),
   reset: resetDemo,
   'remove-request': (el) => removeRequest(el.dataset.id),
   'open-reserve': () => {
@@ -1884,7 +1924,9 @@ function bind(el) {
   target[el.name] = el.value;
   if (scope === 'give') markChecked();
   if (scope === 'reserve' || scope === 'propose') {
-    document.querySelectorAll(`[data-scope="${scope}"][data-field="${el.name}"]`).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.value === el.value)));
+    document.querySelectorAll(`.pick[data-scope="${scope}"][data-field="${el.name}"]`).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.value === el.value)));
+    const map = el.name === 'place' && el.closest('fieldset')?.querySelector('.campus-map');
+    if (map) map.outerHTML = String(campusMap({ highlight: el.value, pick: scope }));
   }
 }
 
@@ -1913,7 +1955,7 @@ document.addEventListener('keydown', (event) => {
 });
 
 /* Drop a photo anywhere on the give screen. */
-const canDrop = () => Boolean(state.me) && state.route.name === 'give' && (state.giveMode === 'pile' ? state.pile : state.give).phase === 'pick';
+const canDrop = () => hasMe() && state.route.name === 'give' && (state.giveMode === 'pile' ? state.pile : state.give).phase === 'pick';
 for (const type of ['dragenter', 'dragover']) {
   document.addEventListener(type, (event) => {
     if (!canDrop()) return;
