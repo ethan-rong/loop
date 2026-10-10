@@ -18,7 +18,7 @@ cd ~/loop && (lsof -ti :3000 | xargs kill 2>/dev/null; true) && npm run seed && 
 
 | Time | Where | Say | Do |
 |---|---|---|---|
-| 0:00 | board (taker tab) | "Every move-out, working lamps and chargers go in the dumpster while someone down the hall is about to buy one. Listings don't finish the job. Loop does, and you don't even need the app." | Show the board: the open need for a reading lamp. |
+| 0:00 | board (taker tab) | "Every move-out, working lamps and chargers go in the dumpster while someone down the hall is about to buy one. Listings don't finish the job. Loop does, and you don't even need the app. Nobody here has a name." | Show the board. Tap Ask for something → "Reading lamp for my desk" → Post. (Post the need live: the seed holds no lamp request on purpose, so the match goes to this tab.) |
 | 0:12 | phone (giver) | "The giver texts a photo of the lamp he's about to toss to Loop's number." | Send the lamp photo to Loop. |
 | 0:20 | phone | "Four seconds later Loop replies with a draft and a match: the taker across campus asked for exactly this." | Show the reply: title, condition, "Someone nearby asked for a reading lamp — it fits. Reply YES…". |
 | 0:32 | phone | "The giver corrects the condition himself — Loop only drafts — then says YES." | Text "condition fair, dent on base", show the updated draft, text YES. |
