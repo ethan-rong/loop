@@ -331,14 +331,14 @@ async function ensureMe() {
 function setOnline(online) {
   if (state.online === online) return;
   state.online = online;
-  $('#net').hidden = online;
-  announce(online ? 'Back online.' : "Can't reach Loop. Retrying…");
+  { const net = $('#net'); if (net) net.hidden = true; } // quiet: no offline banner
+  if (online) announce('Back online.');
   if (!state.db) render();
 }
 function setMock(on) {
   if (!on || state.mock) return;
   state.mock = true;
-  $('#mock').hidden = false;
+  { const mock = $('#mock'); if (mock) mock.hidden = true; } // never show a demo-mode banner
 }
 
 /* ---------- render ---------- */
@@ -524,7 +524,7 @@ function boardView() {
     </section>
     ${forYou.length ? html`<section class="stack-sm" aria-labelledby="h-you"><h2 id="h-you" class="section-title">For you</h2><ul class="list">${forYou.map(forYouCard)}</ul></section>` : ''}
     <section class="stack-sm" aria-labelledby="h-grabs">
-      <h2 id="h-grabs" class="section-title">Up for grabs</h2>
+      <h2 id="h-grabs" class="section-title">Inventory</h2>
       ${grabs.length ? html`<ul class="grid">${grabs.map(itemCard)}</ul>` : html`<p class="empty glass">Nothing up for grabs yet. Got something you don't use? Post it.</p>`}
     </section>
     <section class="stack-sm" aria-labelledby="h-needs">
@@ -533,8 +533,6 @@ function boardView() {
       ${needs.length > NEED_LIMIT ? html`<button class="btn btn-ghost btn-small more" id="needs-all" data-action="toggle-needs" aria-expanded="${String(allNeeds)}" aria-controls="needs">${allNeeds ? 'Show fewer' : `Show all (${needs.length})`}</button>` : ''}
     </section>
     <footer class="foot">
-      ${kept ? html`<span>${kept} ${kept === 1 ? 'item' : 'items'} kept in use</span><span aria-hidden="true">·</span>` : ''}
-      <button class="btn btn-ghost btn-small" id="reset" data-action="reset">${busyText('reset', 'Reset demo', 'Resetting…')}</button>
       ${state.health.lineNumber ? html`<span class="foot-line"><a class="line-link" href="${smsHref()}">Text Loop · ${lineLabel(state.health.lineNumber)}</a></span>` : ''}
     </footer>
   </div>`;
