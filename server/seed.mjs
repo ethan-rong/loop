@@ -32,7 +32,6 @@ export function resetToSeed(dataDir, prevVersion = 0) {
       { id: 'thomas', lang: 'en' },
     ],
     requests: [
-      request('r_lamp', 'jerry', 'Reading lamp for my desk', 'Anything that clips or stands. My room light is awful.', 95),
       request('r_coat', 'jack', 'Winter coat, size M-ish', 'First real winter for me. Anything warm works.', 70),
       request('r_fridge', 'ethan', 'Mini fridge for a double', 'Small enough to fit under a desk. Shared with my roommate.', 40),
       request('r_cooker', 'tom', '小电饭煲', '两个人用的就够了，带内胆就行。', 35),

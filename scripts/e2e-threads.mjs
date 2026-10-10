@@ -175,9 +175,10 @@ async function cancelPaths() {
   const item = await ethanListsLamp();
 
   // Recipient taps "Can't make it": item back on the board, linked request reopened.
-  await reserve(item.id, { requestId: 'r_lamp' });
+  const { request: lamp } = await ok(call('POST', '/api/requests', { personId: 'jerry', title: 'Reading lamp for my desk' }));
+  await reserve(item.id, { requestId: lamp.id });
   let s = await state();
-  assert.equal(s.requests.find((r) => r.id === 'r_lamp').status, 'matched');
+  assert.equal(s.requests.find((r) => r.id === lamp.id).status, 'matched');
   let t = await openThreadFor(item.id);
   assert.equal(t.plan.timeISO, null);
   t = (await ok(act(t, 'jerry', 'cancel'))).thread;
@@ -186,7 +187,7 @@ async function cancelPaths() {
   s = await state();
   const back = s.items.find((i) => i.id === item.id);
   assert.deepEqual([back.status, back.reservation], ['available', null]);
-  assert.equal(s.requests.find((r) => r.id === 'r_lamp').status, 'open');
+  assert.equal(s.requests.find((r) => r.id === lamp.id).status, 'open');
   await expect(act(t, 'jerry', 'accept'), 409, 'thread_closed');
 
   // Reserve again: a new thread. Owner releases from the item page: that thread is cancelled too.

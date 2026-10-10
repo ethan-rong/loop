@@ -43,7 +43,7 @@ function noNames(data) {
 
 async function mainLoop() {
   const seed = await ok(call('POST', '/api/reset'));
-  assert.deepEqual([seed.people.length, seed.requests.length, seed.items.length], [5, 5, 2]);
+  assert.deepEqual([seed.people.length, seed.requests.length, seed.items.length], [5, 4, 2]);
 
   // jerry posts a need.
   const posted = await ok(call('POST', '/api/requests', { personId: 'jerry', title: 'Desk lamp for late reading', details: 'Mine broke.' }));
@@ -111,8 +111,9 @@ async function sideFlows() {
   assert.equal((await ok(call('POST', `/api/items/${item.id}/withdraw`, { personId: 'ethan' }))).status, 'withdrawn');
   const gone = await expect(call('POST', `/api/items/${item.id}/reserve`, { personId: 'jerry', ...meet }), 409, 'already_claimed');
   assert.equal(gone.message, 'The giver took this back.');
-  await expect(call('DELETE', '/api/requests/r_lamp', { personId: 'jack' }), 403, 'not_yours');
-  assert.equal((await ok(call('DELETE', '/api/requests/r_lamp', { personId: 'jerry' }))).status, 'closed');
+  const { request: lamp } = await ok(call('POST', '/api/requests', { personId: 'jerry', title: 'Reading lamp for my desk' }));
+  await expect(call('DELETE', `/api/requests/${lamp.id}`, { personId: 'jack' }), 403, 'not_yours');
+  assert.equal((await ok(call('DELETE', `/api/requests/${lamp.id}`, { personId: 'jerry' }))).status, 'closed');
 }
 
 // SPEC5: a fresh anonymous person (a new browser tab) can reserve and chat. People are {id, lang} only; at most 50;

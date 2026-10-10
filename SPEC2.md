@@ -2,7 +2,7 @@
 
 Phase 1 (SPEC.md) is built, verified and tagged `v0-core`. Phase 2 adds three things on top without breaking it. Every addition is additive and degrades gracefully: with no Photon credentials the app works entirely in the browser; with `GEMINI_MOCK=1` every new AI call has a deterministic mock. Keep the phase-1 rules: humans tap every state change, Gemini only drafts/parses/suggests, the key and any phone numbers stay server-side, plain words in copy, no invented impact numbers.
 
-Demo people (renamed): `ethan` "Ethan" (owner, South Campus), `jerry` "Jerry Lin" (Ehringhaus), `jack` "Jack Reyes" (Granville Towers). Seed ids unchanged: requests `r_lamp` (jerry), `r_coat` (jack), `r_fridge` (ethan); items `i_book` (jack), `i_fan` (jerry).
+Demo people (renamed): `ethan` "Ethan" (owner, South Campus), `jerry` "Jerry Lin" (Ehringhaus), `jack` "Jack Reyes" (Granville Towers). Seed ids: requests `r_coat`, `r_fridge`, `r_cooker`, `r_fan`; items `i_book`, `i_fan` (no lamp request is seeded: the taker posts it live).
 
 File ownership for phase 2 (do not edit outside your lane):
 

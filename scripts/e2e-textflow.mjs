@@ -30,7 +30,8 @@ const WELCOME = "Hi — this is Loop. Text me a photo of something you don't nee
 const ACK = 'Got it — looking at your photo…';
 const HINT = "\nReply 'works', 'here', or suggest a time.";
 const LAMP_LINE = 'Desk lamp with a jointed arm, a round base, and a metal shade.';
-const FITS = 'Someone nearby asked for "Reading lamp for my desk" 2 h ago — it fits. '
+// fresh() creates jerry's lamp request moments before each scenario; ago() reads anything under 90 s as "1 min".
+const FITS = 'Someone nearby asked for "Reading lamp for my desk" 1 min ago — it fits. '
   + 'Reply YES to offer it, BOARD to post it for anyone, or type a correction.';
 const NO_FIT = 'No open request fits yet. Reply BOARD to post it, or type a correction.';
 const E164_ANYWHERE = /\+\d{8,15}/;
@@ -53,6 +54,7 @@ function heicFixture() {
 // Stands in for index.mjs: its own db and commit (which records what linked phones would get for new thread
 // messages, through the channel's own threadTexts), and a send that only reaches linked people.
 let db = null;
+let lampId = null; // jerry's open lamp request, made by fresh() (the seed has no lamp request)
 let outbox = []; // {personId, text} not yet checked
 let everSent = []; // everything this scenario texted
 let linkedNow = new Set();
@@ -94,6 +96,9 @@ function fresh(...linked) {
   everSent = [];
   linkedNow = new Set(linked);
   sendWorks = true;
+  lampId = commit(store.createRequest(db, {
+    personId: 'jerry', title: 'Reading lamp for my desk', details: 'Anything that clips or stands. My room light is awful.',
+  })).request.id;
 }
 function noLeaks() {
   for (const { text } of everSent) {
@@ -111,7 +116,7 @@ async function offerByText() {
   assert.equal(await snap('ethan'), `Adjustable desk lamp · good · ${LAMP_LINE} ${FITS}`);
   assert.deepEqual(take('ethan'), [ACK]);
   const session = db.textSessions.ethan;
-  assert.deepEqual([session.state, session.matchRequestId], ['drafting', 'r_lamp']);
+  assert.deepEqual([session.state, session.matchRequestId], ['drafting', lampId]);
   assert.ok(existsSync(join(store.DATA_DIR, 'photos', `${session.photoId}.jpg`)), 'photo stored');
   assert.equal(await say('ethan', 'condition fair'), `Updated: Adjustable desk lamp · fair · ${LAMP_LINE} ${FITS}`);
   assert.equal(await say('ethan', 'title: Blue adjustable desk lamp'), `Updated: Blue adjustable desk lamp · fair · ${LAMP_LINE} ${FITS}`);
@@ -121,11 +126,11 @@ async function offerByText() {
   const item = db.items.at(-1);
   assert.deepEqual(
     [item.ownerId, item.status, item.offeredToRequestId, item.source, item.title, item.condition, item.category, item.photo],
-    ['ethan', 'offered', 'r_lamp', 'imessage', 'Blue adjustable desk lamp', 'fair', 'lighting', `/photos/${session.photoId}.jpg`],
+    ['ethan', 'offered', lampId, 'imessage', 'Blue adjustable desk lamp', 'fair', 'lighting', `/photos/${session.photoId}.jpg`],
   );
   assert.equal(item.description, `${LAMP_LINE} Dent on base.`);
   assert.equal(item.aiDraft.title, 'Adjustable desk lamp', 'aiDraft keeps the untouched Gemini draft');
-  assert.equal(db.requests.find((r) => r.id === 'r_lamp').status, 'matched');
+  assert.equal(db.requests.find((r) => r.id === lampId).status, 'matched');
   assert.deepEqual([db.textSessions.ethan.state, db.textSessions.ethan.itemId], ['offered', item.id]);
   assert.deepEqual(take('ethan'), []);
   commit(store.reserveItem(db, item.id, { personId: 'jerry', place: 'Davis Library lobby', time: 'Today 5 pm' }));
@@ -173,8 +178,8 @@ async function connectorByText() {
   assert.deepEqual(take('jerry'), ['Someone just posted an adjustable desk lamp that fits your request for "Reading lamp for my desk". Reply YES to reserve it, or ignore this.']);
   assert.equal(await say('jerry', 'YES'), null);
   const reserved = itemById(item.id);
-  assert.deepEqual([reserved.status, reserved.reservation.personId, reserved.reservation.requestId], ['reserved', 'jerry', 'r_lamp']);
-  assert.equal(db.requests.find((r) => r.id === 'r_lamp').status, 'matched');
+  assert.deepEqual([reserved.status, reserved.reservation.personId, reserved.reservation.requestId], ['reserved', 'jerry', lampId]);
+  assert.equal(db.requests.find((r) => r.id === lampId).status, 'matched');
   assert.equal(db.textSessions.jerry.suggestion, null);
   assert.deepEqual(take('ethan'), [ACK, `Loop: Someone reserved your Adjustable desk lamp. You're the one handing it over, so you pick: when and where works for you?${HINT}`]);
   assert.deepEqual(take('jerry'), ['Loop: The giver will suggest a time and place; you can reply here too.']);
@@ -221,7 +226,7 @@ async function edges() {
     const stored = readFileSync(join(store.DATA_DIR, 'photos', `${db.textSessions.ethan.photoId}.jpg`));
     assert.equal(stored.subarray(0, 3).toString('hex'), 'ffd8ff', 'HEIC is stored as JPEG');
   }
-  commit(store.closeRequest(db, 'r_lamp', 'jerry'));
+  commit(store.closeRequest(db, lampId, 'jerry'));
   assert.equal(await snap('ethan'), `Adjustable desk lamp · good · ${LAMP_LINE} ${NO_FIT}`);
   const first = db.textSessions.ethan.photoId;
   assert.equal(await say('ethan', 'yes'), 'No open request fits it right now. Reply BOARD to post it for anyone, or type a correction.');
