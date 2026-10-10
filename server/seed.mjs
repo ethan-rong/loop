@@ -22,12 +22,14 @@ export function resetToSeed(dataDir, prevVersion = 0) {
   });
   const db = {
     version: prevVersion + 1,
+    // Privacy by design: Loop shows a nickname and a coarse campus area, never a real name, dorm or number.
+    // Demo mapping (for the operator only): ethan = Heron (the phone), jerry = Fox (web recipient), jack = Kite, tom = Owl (zh), thomas = Wolf.
     people: [
-      { id: 'ethan', name: 'Ethan', spot: 'South Campus' },
-      { id: 'jerry', name: 'Jerry Lin', spot: 'Ehringhaus' },
-      { id: 'jack', name: 'Jack Reyes', spot: 'Granville Towers' },
-      { id: 'tom', name: 'Tom Zhao', spot: 'Craige', lang: 'zh' },
-      { id: 'thomas', name: 'Thomas Hale', spot: 'Carmichael' },
+      { id: 'ethan', name: 'Heron', spot: 'South Campus' },
+      { id: 'jerry', name: 'Fox', spot: 'South Campus' },
+      { id: 'jack', name: 'Kite', spot: 'Franklin St area' },
+      { id: 'tom', name: 'Owl', spot: 'South Campus', lang: 'zh' },
+      { id: 'thomas', name: 'Wolf', spot: 'Mid Campus' },
     ],
     requests: [
       request('r_lamp', 'jerry', 'Reading lamp for my desk', 'Anything that clips or stands. My room light is awful.', 95),

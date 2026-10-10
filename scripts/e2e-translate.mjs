@@ -47,7 +47,7 @@ async function waitFor(id, done, what) {
   }
   throw new Error(`timed out waiting for ${what}`);
 }
-// Tom (zh) and Jerry (en): Tom's lines carry English, everyone else's (Loop's too) Chinese, a text with 4 digits in
+// Owl (zh) and Fox (en): Owl's lines carry English, everyone else's (Loop's too) Chinese, a text with 4 digits in
 // a row (maybe the code) nothing. Settled = every message in the thread carries exactly that.
 const expected = (m) => {
   if (/\d{4}/.test(m.text)) return {};
@@ -56,24 +56,24 @@ const expected = (m) => {
 const settled = (t) => t.messages.every((m) => JSON.stringify(m.translations) === JSON.stringify(expected(m)));
 const byText = (t, text) => t.messages.find((m) => m.text === text);
 
-// Tom reserves Jerry's fan; the whole pickup is translated both ways, the closing line of the done thread included.
+// Owl reserves Fox's fan; the whole pickup is translated both ways, the closing line of the done thread included.
 async function zhThread() {
   const seed = await ok(call('POST', '/api/reset'));
   const people = Object.fromEntries(seed.people.map((p) => [p.id, p]));
-  assert.deepEqual([people.tom.lang, people.jerry.lang], ['zh', undefined], 'seed: Tom reads Chinese, Jerry the default');
+  assert.deepEqual([people.tom.lang, people.jerry.lang], ['zh', undefined], 'seed: Owl reads Chinese, Fox the default');
   const { reservation: { code } } = await ok(call('POST', '/api/items/i_fan/reserve', { personId: 'tom' }));
   let t = await newestThread('i_fan');
   assert.deepEqual([t.ownerId, t.recipientId, t.messages.length], ['jerry', 'tom', 2]);
   t = await waitFor(t.id, settled, 'the opening messages in zh');
   assert.ok(t.messages.every((m) => m.from === 'loop' && m.translations.zh), 'both opening lines in zh');
 
-  // Tom writes Chinese: his message gets English, Loop's (English) reply gets Chinese. The original is kept.
+  // Owl writes Chinese: his message gets English, Loop's (English) reply gets Chinese. The original is kept.
   const reply = (await say(t, 'tom', CHINESE)).thread.messages.at(-1);
-  t = await waitFor(t.id, (x) => byText(x, CHINESE) && settled(x), "Tom's message and Loop's reply");
+  t = await waitFor(t.id, (x) => byText(x, CHINESE) && settled(x), "Owl's message and Loop's reply");
   assert.deepEqual([byText(t, CHINESE).from, byText(t, CHINESE).translations], ['tom', { en: `[en] ${CHINESE}` }]);
   assert.deepEqual(t.messages.find((m) => m.id === reply.id).translations, { zh: '[zh] Got it.' });
 
-  // Jerry types a plan, Tom taps the buttons: every new line reaches Tom in Chinese.
+  // Fox types a plan, Owl taps the buttons: every new line reaches Owl in Chinese.
   await say(t, 'jerry', 'Davis at 5 pm?');
   assert.equal((await act(t, 'tom', 'accept')).thread.status, 'set');
   assert.equal((await act(t, 'tom', 'arrived')).thread.status, 'meeting');
@@ -91,7 +91,7 @@ async function zhThread() {
   assert.ok(!JSON.stringify(t.messages.map((m) => m.translations)).includes(code), 'no translation carries the code');
 }
 
-// Jerry and Jack both read English: no translations, ever. Then Thomas switches to Spanish and his new thread follows.
+// Fox and Kite both read English: no translations, ever. Then Wolf switches to Spanish and his new thread follows.
 async function sameLanguage() {
   await ok(call('POST', '/api/items/i_book/reserve', { personId: 'jerry', ...meet }));
   let t = await newestThread('i_book');
@@ -108,13 +108,13 @@ async function sameLanguage() {
   await expect(call('POST', '/api/people/nobody/lang', { lang: 'es' }), 404, 'unknown_person');
   const before = (await state()).version;
   const thomas = await ok(call('POST', '/api/people/thomas/lang', { lang: 'es' }));
-  assert.deepEqual([thomas.id, thomas.name, thomas.lang], ['thomas', 'Thomas Hale', 'es']);
+  assert.deepEqual([thomas.id, thomas.name, thomas.lang], ['thomas', 'Wolf', 'es']);
   const after = await state();
   assert.equal(after.people.find((p) => p.id === 'thomas').lang, 'es');
   assert.equal(after.version, before + 1);
   await ok(call('POST', '/api/items/i_book/reserve', { personId: 'thomas', ...meet }));
   t = await newestThread('i_book');
-  t = await waitFor(t.id, (x) => x.messages[0].translations.es, "Loop's opening in Spanish for Thomas");
+  t = await waitFor(t.id, (x) => x.messages[0].translations.es, "Loop's opening in Spanish for Wolf");
   assert.deepEqual([t.recipientId, t.messages.length, t.messages[0].translations], ['thomas', 1, mock('es', t.messages[0])]);
 }
 
@@ -144,13 +144,13 @@ const settle = () => sleep(20); // mock translations land within a few microtask
 async function phoneForwards() {
   let p = phones();
   const { thread: fan } = p.commit(store.reserveItem(p.db(), 'i_fan', { personId: 'tom' }));
-  assert.deepEqual(p.take(), [{ personId: 'jerry', text: `Loop: Hi Jerry — Tom reserved your Small desk fan. You're the one handing it over, so you pick: when and where works for you?${HINT}` }]);
+  assert.deepEqual(p.take(), [{ personId: 'jerry', text: `Loop: Hi Fox — Owl reserved your Small desk fan. You're the one handing it over, so you pick: when and where works for you?${HINT}` }]);
   await settle();
-  assert.deepEqual(p.take(), [{ personId: 'tom', text: 'Loop: [zh] Tom, Jerry will suggest a time and place; you can reply here too.' }]);
+  assert.deepEqual(p.take(), [{ personId: 'tom', text: 'Loop: [zh] Owl, Fox will suggest a time and place; you can reply here too.' }]);
   p.commit(store.postHumanMessage(p.db(), fan.id, { personId: 'tom', text: CHINESE }));
   assert.deepEqual(p.take(), [], "held back until it's translated");
   await settle();
-  assert.deepEqual(p.take(), [{ personId: 'jerry', text: `Tom: [en] ${CHINESE}` }]);
+  assert.deepEqual(p.take(), [{ personId: 'jerry', text: `Owl: [en] ${CHINESE}` }]);
   p.commit(store.postLoopMessage(p.db(), fan.id, 'Got it.'));
   assert.deepEqual(p.take(), [{ personId: 'jerry', text: 'Loop: Got it.' }]);
   await settle();
@@ -162,8 +162,8 @@ async function phoneForwards() {
   const { thread: book } = p.commit(store.reserveItem(p.db(), 'i_book', { personId: 'jerry', ...meet }));
   p.commit(store.postHumanMessage(p.db(), book.id, { personId: 'jerry', text: 'hello' }));
   assert.deepEqual(p.take(), [
-    { personId: 'jack', text: `Loop: Hi Jack — Jerry reserved your Intro to Psychology textbook (8th ed.) and suggested Davis Library lobby, Today 5 pm. Does that work?${HINT}` },
-    { personId: 'jack', text: 'Jerry: hello' },
+    { personId: 'jack', text: `Loop: Hi Kite — Fox reserved your Intro to Psychology textbook (8th ed.) and suggested Davis Library lobby, Today 5 pm. Does that work?${HINT}` },
+    { personId: 'jack', text: 'Fox: hello' },
   ]);
   await settle();
   assert.deepEqual(p.take(), [], 'same language: nothing held back, nothing twice');
@@ -172,11 +172,11 @@ async function phoneForwards() {
     p = phones(failing);
     const { thread } = p.commit(store.reserveItem(p.db(), 'i_fan', { personId: 'tom' }));
     p.commit(store.postHumanMessage(p.db(), thread.id, { personId: 'tom', text: CHINESE }));
-    assert.deepEqual(p.take().map((t) => t.personId), ['jerry'], "only Jerry's own-language line goes out at once");
+    assert.deepEqual(p.take().map((t) => t.personId), ['jerry'], "only Fox's own-language line goes out at once");
     await settle();
     assert.deepEqual(p.take(), [
-      { personId: 'tom', text: 'Loop: Tom, Jerry will suggest a time and place; you can reply here too.' },
-      { personId: 'jerry', text: `Tom: ${CHINESE}` },
+      { personId: 'tom', text: 'Loop: Owl, Fox will suggest a time and place; you can reply here too.' },
+      { personId: 'jerry', text: `Owl: ${CHINESE}` },
     ], 'failed translation: the original, once');
     await settle();
     assert.deepEqual(p.take(), []);

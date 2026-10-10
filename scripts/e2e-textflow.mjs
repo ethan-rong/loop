@@ -26,11 +26,11 @@ const LAMP_FILE = fileURLToPath(new URL('../public/seed/lamp.jpg', import.meta.u
 const LAMP = readFileSync(LAMP_FILE);
 const HEIC = heicFixture(); // null where sips can't make one
 const HELP = "Text me a photo of something you don't need and I'll draft the listing. Reply STOP to unlink.";
-const WELCOME = "Hi Ethan — this is Loop. Text me a photo of something you don't need and I'll draft the listing.";
+const WELCOME = "Hi Heron — this is Loop. Text me a photo of something you don't need and I'll draft the listing.";
 const ACK = 'Got it — looking at your photo…';
 const HINT = "\nReply 'works', 'here', or suggest a time.";
 const LAMP_LINE = 'Desk lamp with a jointed arm, a round base, and a metal shade.';
-const FITS = 'Jerry (Ehringhaus) asked for "Reading lamp for my desk" 2 h ago — it fits. Reply YES to offer it to Jerry, '
+const FITS = 'Fox (South Campus) asked for "Reading lamp for my desk" 2 h ago — it fits. Reply YES to offer it to Fox, '
   + "BOARD to post it for anyone, or type a correction (e.g. 'condition fair, dent on base').";
 const NO_FIT = 'No open request fits yet. Reply BOARD to post it, or type a correction.';
 const E164_ANYWHERE = /\+\d{8,15}/;
@@ -98,8 +98,8 @@ function noLeaks() {
   for (const { text } of everSent) assert.ok(!E164_ANYWHERE.test(text), `a text carried a phone number: ${text}`);
 }
 
-// §1 photo -> draft -> corrections -> YES -> offered; §2 Jerry accepts on the web and Ethan's phone gets the
-// thread's opening line, and nothing addressed to Jerry reaches Jerry's phone.
+// §1 photo -> draft -> corrections -> YES -> offered; §2 Fox accepts on the web and Heron's phone gets the
+// thread's opening line, and nothing addressed to Fox reaches Fox's phone.
 async function offerByText() {
   fresh('ethan', 'jerry');
   assert.equal(await say('ethan', 'hi'), WELCOME);
@@ -113,7 +113,7 @@ async function offerByText() {
   assert.equal(await say('ethan', 'title: Blue adjustable desk lamp'), `Updated: Blue adjustable desk lamp · fair · ${LAMP_LINE} ${FITS}`);
   assert.equal(await say('ethan', 'dent on base'), `Updated: Blue adjustable desk lamp · fair (dent on base) · ${LAMP_LINE} ${FITS}`);
   assert.equal(db.items.length, 2, 'nothing published before YES');
-  assert.equal(await say('ethan', 'YES'), "Offered to Jerry. I'll tell you when Jerry accepts and we'll sort out the pickup here.");
+  assert.equal(await say('ethan', 'YES'), "Offered to Fox. I'll tell you when Fox accepts and we'll sort out the pickup here.");
   const item = db.items.at(-1);
   assert.deepEqual(
     [item.ownerId, item.status, item.offeredToRequestId, item.source, item.title, item.condition, item.category, item.photo],
@@ -125,14 +125,14 @@ async function offerByText() {
   assert.deepEqual([db.textSessions.ethan.state, db.textSessions.ethan.itemId], ['offered', item.id]);
   assert.deepEqual(take('ethan'), []);
   commit(store.reserveItem(db, item.id, { personId: 'jerry', place: 'Davis Library lobby', time: 'Today 5 pm' }));
-  assert.deepEqual(take('ethan'), [`Loop: Hi Ethan — Jerry reserved your Blue adjustable desk lamp and suggested Davis Library lobby, Today 5 pm. Does that work?${HINT}`]);
-  assert.deepEqual(take('jerry'), [], "the owner's line is not texted to Jerry");
+  assert.deepEqual(take('ethan'), [`Loop: Hi Heron — Fox reserved your Blue adjustable desk lamp and suggested Davis Library lobby, Today 5 pm. Does that work?${HINT}`]);
+  assert.deepEqual(take('jerry'), [], "the owner's line is not texted to Fox");
   assert.equal(await say('ethan', 'works'), 'thread:ethan:works', 'after the offer, texts go to the pickup thread');
   noLeaks();
 }
 
-// §1 BOARD, §2 owner by text: reserved on the web; at the meeting Ethan is asked to text the code; a wrong code gets
-// the store's message, the right one collects. Jerry has no linked phone, so Loop never texts him.
+// §1 BOARD, §2 owner by text: reserved on the web; at the meeting Heron is asked to text the code; a wrong code gets
+// the store's message, the right one collects. Fox has no linked phone, so Loop never texts him.
 async function boardAndCode() {
   fresh('ethan');
   await snap('ethan');
@@ -142,13 +142,13 @@ async function boardAndCode() {
   assert.equal(db.textSessions.jerry, undefined, 'no suggestion for a requester without a linked phone');
   assert.deepEqual(take('ethan'), [ACK]);
   const { code } = commit(store.reserveItem(db, item.id, { personId: 'jerry', place: 'Davis Library lobby', time: 'Today 5 pm' })).item.reservation;
-  assert.deepEqual(take('ethan'), [`Loop: Hi Ethan — Jerry reserved your Adjustable desk lamp and suggested Davis Library lobby, Today 5 pm. Does that work?${HINT}`]);
+  assert.deepEqual(take('ethan'), [`Loop: Hi Heron — Fox reserved your Adjustable desk lamp and suggested Davis Library lobby, Today 5 pm. Does that work?${HINT}`]);
   const thread = store.newestOpenThread(db, 'ethan');
   commit(store.acceptPlan(db, thread.id, { personId: 'ethan' }));
-  assert.deepEqual(take('ethan'), [`Loop: Pickup set: Davis Library lobby, Today 5 pm. Jerry, tap 'I'm here' when you arrive.${HINT}`]);
+  assert.deepEqual(take('ethan'), [`Loop: Pickup set: Davis Library lobby, Today 5 pm. Fox, tap 'I'm here' when you arrive.${HINT}`]);
   commit(store.markArrived(db, thread.id, { personId: 'jerry' }));
-  assert.deepEqual(take('ethan'), ['Loop: Jerry is at Davis Library lobby. Ask Jerry for the 4-digit code and text it to me.']);
-  assert.equal(await say('ethan', code === '1234' ? '4321' : '1234'), "That code doesn't match. Ask Jerry to show the code on their screen.");
+  assert.deepEqual(take('ethan'), ['Loop: Fox is at Davis Library lobby. Ask Fox for the 4-digit code and text it to me.']);
+  assert.equal(await say('ethan', code === '1234' ? '4321' : '1234'), "That code doesn't match. Ask Fox to show the code on their screen.");
   assert.equal(itemById(item.id).status, 'reserved');
   assert.equal(await say('ethan', `it's ${code}`), null);
   assert.equal(itemById(item.id).status, 'collected');
@@ -156,29 +156,29 @@ async function boardAndCode() {
   assert.deepEqual(take('ethan'), ['Loop: Handed over. Thanks, both — the adjustable desk lamp stays in use.']);
   assert.ok(!store.getThread(db, thread.id).messages.some((m) => m.text.includes(code)), 'the code never enters the thread');
   assert.ok(!everSent.some((t) => t.text.includes(code)), 'no text carries the code');
-  assert.deepEqual(everSent.filter((t) => t.personId !== 'ethan'), [], 'Jerry is never texted');
+  assert.deepEqual(everSent.filter((t) => t.personId !== 'ethan'), [], 'Fox is never texted');
   noLeaks();
 }
 
-// §3 from a text post: Jerry's open request fits and his phone is linked, so he gets one text; YES reserves it.
+// §3 from a text post: Fox's open request fits and his phone is linked, so he gets one text; YES reserves it.
 async function connectorByText() {
   fresh('ethan', 'jerry');
   await snap('ethan');
   await say('ethan', 'board');
   const item = db.items.at(-1);
-  assert.deepEqual(take('jerry'), ['Ethan just posted an adjustable desk lamp that fits your request "Reading lamp for my desk". Reply YES to reserve it, or ignore this.']);
+  assert.deepEqual(take('jerry'), ['Heron just posted an adjustable desk lamp that fits your request "Reading lamp for my desk". Reply YES to reserve it, or ignore this.']);
   assert.equal(await say('jerry', 'YES'), null);
   const reserved = itemById(item.id);
   assert.deepEqual([reserved.status, reserved.reservation.personId, reserved.reservation.requestId], ['reserved', 'jerry', 'r_lamp']);
   assert.equal(db.requests.find((r) => r.id === 'r_lamp').status, 'matched');
   assert.equal(db.textSessions.jerry.suggestion, null);
-  assert.deepEqual(take('ethan'), [ACK, `Loop: Hi Ethan — Jerry reserved your Adjustable desk lamp. You're the one handing it over, so you pick: when and where works for you?${HINT}`]);
-  assert.deepEqual(take('jerry'), ['Loop: Jerry, Ethan will suggest a time and place; you can reply here too.']);
+  assert.deepEqual(take('ethan'), [ACK, `Loop: Hi Heron — Fox reserved your Adjustable desk lamp. You're the one handing it over, so you pick: when and where works for you?${HINT}`]);
+  assert.deepEqual(take('jerry'), ['Loop: Fox, Heron will suggest a time and place; you can reply here too.']);
   assert.equal(await say('jerry', 'yes'), 'thread:jerry:yes', 'the next YES goes to the pickup thread');
   noLeaks();
 }
 
-// §3 from a web post whose text fails to send: it waits for Ethan's next text, and that text can't answer it.
+// §3 from a web post whose text fails to send: it waits for Heron's next text, and that text can't answer it.
 async function connectorFromWeb() {
   fresh('ethan');
   sendWorks = false;
@@ -195,7 +195,7 @@ async function connectorFromWeb() {
   assert.equal(await say('ethan', 'yes'), null);
   assert.deepEqual([itemById(item.id).status, itemById(item.id).reservation.personId], ['reserved', 'ethan']);
   assert.equal(db.requests.find((r) => r.id === 'r_fridge').status, 'matched');
-  assert.deepEqual(take('ethan'), ['Loop: Ethan, Jack will suggest a time and place; you can reply here too.']);
+  assert.deepEqual(take('ethan'), ['Loop: Heron, Kite will suggest a time and place; you can reply here too.']);
   itemPosted(itemById(item.id));
   assert.deepEqual(take('ethan'), [], 'a reserved item never triggers a text');
   // Offered items and the owner's own request never trigger one either.

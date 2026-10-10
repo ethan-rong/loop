@@ -35,14 +35,14 @@ async function mainLoop() {
   const seed = await ok(call('POST', '/api/reset'));
   assert.deepEqual([seed.people.length, seed.requests.length, seed.items.length], [5, 5, 2]);
 
-  // Jerry posts a need.
+  // Fox posts a need.
   const posted = await ok(call('POST', '/api/requests', { personId: 'jerry', title: 'Desk lamp for late reading', details: 'Mine broke.' }));
   const need = posted.request;
   assert.equal(need.status, 'open');
   assert.ok(Array.isArray(posted.suggestions));
   assert.equal(posted.mock, true);
 
-  // Ethan photographs a lamp: photo stored, mock draft returned, nothing published.
+  // Heron photographs a lamp: photo stored, mock draft returned, nothing published.
   const drafted = await draftLamp();
   assert.equal(drafted.aiError, null);
   assert.equal(drafted.mock, true);
@@ -51,7 +51,7 @@ async function mainLoop() {
   assert.ok(lampNeeds.includes(drafted.draft.match.requestId), 'draft matched an open lamp request');
   assert.equal((await fetch(BASE + drafted.photo)).status, 200, 'photo is served');
 
-  // Ethan posts it, offered to Jerry's need.
+  // Heron posts it, offered to Fox's need.
   const { title, description, condition, category } = drafted.draft;
   const item = await ok(call('POST', '/api/items', {
     ownerId: 'ethan', photoId: drafted.photoId, title, description, condition, category, aiDraft: drafted.draft, offerToRequestId: need.id,
@@ -59,7 +59,7 @@ async function mainLoop() {
   assert.equal(item.status, 'offered');
   assert.equal(await requestStatus(need.id), 'matched');
 
-  // Jerry accepts and reserves.
+  // Fox accepts and reserves.
   const reserved = await ok(call('POST', `/api/items/${item.id}/reserve`, { personId: 'jerry', ...meet }));
   assert.equal(reserved.status, 'reserved');
   assert.match(reserved.reservation.code, /^\d{4}$/);
@@ -81,7 +81,7 @@ async function mainLoop() {
 }
 
 async function sideFlows() {
-  // Offer to Jack -> others can't take it -> Jack declines -> Jerry reserves, cancels -> Ethan takes it back.
+  // Offer to Kite -> others can't take it -> Kite declines -> Fox reserves, cancels -> Heron takes it back.
   const drafted = await draftLamp();
   const item = await ok(call('POST', '/api/items', {
     ownerId: 'ethan', photoId: drafted.photoId, title: 'Spare lamp', condition: 'fair', category: 'lighting', aiDraft: null, offerToRequestId: 'r_coat',
