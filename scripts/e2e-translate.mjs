@@ -59,8 +59,10 @@ const byText = (t, text) => t.messages.find((m) => m.text === text);
 // tom reserves jerry's fan; the whole pickup is translated both ways, the closing line of the done thread included.
 async function zhThread() {
   const seed = await ok(call('POST', '/api/reset'));
-  const people = Object.fromEntries(seed.people.map((p) => [p.id, p]));
-  assert.deepEqual([people.tom, people.jerry], [{ id: 'tom', lang: 'zh' }, { id: 'jerry', lang: 'en' }], 'seed: tom reads Chinese, jerry English; nothing else');
+  await ok(call('POST', '/api/people/tom/lang', { lang: 'zh' })); // the seed is English-only; this test opts tom into Chinese
+  const people = Object.fromEntries((await ok(call('GET', '/api/state'))).people.map((p) => [p.id, p]));
+  assert.deepEqual([people.tom, people.jerry], [{ id: 'tom', lang: 'zh' }, { id: 'jerry', lang: 'en' }], 'tom reads Chinese, jerry English; nothing else');
+  void seed;
   const { reservation: { code } } = await ok(call('POST', '/api/items/i_fan/reserve', { personId: 'tom' }));
   let t = await newestThread('i_fan');
   assert.deepEqual([t.ownerId, t.recipientId, t.messages.length], ['jerry', 'tom', 2]);
@@ -120,7 +122,7 @@ async function sameLanguage() {
 
 // Stands in for index.mjs's commit() (same two calls) with phones that record what they get; everyone counts as linked.
 function phones(translate) {
-  let db = resetToSeed(PHONES_DIR);
+  let db = store.setPersonLang(resetToSeed(PHONES_DIR), 'tom', 'zh').db;
   let inbox = [];
   const forward = (after, job, translated) => inbox.push(...translationTexts(after, job, translated));
   const commit = (result) => {
