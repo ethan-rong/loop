@@ -308,6 +308,27 @@ img { max-width: 100%; }
 .empty { padding: 20px; color: var(--muted); text-align: center; font-size: var(--fs-4); }
 .empty.glass { border-style: dashed; }
 
+/* Hairline figures (vendored in /vendor/): ink lines on the surface they sit on. The library draws at the box's width
+   and a 5:4 ratio, so a width caps the height, and the box holds the space before the module loads. */
+.fig {
+  aspect-ratio: 5 / 4;
+  --hairline-plate: var(--cream); /* plates are filled: the colour underneath */
+  --hairline-hi: var(--ink);
+  --hairline-edge: #2a2f3d;
+  --hairline-mid: #6a7085;
+  --hairline-lo: #b9bcc6;
+}
+.no-figs .fig { display: none; } /* the module didn't load */
+.fig-hero { width: 225px; max-width: 100%; margin-top: 12px; } /* phones: under the line, 180 px tall */
+.fig-basket { width: 140px; margin: 0 auto 6px; opacity: .55; --hairline-plate: var(--card); }
+.fig-phone { width: 160px; flex: none; }
+.text-in-row { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.text-in-row .text-in { text-align: left; }
+@media (min-width: 700px) { /* two columns: the words left, the tray right, 220 px tall */
+  .hero { display: grid; grid-template-columns: minmax(0, 1fr) 275px; grid-template-rows: auto auto 1fr; column-gap: 20px; }
+  .fig-hero { grid-column: 2; grid-row: 1 / -1; align-self: center; width: 275px; margin: 0; }
+}
+
 /* "yours" on the board: a small ink dot before the title (19:1 on white); screen readers hear "yours". */
 .mine-dot { display: inline-block; width: 8px; height: 8px; margin-right: 7px; border-radius: 50%; background: var(--ink); vertical-align: .1em; }
 

@@ -375,6 +375,7 @@ function render() {
   const focusId = active?.id ?? '';
   const caret = active?.matches('textarea, input[type=text], input:not([type])') ? [active.selectionStart, active.selectionEnd] : null;
   view.innerHTML = String(currentView());
+  mountFigures(); // before the focus comes back: a kept figure (the riffle is focusable) is back in place by then
   document.title = pageTitle();
   const target = state.focusTarget ? view.querySelector(state.focusTarget) : focusId && document.getElementById(focusId);
   state.focusTarget = '';
@@ -384,6 +385,44 @@ function render() {
     if (caret && target.id === focusId && target.setSelectionRange) target.setSelectionRange(...caret);
   }
   afterRender();
+}
+
+/* Hairline line figures (SPEC6), vendored in /vendor/ and imported the first time a page has a .fig slot. A slot
+   names its figure in data-fig. A render that draws the same kind again keeps the running figure (moved into the new
+   slot, so a poll doesn't restart it); a figure whose slot is gone is destroyed. If the module can't load, the page
+   renders the same without figures. */
+const FIGURES = {
+  hero: ['riffle', { intensity: 0.45, label: 'A tray of posts standing up', play: true }],
+  phone: ['phone', { intensity: 0.4, label: 'A phone opening in layers' }],
+  basket: ['basket', { intensity: 0.4, label: 'An empty basket' }],
+};
+let hairline = null; // the module promise, once a page needs a figure
+const figures = new Map(); // slot element -> running figure { update, destroy }
+function mountFigures() {
+  for (const slot of view.querySelectorAll('.fig[data-fig]')) {
+    const kept = [...figures.keys()].find((el) => !el.isConnected && el.dataset.fig === slot.dataset.fig);
+    if (kept) slot.replaceWith(kept);
+  }
+  for (const [el, fig] of figures) {
+    if (el.isConnected) continue;
+    fig.destroy();
+    figures.delete(el);
+  }
+  const fresh = [...view.querySelectorAll('.fig[data-fig]')].filter((el) => !figures.has(el));
+  if (!fresh.length) return;
+  hairline ??= import('/vendor/hairline.js').catch(() => {
+    document.documentElement.classList.add('no-figs'); // the empty slots fold away
+    return null;
+  });
+  hairline.then((lib) => {
+    for (const el of fresh) {
+      const [name, options] = FIGURES[el.dataset.fig] ?? [];
+      if (!lib?.[name] || !el.isConnected || figures.has(el)) continue; // a render replaced the slot while loading
+      try {
+        figures.set(el, lib[name](el, { ...options, theme: 'light', play: Boolean(options.play) && !reducedMotion.matches }));
+      } catch { /* a figure that can't draw leaves an empty box */ }
+    }
+  });
 }
 
 /* While someone types a message, replies still arrive: the conversation and the action card are redrawn
@@ -489,8 +528,10 @@ const backLink = () => html`<a class="back" href="#/">${icon('back')} Board</a>`
 const lineLabel = (e164) => e164.replace(/^\+1(\d{3})(\d{3})(\d{4})$/, '($1) $2-$3');
 const smsHref = () => `sms:${state.health.lineNumber}`;
 const textIn = () => (state.health.lineNumber
-  ? html`<p class="text-in">No app? Text a photo to Loop at <a href="${smsHref()}">${lineLabel(state.health.lineNumber)}</a></p>`
+  ? html`<div class="text-in-row"><div class="fig fig-phone" data-fig="phone"></div><p class="text-in">No app? Text a photo to Loop at <a href="${smsHref()}">${lineLabel(state.health.lineNumber)}</a></p></div>`
   : '');
+// Board empty states: one muted basket per page (the needs one only shows it when the inventory has things).
+const basketFig = () => html`<div class="fig fig-basket" data-fig="basket"></div>`;
 
 /* ---------- views: loading ---------- */
 
@@ -522,6 +563,7 @@ function boardView() {
     <section class="hero">
       <h1>Post what you don't need.</h1>
       <p class="lead">Someone nearby takes it. No names, no accounts.</p>
+      <div class="fig fig-hero" id="fig-hero" data-fig="hero" aria-hidden="false"></div>
       <div class="hero-actions">
         <a class="btn btn-primary" href="#/give">${icon('camera')} Post something</a>
         <a class="quiet-link" href="#/ask">Ask for something</a>
@@ -530,11 +572,11 @@ function boardView() {
     ${forYou.length ? html`<section class="stack-sm" aria-labelledby="h-you"><h2 id="h-you" class="section-title">For you</h2><ul class="list">${forYou.map(forYouCard)}</ul></section>` : ''}
     <section class="stack-sm" aria-labelledby="h-grabs">
       <h2 id="h-grabs" class="section-title">Inventory</h2>
-      ${grabs.length ? html`<ul class="grid">${grabs.map(itemCard)}</ul>` : html`<p class="empty glass">Nothing up for grabs yet. Got something you don't use? Post it.</p>`}
+      ${grabs.length ? html`<ul class="grid">${grabs.map(itemCard)}</ul>` : html`<div class="empty glass">${basketFig()}<p>Nothing up for grabs yet. Got something you don't use? Post it.</p></div>`}
     </section>
     <section class="stack-sm" aria-labelledby="h-needs">
       <h2 id="h-needs" class="section-title">People need</h2>
-      ${needs.length ? html`<ul class="list" id="needs">${(allNeeds ? needs : needs.slice(0, NEED_LIMIT)).map(needCard)}</ul>` : html`<p class="empty glass">No open requests right now.</p>`}
+      ${needs.length ? html`<ul class="list" id="needs">${(allNeeds ? needs : needs.slice(0, NEED_LIMIT)).map(needCard)}</ul>` : html`<div class="empty glass">${grabs.length ? basketFig() : ''}<p>No open requests right now.</p></div>`}
       ${needs.length > NEED_LIMIT ? html`<button class="btn btn-ghost btn-small more" id="needs-all" data-action="toggle-needs" aria-expanded="${String(allNeeds)}" aria-controls="needs">${allNeeds ? 'Show fewer' : `Show all (${needs.length})`}</button>` : ''}
     </section>
     <footer class="foot">
