@@ -10,6 +10,8 @@ import { join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 
+process.env.LOOP_POLLS = '1'; // this suite models the poll path; production keeps polls off (tapback line) unless LOOP_POLLS=1
+
 process.env.GEMINI_MOCK = '1';
 delete process.env.DEMO_REMINDER_SECONDS;
 process.env.DATA_DIR ||= fileURLToPath(new URL('../.tmp-f/e2e-textflow', import.meta.url));
