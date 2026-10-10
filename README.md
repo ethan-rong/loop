@@ -13,6 +13,10 @@ Built solo at **HackNC 2026** (UNC–Chapel Hill, Oct 10–11). Tracks: Beginner
 5. At pickup the recipient shows a **4-digit code**; the giver types or texts it. Only then does the item become **Collected** and the request **Fulfilled**.
 6. **iMessage, no app needed** (Photon Spectrum): the same thread reaches people's phones; a giver can text a photo to Loop's number, get the draft back, reply YES to offer it, settle the pickup by text and send the code by text.
 
+**Free by default, a price if you want.** A giver can ask for a few dollars (shown as a sticker and in Loop's opening line); payment happens in person at the same handshake. Loop never processes money.
+
+**It loops.** The person who collected an item can pass it on again without a new photo; the listing carries its lap count.
+
 **No identities at all.** Loop is a place to post what you have and what you need. There are no accounts, names, nicknames, avatars or dorms; a browser tab or a phone is just an anonymous session, and in a handoff the two sides are simply "the giver" and "the taker". Nobody needs to know who you are: the 4-digit pickup code proves identity at the handoff, and Loop refuses to share numbers or the code in a thread.
 
 Gemini never publishes, reserves, contacts anyone, or marks anything collected. A person taps (or texts) every state change. When Gemini can't identify the object, is rate-limited, or times out, the owner sees a plain explanation and fills the form in by hand; when iMessage is unavailable, everything works in the browser.
