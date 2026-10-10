@@ -7,12 +7,13 @@ Built solo at **HackNC 2026** (UNC–Chapel Hill, Oct 10–11, theme Frutiger Ae
 ## What it does
 
 1. Someone posts a need in plain words: "Reading lamp for my desk".
-2. An owner photographs an item. **Gemini drafts** the title, description and visible condition, and suggests at most one open request the item genuinely fits, with a one-sentence reason.
+2. An owner photographs an item (or a whole pile: one photo becomes up to six listings, each with its own box, draft and match). **Gemini drafts** the title, description and visible condition, and suggests at most one open request each item genuinely fits, with a one-sentence reason — or says honestly that nothing fits.
 3. The owner checks and edits the draft, then **offers it** to that person or posts it to the board. The draft is marked "Drafted by Gemini — check it" until a person approves it.
-4. The recipient accepts, picks a pickup place and time, and gets a **4-digit pickup code**.
-5. At pickup the owner types the code. Only then does the item become **Collected** and the request **Fulfilled**.
+4. The recipient accepts. A **handoff thread** opens between the two people and Loop, the coordinator: Loop asks the giver when and where works, turns typed replies ("I can do 6 at the Union") into proposals with Gemini, asks the other person to confirm, reminds both before the pickup, and tells the giver when the recipient says "I'm here".
+5. At pickup the recipient shows a **4-digit code**; the giver types or texts it. Only then does the item become **Collected** and the request **Fulfilled**.
+6. **iMessage, no app needed** (Photon Spectrum): the same thread reaches people's phones; a giver can text a photo to Loop's number, get the draft back, reply YES to offer it, settle the pickup by text and send the code by text.
 
-Gemini never publishes, reserves, contacts anyone, or marks anything collected. A person taps every state change. When Gemini can't identify the object, is rate-limited, or times out, the owner sees a plain explanation and fills the form in by hand.
+Gemini never publishes, reserves, contacts anyone, or marks anything collected. A person taps (or texts) every state change. When Gemini can't identify the object, is rate-limited, or times out, the owner sees a plain explanation and fills the form in by hand; when iMessage is unavailable, everything works in the browser.
 
 ## Run it
 
@@ -45,20 +46,25 @@ GEMINI_MOCK=1 npm start         # canned drafts, no network; the UI shows a "Dem
 ## How it works
 
 ```
-phone/laptop photo ─► client resizes to ≤1024px JPEG ─► POST /api/items/draft
+photo ─► client resize ─► POST /api/items/draft (or /items/pile)
    server stores photo ─► Gemini generateContent (image + open requests + JSON schema)
-   server validates: known request ids only, string clamps, blocked categories
-   ─► editable draft in the browser ─► owner publishes or offers
-   ─► recipient reserves (server issues the code) ─► owner confirms with code
-   ─► item: collected, request: fulfilled
+   server validates: known request ids only, reason before id, string clamps, blocked categories
+   ─► editable draft ─► owner publishes or offers ─► recipient reserves
+   ─► handoff thread: Loop coordinator (templates for buttons, Gemini for typed replies → {propose|accept|arrived|cancel})
+   ─► both confirm ─► reminder ─► "I'm here" ─► giver enters/texts the code ─► collected + fulfilled
+iMessage: Spectrum forwards thread messages to linked phones and routes replies back into the same thread;
+          a texted photo runs the same draft pipeline and replies with the draft.
 ```
 
-- `server/index.mjs` — Express routes, boundary validation, JSON errors.
-- `server/store.mjs` — JSON-file store with atomic writes; pure transition functions enforce the state machine (`available → reserved → collected`, plus `offered` and `withdrawn`). Illegal moves return 409 (already claimed) or 403 (wrong code).
-- `server/gemini.mjs` — the two Gemini calls (describe a photo, suggest items for a need), timeouts, retries, hallucination guard, and the mock path.
+- `server/index.mjs` — Express routes, boundary validation, JSON errors, reminder loop, channel wiring.
+- `server/store.mjs` — JSON-file store with atomic writes; pure transition functions enforce the item state machine (`available → reserved → collected`, plus `offered` and `withdrawn`) and the thread state machine (`planning → set → meeting → done | cancelled`). Illegal moves return 409/403.
+- `server/gemini.mjs` — describe a photo, suggest items for a need; timeouts, retries, hallucination guard, mock path.
+- `server/pile.mjs` — one photo → up to six items with normalised boxes, each cleaned like a single draft.
+- `server/coordinator.mjs` — the thread agent: prompt with the giver-first rule, JSON action schema, validation, mock rules.
+- `server/channels/spectrum.mjs` + `server/textflow.mjs` — the iMessage channel and the text-a-photo conversation.
 - `public/` — plain HTML/CSS/JS, no framework, no build step: hash routes, one `render()` from state, polling for live updates, View Transitions, `prefers-reduced-motion` respected.
 
-Design notes and references are in [DESIGN.md](DESIGN.md). The build contract is [SPEC.md](SPEC.md).
+Design notes and references are in [DESIGN.md](DESIGN.md). Build contracts: [SPEC.md](SPEC.md), [SPEC2.md](SPEC2.md), [SPEC3.md](SPEC3.md).
 
 ## Verification
 
@@ -85,7 +91,7 @@ Not measured: behaviour under a real 429 (would burn quota), image accuracy beyo
 ## Attribution and AI disclosure
 
 - Built during the hacking window with AI coding assistance: **Claude Code** (Claude Fable 5.1 for planning, specification and review; Claude Opus for implementation). AI wrote most of the code under my direction; I set the scope and the rules (human approval at every step, honest AI drafts), reviewed the flows, tested the app end to end, and can explain how it works. Pre-event research on the rules and past winners used OpenAI Codex/ChatGPT; no code came from it.
-- The product calls **Google Gemini** (`gemini-3.5-flash-lite`) through the Gemini API.
+- The product calls **Google Gemini** (`gemini-3.5-flash-lite`) through the Gemini API, and **Photon Spectrum** (`spectrum-ts`) for iMessage on a shared line.
 - **Express** (MIT). **Nunito** font (SIL Open Font License), self-hosted.
 - Seed photos from **Wikimedia Commons**, credited in `public/seed/ATTRIBUTION.md`.
 - Design references: Shupatto brand site by mount inc. (Awwwards Site of the Day, Feb 3 2024), Ocean Lovers Guide to Compost (Awwwards Honorable Mention, May 16 2025), motion.dev examples. Patterns were adapted, not copied; no assets were taken from those sites.
