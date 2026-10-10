@@ -78,9 +78,14 @@ Measured on Oct 10 2026 on the development laptop (Node 22.23, Express 5.3, macO
 | Condition honesty after the prompt tightening | the dusty fan came back `fair` with "The fan blades and center are dusty." |
 | Need → suggestion (text-only call) | "Desk fan for a hot room" suggested the seed fan in 0.8 s |
 | `npm run e2e` (mock Gemini, no quota used) | 3 of 3 consecutive runs PASS: reset → need → draft → offer → accept → wrong code 403 → right code → collected + fulfilled → re-reserve 409; also decline, release, withdraw, close |
+| `npm run e2e-threads` (mock) | 3 of 3 PASS: both thread openings (with and without a suggested place/time), button and typed paths, reminder within 3 s, cancel releases the item, non-participant 403, code → done |
+| `npm run e2e-textflow` (mock, no SDK) | 3 of 3 PASS: photo → draft → correction → YES → offered; BOARD; wrong then right code by text; proactive suggestion YES → reserved; HEIC, not-a-photo, no-match, STOP, strangers |
+| Pile photo (real call, yard-sale photo with 6 objects) | 6 items with valid boxes in about 3 s; the lamp matched the lamp request, the other five returned honest "no match" reasons after the schema change (reason before id); the same flow then listed all six from the browser with crops |
+| iMessage (real, Photon shared line) | channel connects; thread messages reached the linked phone; a dropped connection reconnects on restart; first send right after connect can fail once, so sends retry |
+| Cold start | fresh data directory + `npm start`: server up, seed written, page served |
 | Bad input | malformed JSON, missing fields, a 7 MB image, a non-image file and a bad mimeType all return 400 and the server keeps answering |
 
-Not measured: behaviour under a real 429 (would burn quota), image accuracy beyond these photos, any real user.
+Not measured: behaviour under a real 429 (would burn quota), image accuracy beyond these photos, the real-Gemini coordinator on many phrasings, any real user.
 
 ## Limits, stated plainly
 
