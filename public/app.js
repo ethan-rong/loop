@@ -14,8 +14,6 @@ const PLACES = ['Davis Library lobby', 'Student Union', 'Dorm front desk'];
 const TIMES = ['Today 5 pm', 'Today 8 pm', 'Tomorrow noon'];
 const CONDITIONS = ['good', 'fair', 'worn'];
 const CATEGORIES = ['furniture', 'lighting', 'kitchen', 'textbooks', 'electronics', 'clothing', 'bedding', 'sports', 'other'];
-const LANGS = [['en', 'English'], ['zh', '中文'], ['es', 'Español']]; // the top bar's language menu (SPEC5)
-const LANG_SHORT = { en: 'EN', zh: '中文', es: 'ES' };
 /* SPEC4 §F campus map: schematic spots on a 0-100 grid (x right, y down), Franklin St on top, South Campus at the
    bottom. The 4th field puts the label beside the dot so no two labels touch. */
 const SPOTS = [
@@ -47,6 +45,7 @@ const THREAD_ACTIONS = ['accept', 'propose', 'arrived', 'cancel', 'enter_code'];
 const PRIMARY_ACTIONS = ['accept', 'arrived', 'enter_code'];
 const NOT_SET = 'Not set yet';
 const MAX_PILE = 6;
+const NEED_LIMIT = 4; // need cards on the board before "Show all (N)"
 const CROP_PAD = 0.06; // padding around each box, as a share of the box
 const MIN_CROP = 256; // px, per side of the crop in the original photo
 const TOAST_MS = 5000;
@@ -85,8 +84,6 @@ const ICONS = {
   pin: '<path d="M12 21s-6-5.3-6-10a6 6 0 0 1 12 0c0 4.7-6 10-6 10z"/><circle cx="12" cy="11" r="2.2"/>',
   pencil: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
   retry: '<path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/>',
-  gift: '<path d="M4 11h16v9H4z"/><path d="M3 7.5h18V11H3zM12 7.5V20"/><path d="M12 7.5C10.5 4 7 4 7 6s3 1.5 5 1.5zM12 7.5C13.5 4 17 4 17 6s-3 1.5-5 1.5z"/>',
-  globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.4 2.5 3.6 5.5 3.6 9s-1.2 6.5-3.6 9c-2.4-2.5-3.6-5.5-3.6-9s1.2-6.5 3.6-9z"/>',
 };
 const icon = (name, cls = 'i') => raw(`<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${ICONS[name]}</svg>`);
 
@@ -108,7 +105,8 @@ const freshUi = () => ({
   revealCode: '', // item id whose pickup code scales in once
   ask: { title: '', details: '' },
   askResult: null,
-  original: new Set(), // message ids showing the original instead of my-language translation
+  needOpen: new Set(), // board: request ids whose card is expanded inline (there is no request page)
+  needsAll: false, // board: every need card, not just the newest NEED_LIMIT
 });
 const freshGive = () => ({
   phase: 'pick', // pick | uploading | drafting | review | failed
@@ -376,7 +374,6 @@ function render() {
   const active = view.contains(document.activeElement) ? document.activeElement : null;
   const focusId = active?.id ?? '';
   const caret = active?.matches('textarea, input[type=text], input:not([type])') ? [active.selectionStart, active.selectionEnd] : null;
-  renderLangControl();
   view.innerHTML = String(currentView());
   document.title = pageTitle();
   const target = state.focusTarget ? view.querySelector(state.focusTarget) : focusId && document.getElementById(focusId);
@@ -481,44 +478,13 @@ const noticeBlock = (where = 'action') => {
 };
 const backLink = () => html`<a class="back" href="#/">${icon('back')} Board</a>`;
 
-/* Loop's shared iMessage line (SPEC4 §A) from /api/health: top bar, board footer, Give page; hidden while unknown. */
+/* Loop's shared iMessage line (SPEC4 §A) from /api/health: one mono line in the board footer and one small line on
+   the Post page (v4.1); hidden while unknown. */
 const lineLabel = (e164) => e164.replace(/^\+1(\d{3})(\d{3})(\d{4})$/, '($1) $2-$3');
 const smsHref = () => `sms:${state.health.lineNumber}`;
 const textIn = () => (state.health.lineNumber
   ? html`<p class="text-in">No app? Text a photo to Loop at <a href="${smsHref()}">${lineLabel(state.health.lineNumber)}</a></p>`
   : '');
-function renderLine() {
-  const n = state.health.lineNumber;
-  const line = $('#line');
-  line.hidden = !n;
-  if (!n) return;
-  line.href = smsHref();
-  line.innerHTML = String(html`<span class="ear-label">Text Loop</span><span class="ear-dot" aria-hidden="true"> · </span><span class="ear-num">${lineLabel(n)}</span>`);
-}
-
-/* SPEC5 top bar: a globe button and a small menu of three languages; the server keeps the choice. Redrawn only when
-   my language changes, so other people joining never close an open menu. */
-const myLang = () => state.db?.people.find((p) => p.id === state.me)?.lang ?? 'en';
-let langKey = '';
-function renderLangControl() {
-  const key = hasMe() ? myLang() : '';
-  if (key === langKey) return;
-  langKey = key;
-  $('#lang-control').innerHTML = key ? String(langMarkup(key)) : '';
-  $('#lang-menu')?.addEventListener('beforetoggle', placeMenu);
-}
-const langMarkup = (lang) => html`
-  <button class="lang-btn" id="lang-btn" popovertarget="lang-menu"><span class="sr-only">Language: </span>${icon('globe')}<span lang="${lang}">${LANG_SHORT[lang] ?? lang}</span></button>
-  <div class="menu" id="lang-menu" popover>
-    <p class="menu-title" id="lang-title">Language</p>
-    <div class="lang-row" role="group" aria-labelledby="lang-title">${LANGS.map(([code, label]) => html`<button class="lang" data-action="set-lang" data-lang="${code}" lang="${code}" aria-pressed="${String(lang === code)}">${label}</button>`)}</div>
-  </div>`;
-function placeMenu(event) {
-  if (event.newState !== 'open') return;
-  const box = $('#lang-btn').getBoundingClientRect();
-  event.currentTarget.style.top = `${Math.round(box.bottom + 8)}px`;
-  event.currentTarget.style.right = `${Math.max(8, Math.round(document.documentElement.clientWidth - box.right))}px`;
-}
 
 /* ---------- views: loading ---------- */
 
@@ -546,23 +512,25 @@ function boardView() {
   const forYou = live.filter((i) => bannerFor(i));
   const grabs = live.filter((i) => !bannerFor(i));
   const kept = items.filter((i) => i.status === 'collected').length;
+  const allNeeds = state.ui.needsAll;
   return html`<div class="stack">
-    <section class="hero glass ruled">
-      <h1>Post what you don't <span class="hl">need.</span></h1>
+    <section class="hero">
+      <h1>Post what you don't need.</h1>
       <p class="lead">Someone nearby takes it. No names, no accounts.</p>
-      <div class="actions hero-actions">
+      <div class="hero-actions">
         <a class="btn btn-primary" href="#/give">${icon('camera')} Post something</a>
-        <a class="btn btn-secondary" href="#/ask">${icon('ask')} Ask for something</a>
+        <a class="quiet-link" href="#/ask">Ask for something</a>
       </div>
     </section>
-    ${forYou.length ? html`<section class="stack-sm" aria-labelledby="h-you"><h2 id="h-you" class="section-title">For you <span class="count" aria-hidden="true">${forYou.length}</span></h2><ul class="list">${forYou.map(forYouCard)}</ul></section>` : ''}
+    ${forYou.length ? html`<section class="stack-sm" aria-labelledby="h-you"><h2 id="h-you" class="section-title">For you</h2><ul class="list">${forYou.map(forYouCard)}</ul></section>` : ''}
     <section class="stack-sm" aria-labelledby="h-grabs">
-      <h2 id="h-grabs" class="section-title">Up for grabs <span class="count" aria-hidden="true">${grabs.length}</span></h2>
+      <h2 id="h-grabs" class="section-title">Up for grabs</h2>
       ${grabs.length ? html`<ul class="grid">${grabs.map(itemCard)}</ul>` : html`<p class="empty glass">Nothing up for grabs yet. Got something you don't use? Post it.</p>`}
     </section>
     <section class="stack-sm" aria-labelledby="h-needs">
-      <h2 id="h-needs" class="section-title">People need <span class="count" aria-hidden="true">${needs.length}</span></h2>
-      ${needs.length ? html`<ul class="list">${needs.map(needCard)}</ul>` : html`<p class="empty glass">No open requests right now.</p>`}
+      <h2 id="h-needs" class="section-title">People need</h2>
+      ${needs.length ? html`<ul class="list" id="needs">${(allNeeds ? needs : needs.slice(0, NEED_LIMIT)).map(needCard)}</ul>` : html`<p class="empty glass">No open requests right now.</p>`}
+      ${needs.length > NEED_LIMIT ? html`<button class="btn btn-ghost btn-small more" id="needs-all" data-action="toggle-needs" aria-expanded="${String(allNeeds)}" aria-controls="needs">${allNeeds ? 'Show fewer' : `Show all (${needs.length})`}</button>` : ''}
     </section>
     <footer class="foot">
       ${kept ? html`<span>${kept} ${kept === 1 ? 'item' : 'items'} kept in use</span><span aria-hidden="true">·</span>` : ''}
@@ -572,31 +540,36 @@ function boardView() {
   </div>`;
 }
 
-function forYouCard(item) {
-  const offered = item.status === 'offered';
-  const sub = item.ownerId === state.me ? 'Your listing' : `Posted ${timeAgo(item.createdAt)}`;
-  return html`<li><a class="foryou glass ${offered ? 'is-offered' : 'is-reserved'}" href="#/item/${item.id}">
-    <span class="banner">${icon(offered ? 'gift' : 'pin')}${bannerFor(item)}</span>
-    <span class="foryou-row">
-      <img src="${item.photo}" alt="" style="view-transition-name:${vtName(item.id)}">
-      <span class="foryou-text"><span class="foryou-title">${item.title}</span><span class="small muted">${sub}</span></span>
-      ${icon('next')}
-    </span>
-  </a></li>`;
-}
+/* One compact row: thumbnail, title, why it's here (the old banner line), chevron. */
+const forYouCard = (item) => html`<li><a class="foryou glass" href="#/item/${item.id}">
+  <img src="${item.photo}" alt="" style="view-transition-name:${vtName(item.id)}">
+  <span class="foryou-text"><span class="foryou-title">${item.title}</span><span class="small muted">${bannerFor(item)}</span></span>
+  ${icon('next')}
+</a></li>`;
+
+// v4.1: "yours" on the board is a small ink dot before the title (the item page keeps the chip). Not shape alone:
+// screen readers hear "yours".
+const mineDot = (mine) => (mine ? html`<span class="mine-dot"><span class="sr-only">yours: </span></span>` : '');
 
 const itemCard = (item) => html`<li><a class="item-card glass" href="#/item/${item.id}">
   <img class="thumb" src="${item.photo}" alt="" loading="lazy" style="view-transition-name:${vtName(item.id)}">
-  <div class="item-body"><h3 class="item-title">${item.title}</h3><div class="chips">${condChip(item.condition)}${statusChip(item)}${yoursChip(item.ownerId === state.me)}</div></div>
+  <div class="item-body"><h3 class="item-title">${mineDot(item.ownerId === state.me)}${item.title}</h3><div class="chips">${statusChip(item)}</div></div>
 </a></li>`;
 
+/* Title and "Asked … ago"; a chip only once it's matched. Details and Remove open inline on a tap (no request page). */
 function needCard(r) {
   const mine = r.personId === state.me;
-  return html`<li class="need glass">
-    <p class="need-meta">Asked <time datetime="${r.createdAt}">${timeAgo(r.createdAt)}</time></p>
-    <h3>${r.title}</h3>
-    ${r.details ? html`<p class="need-details">${r.details}</p>` : ''}
-    <div class="need-foot"><span class="chips">${requestChip(r)}${yoursChip(mine)}</span>${mine && r.status === 'open' ? html`<button class="btn btn-ghost btn-small" id="remove-${r.id}" data-action="remove-request" data-id="${r.id}">Remove<span class="sr-only"> request: ${r.title}</span></button>` : ''}</div>
+  const removable = mine && r.status === 'open';
+  const open = state.ui.needOpen.has(r.id);
+  const face = html`<span class="need-title">${mineDot(mine)}${r.title}</span>
+    <span class="need-meta">Asked <time datetime="${r.createdAt}">${timeAgo(r.createdAt)}</time>${r.status === 'open' ? '' : html` ${requestChip(r)}`}</span>`;
+  if (!r.details && !removable) return html`<li class="need glass"><h3 class="need-face">${face}</h3></li>`;
+  return html`<li class="need glass ${open ? 'is-open' : ''}">
+    <h3><button class="need-face" id="need-${r.id}" data-action="toggle-need" data-id="${r.id}" aria-expanded="${String(open)}" aria-controls="need-more-${r.id}">${face}${icon('chevron')}</button></h3>
+    <div class="need-more" id="need-more-${r.id}" ${open ? '' : raw('hidden')}>
+      ${r.details ? html`<p class="need-details">${r.details}</p>` : ''}
+      ${removable ? html`<button class="btn btn-ghost btn-small" id="remove-${r.id}" data-action="remove-request" data-id="${r.id}">Remove<span class="sr-only"> request: ${r.title}</span></button>` : ''}
+    </div>
   </li>`;
 }
 
@@ -791,7 +764,7 @@ function recipientBlock(item) {
       <span class="ticket-stub" aria-hidden="true">${LOOP_MARK}</span>
     </div>
     <p class="center">Show this code to the giver at pickup.</p>
-    ${meetGrid(res.place, res.time)}
+    ${inThread(threadOf(item)) ? '' : meetGrid(res.place, res.time) /* v4.1: the plan card below says the same */}
     ${noticeBlock()}
     <div class="actions"><button class="btn btn-secondary" id="release" data-action="release">${busyText('release', 'Cancel reservation', 'Cancelling…')}</button></div>`;
 }
@@ -851,7 +824,7 @@ function markAllHeard() {
 function announceNew(t) {
   const fresh = t.messages.filter((m) => !heardIds.has(m.id));
   fresh.forEach((m) => heardIds.add(m.id));
-  const said = fresh.filter((m) => m.from !== state.me).map((m) => `${m.from === 'loop' ? 'Loop' : whoIn(t, m.from)}${toWhom(t, m)}: ${shownText(m).text}`);
+  const said = fresh.filter((m) => m.from !== state.me).map((m) => `${m.from === 'loop' ? 'Loop' : whoIn(t, m.from)}${toWhom(t, m)}: ${m.text}`);
   if (said.length) announce(said.join(' '));
 }
 
@@ -920,18 +893,6 @@ function actionsFor(t, m) {
 // Loop's mark: the knot (brand/knot.svg, viewBox cropped to its ink box), the same as the top bar.
 const LOOP_MARK = raw('<svg class="loop-mark knot" viewBox="2 4.02 60 55.96" aria-hidden="true" focusable="false"><path d="M25.66 44.93C24.38 43.2 23.26 41.35 22.31 39.42C21.37 37.49 20.61 35.48 20.05 33.45C19.49 31.42 19.13 29.38 18.98 27.38C18.83 25.37 18.89 23.41 19.14 21.55C19.4 19.7 19.85 17.94 20.47 16.35C21.09 14.75 21.88 13.31 22.8 12.07C23.73 10.84 24.79 9.8 25.94 9C27.09 8.2 28.32 7.63 29.59 7.31C30.86 7 32.17 6.94 33.45 7.13C34.74 7.32 36 7.76 37.19 8.44C38.38 9.13 39.49 10.05 40.48 11.19C41.47 12.32 42.34 13.67 43.04 15.19C43.74 16.7 44.28 18.39 44.63 20.19C44.98 21.99 45.14 23.91 45.09 25.89C45.04 27.87 44.79 29.9 44.33 31.94C43.87 33.97 43.21 36 42.36 37.97C41.5 39.93 40.46 41.83 39.26 43.62C38.06 45.4 36.7 47.06 35.23 48.56C33.75 50.06 32.16 51.39 30.5 52.52C28.84 53.66 27.11 54.59 25.38 55.3C23.64 56.01 21.9 56.49 20.2 56.75C18.51 57.02 16.87 57.05 15.33 56.87C13.8 56.68 12.37 56.28 11.1 55.69C9.84 55.09 8.73 54.31 7.82 53.37C6.91 52.42 6.2 51.33 5.73 50.12C5.25 48.91 5 47.59 5 46.22C5 44.85 5.24 43.43 5.73 42C6.22 40.58 6.95 39.15 7.91 37.79C8.87 36.42 10.06 35.11 11.45 33.91C12.84 32.7 14.42 31.61 16.16 30.66C17.89 29.71 19.78 28.91 21.77 28.29C23.76 27.67 25.85 27.23 27.98 26.99C30.11 26.74 32.28 26.69 34.42 26.84C36.57 26.99 38.69 27.33 40.72 27.86C42.76 28.39 44.71 29.11 46.52 29.98C48.33 30.85 50 31.88 51.48 33.03C52.96 34.18 54.26 35.44 55.33 36.78C56.4 38.11 57.25 39.52 57.86 40.94C58.47 42.36 58.84 43.8 58.96 45.19C59.08 46.59 58.95 47.94 58.59 49.2C58.23 50.46 57.63 51.62 56.82 52.63C56.01 53.65 55 54.52 53.81 55.21C52.63 55.9 51.27 56.4 49.79 56.69C48.31 56.98 46.71 57.06 45.05 56.91C43.38 56.76 41.65 56.38 39.92 55.78C38.18 55.18 36.44 54.36 34.75 53.33C33.06 52.3 31.43 51.06 29.9 49.65C28.36 48.24 26.94 46.65 25.66 44.93Z" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-dasharray="65.17 18.81"/></svg>');
 
-/* SPEC4 §D: a message in another language shows my language's translation with a "translated" tag; the tag
-   toggles the original. Loop's messages follow the same rule. */
-function shownText(m) {
-  const tr = m.translations?.[myLang()];
-  const translated = typeof tr === 'string' && tr.trim() !== '' && tr !== m.text;
-  return { translated, text: translated && !state.ui.original.has(m.id) ? tr : m.text };
-}
-function trTag(m) {
-  const original = state.ui.original.has(m.id);
-  return html` <button type="button" class="tr ${original ? 'is-original' : ''}" id="tr-${m.id}" data-action="toggle-original" data-id="${m.id}"><span class="tr-tag">${original ? 'original' : 'translated'}</span><span class="sr-only">${original ? ', show the translation' : ', show the original'}</span></button>`;
-}
-
 function messageItem(t, m, actions) {
   const loop = m.from === 'loop';
   const mine = m.from === state.me;
@@ -939,12 +900,11 @@ function messageItem(t, m, actions) {
   if (loop) side = 'loop';
   else if (mine) side = 'mine';
   const who = loop ? 'Loop' : whoIn(t, m.from);
-  const shown = shownText(m);
   return html`<li class="msg msg-${side} ${loop ? '' : `is-${roleIn(t, m.from)}`}">
     ${loop ? html`<span class="disc-loop" aria-hidden="true">${LOOP_MARK}</span>` : html`<span class="role" aria-hidden="true">${who.charAt(0)}</span>`}
     <div class="msg-body">
-      <p class="msg-meta"><strong>${who}</strong>${toWhom(t, m)} · <time datetime="${m.at}">${formatTime(clockFormat, m.at)}</time>${m.via === 'imessage' ? html` <span class="via">iMessage</span>` : ''}${shown.translated ? trTag(m) : ''}</p>
-      <p class="msg-text">${shown.text}</p>
+      <p class="msg-meta"><strong>${who}</strong>${toWhom(t, m)} · <time datetime="${m.at}">${formatTime(clockFormat, m.at)}</time>${m.via === 'imessage' ? html` <span class="via">iMessage</span>` : ''}</p>
+      <p class="msg-text">${m.text}</p>
       ${actions.length ? html`<div class="msg-actions">${actions.map((a) => html`<button class="btn btn-small ${PRIMARY_ACTIONS.includes(a.action) ? 'btn-primary btn-moment' : 'btn-secondary'}" id="act-${a.action}" data-action="thread-action" data-thread="${t.id}" data-kind="${a.action}">${busyText(`thread:${a.action}`, a.label, 'Saving…')}</button>`)}</div>` : ''}
     </div>
   </li>`;
@@ -1316,23 +1276,6 @@ function showError(err) {
     state.ui.notice = { text: err.message, tone: err.status === 409 ? 'warn' : 'error', where };
   }
   announce(err.message);
-}
-
-/* SPEC4 §D: the server keeps the language; nothing is stored here. A 404 means the route isn't there yet: stay quiet. */
-async function setLang(lang) {
-  const me = state.me;
-  if (!me) return;
-  if (myLang() === lang) return $('#lang-menu')?.hidePopover();
-  try {
-    await api('POST', `/api/people/${encodeURIComponent(me)}/lang`, { lang });
-  } catch (err) {
-    if (err.status !== 404) announce(err.message);
-    return;
-  }
-  await refresh();
-  render(); // the menu re-renders (and closes) with the new choice
-  $('#lang-btn')?.focus();
-  announce(`Language: ${LANGS.find(([code]) => code === lang)?.[1] ?? lang}.`);
 }
 
 async function resetDemo() {
@@ -1842,6 +1785,15 @@ function showToast(text) {
 const actions = {
   reset: resetDemo,
   'remove-request': (el) => removeRequest(el.dataset.id),
+  'toggle-need': (el) => { // focus stays on the card: render() restores it by id
+    const open = state.ui.needOpen;
+    if (!open.delete(el.dataset.id)) open.add(el.dataset.id);
+    render();
+  },
+  'toggle-needs': () => {
+    state.ui.needsAll = !state.ui.needsAll;
+    render();
+  },
   'open-reserve': () => {
     state.ui.reserveOpen = true;
     state.ui.notice = null;
@@ -1861,12 +1813,6 @@ const actions = {
     render();
   },
   'thread-action': (el) => threadAction(el.dataset.thread, el.dataset.kind),
-  'set-lang': (el) => setLang(el.dataset.lang),
-  'toggle-original': (el) => {
-    const ids = state.ui.original;
-    if (!ids.delete(el.dataset.id)) ids.add(el.dataset.id);
-    render(); // the tag keeps focus: render() restores it by id
-  },
   'close-propose': () => {
     state.ui.propose = null;
     state.ui.notice = null;
@@ -2001,7 +1947,6 @@ api('GET', '/api/health').then((health) => {
     linkedPhones: Array.isArray(health?.linkedPhones) ? health.linkedPhones : [],
     lineNumber: typeof health?.lineNumber === 'string' && health.lineNumber ? health.lineNumber : null,
   };
-  renderLine();
   if (state.health.imessage || state.health.lineNumber) requestRender();
 }).catch(() => { /* no health route: rely on per-response flags */ });
 pollLoop();

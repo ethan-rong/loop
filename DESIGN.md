@@ -1,6 +1,6 @@
 # Loop — design notes
 
-**v4 (current, 2026-10-10): "poster, light".** The user picked the poster direction from
+**v4 "poster, light" (2026-10-10), decluttered as v4.1 (next section).** The user picked the poster direction from
 `mockups/poster/` but on a light background, with the Knot logo (SPEC6). Loop now reads like a printed
 gig poster: a cream canvas, ink type, 2–3 px ink rules, hard offset ink shadows, and two loud fills,
 acid lime and hot coral, always carrying ink print. Space Grotesk does the talking, JetBrains Mono does
@@ -8,7 +8,59 @@ the labelling (times, chips, Loop's own voice). Everything structural from Lane 
 the posting-first board, roles You / Giver / Taker / Loop, the campus map. One column, max 592 px. v3,
 v2 and v1 are summarised at the end.
 
-## v4 (current)
+## v4.1 declutter (current, 2026-10-10)
+
+The user: "Make the page cleaner. Too much information right now." Same v4 language, far less of it
+(SPEC6 "Declutter"), plus the coordinator's "no Spanish or Chinese needed". Where this list and v4 below
+disagree, this list wins.
+
+- **Gone:** the lime "TEXT LOOP" strip (`#line`, `.ear`, `renderLine`); the globe, its language popover and
+  `setLang`; the "translated" tag and toggle in threads (messages show `message.text`); the coral count
+  stickers; the 3 px section rules; the hero highlighter, the ruled class and the secondary hero button;
+  For you's lime / coral band; the condition chip and "yours" chip on board cards; need-card details on
+  the face; the Where / When ledger inside the ticket card while the plan card shows it; chip tilt.
+- **Moved:** the line number lives only in the board footer (one 13 px mono link) and as one 13 px line
+  on the Post page. "Ask for something" is a quiet 44 px text link under the one primary button. "Yours"
+  on the board is an 8 px ink dot before the title with a screen-reader "yours:" (the item page keeps
+  the chip). For you's reason ("Someone offered you this", "You reserved this · …") is the row's sub-line.
+- **Board:** top bar = wordmark only (the demo-mode line stays when the server says it's mocked: it's
+  an honesty note, 11 px, one line). Hero h1 `clamp(36px, 28px + 2.4vw, 48px)`, plain ink. Section titles
+  are 13 px mono uppercase labels, 36 px above each section. Item cards: photo, title, one status chip;
+  grid gap 14 / 12 px. Need cards: title + "Asked … ago" in 12 px mono muted, a chip only once Matched;
+  with details or a Remove, the face is one button (`aria-expanded`, chevron) that opens them inline
+  (`state.ui.needOpen`), and the card takes the focus ring. At most 4 cards, then "Show all (N)" /
+  "Show fewer" (`state.ui.needsAll`, `aria-expanded`). For you: one row, 56 px thumbnail, title, reason,
+  chevron.
+- **Chrome tokens:** `--rule` 1.5 px; `--lift-sm` 3 px; hover `--lift-up` 5 px. The 3 px rule and 6 px
+  shadow stay only on the ticket and the collected (stamp) card. Top bar, footer, photos, plan and match
+  cards, drop zone: 1.5 px. Chips and tags: 11 px mono, 1 px edge, flat (only the ticket's sticker, the
+  map's MEET sticker and the stamp tilt). Loop's title bar: 28 px. Timeline connectors 2 px dotted.
+- **Item page:** the Gemini line is a 12 px mono footnote (no rule). Order is unchanged and already the
+  spec's: photo, head, timeline, then the ticket / Hand it over card, the plan card, the thread, the
+  composer last.
+- **Moot v4 deviation:** "Language stays a menu" (there is no language control any more).
+
+Contrast (`.tmp-m/pairs.mjs`, scratch): no new colours, so every changed element maps onto a measured v4
+row. 16 pairs, 0 below target: section labels, hero, quiet link, footer link, Show all ink / cream 17.17;
+"Asked …", details, For you reason, footnote muted / white 7.96; Post-page line muted / cream 7.05; 11 px
+chips ink / white 19.37, ink / lime 16.44, ink / coral 6.91, cream / ink 17.17; Loop bar ink / lime 16.44.
+Edges: 1.5 px rules ink / cream 17.17, ink / white 19.37; mine dot and chevron ink / white 19.37; the
+need-card ring's ink band / cream 17.17 and coral ring / ink 6.91.
+
+Verified on port 3009 (`GEMINI_MOCK=1 DEMO_REMINDER_SECONDS=3`), two anonymous tabs, line number
+injected for the footer and Post page: board with and without For you (offer row and reservation row),
+need expand / Remove / Show all (5) / Show fewer with focus kept by id, Post page, Gemini match, item
+page as giver (Hand it over) and taker (ticket), plan with map, collected, pile review, Ask. Swept for
+`scrollWidth − innerWidth = 0` and no control under 44 px: board (with and without For you, and with a
+need card open), ticket item page, collected item page, pile review and Ask at 390; board, ticket,
+collected and pile review at 700. All passed. Keyboard Tab onto a need card: the card shows `3px solid
+coral`, offset 2 px, shadow `0 0 0 2px ink, 3px 3px 0 ink`. Console: no errors in what the tabs still
+buffered (one tab had dropped older entries); the server logged no 4xx / 5xx besides the browser's own
+`favicon.ico`. Not rendered: Ask-done with suggestions (its `.section-title` is now the mono label) and
+a need card with no details that isn't yours (plain `h3`, no chevron). Reduced motion: the global block
+covers the chevron's rotate transition; not driven under emulation.
+
+## v4 (superseded by v4.1 above where they differ)
 
 ### Tokens (`public/styles.css` `:root`)
 

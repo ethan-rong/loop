@@ -1,6 +1,8 @@
-/* Loop v4 — "poster, light": a cream canvas, ink type and 2–3 px ink rules, hard offset ink shadows, acid lime and
+/* Loop v4 — "poster, light": a cream canvas, ink type and ink rules, hard offset ink shadows, acid lime and
    hot coral as fills only (always with ink on them), Space Grotesk for UI and display, JetBrains Mono for labels,
-   times, chips, Loop's system cards and stickers. No gradients, no blur. Tokens first; contrast in DESIGN.md ("v4"). */
+   times, chips, Loop's system cards and stickers. No gradients, no blur. Tokens first; contrast in DESIGN.md ("v4").
+   v4.1 "declutter": 1.5 px rules and 3 px shadows; the 3 px rule and 6 px shadow are kept for the ticket and the
+   collected (stamp) card only. Flat 11 px chips, plain mono section labels, no counts, no top-bar strip or globe. */
 
 @font-face {
   font-family: "Space Grotesk";
@@ -42,10 +44,11 @@
   --muted: #4a5068;          /* secondary text: 7.06:1 cream, 8.00:1 white */
   --lime: #c8ff3c;           /* FILL only, ink on it (16.3:1) */
   --coral: #ff6b57;          /* FILL only, ink on it (6.95:1) */
-  --rule: 2px solid var(--ink);
-  --rule-hero: 3px solid var(--ink);
-  --lift-sm: 4px 4px 0 var(--ink);
-  --lift: 6px 6px 0 var(--ink);
+  --rule: 1.5px solid var(--ink);
+  --rule-hero: 3px solid var(--ink);   /* the ticket, the collected card and its stamp only */
+  --lift-sm: 3px 3px 0 var(--ink);     /* every card or button that lifts */
+  --lift-up: 5px 5px 0 var(--ink);     /* hover: lifts 2 px, the shadow grows 2 px */
+  --lift: 6px 6px 0 var(--ink);        /* the ticket and the collected card only */
   --none: 0 0 #0000;
   --radius: 14px;
   --radius-sm: 10px;
@@ -124,36 +127,14 @@ img { max-width: 100%; }
 
 .wrap { max-width: 592px; margin: 0 auto; padding: 24px 16px 72px; overflow-x: clip; } /* the stamp starts at 1.8x */
 .stack > * + * { margin-top: 18px; }
-.stack > .stack-sm:not(.card) { margin-top: 44px; } /* board sections breathe; cards inside a flow stay close */
-.stack-sm > * + * { margin-top: 14px; }
+.stack > .stack-sm:not(.card) { margin-top: 36px; } /* board sections breathe; cards inside a flow stay close */
+.stack-sm > * + * { margin-top: 12px; }
 
-/* Section titles: uppercase on a 3 px ink rule, with a coral count sticker. */
+/* Section titles (v4.1): a plain uppercase mono label. No count, no rule. */
 .section-title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding-top: 12px;
-  border-top: var(--rule-hero);
-  font-size: clamp(26px, 20px + 2vw, 34px);
-  line-height: 1;
-  letter-spacing: -.035em;
+  font: 700 13px/1.3 var(--mono);
+  letter-spacing: .08em;
   text-transform: uppercase;
-}
-.count {
-  flex: none;
-  display: grid;
-  place-items: center;
-  min-width: 40px;
-  height: 40px;
-  padding: 0 8px;
-  border: var(--rule);
-  border-radius: 999px;
-  background: var(--coral);
-  color: var(--ink);
-  font: 700 17px/1 var(--mono);
-  letter-spacing: 0;
-  rotate: 6deg;
 }
 
 /* .glass is the card surface (the name predates v3): white, a 2 px ink rule, no shadow until it lifts. */
@@ -163,8 +144,9 @@ img { max-width: 100%; }
   border-radius: var(--radius);
 }
 .card { padding: 20px; }
-/* Hero cards: the plan, Gemini's match, the collected moment. */
-.plan.glass, .match.glass, .action.glass:has(.collected) { border: var(--rule-hero); box-shadow: var(--lift); }
+/* The plan and Gemini's match lift a little; the collected (stamp) card keeps the heavy rule and shadow. */
+.plan.glass, .match.glass { box-shadow: var(--lift-sm); }
+.action.glass:has(.collected) { border: var(--rule-hero); box-shadow: var(--lift); }
 
 /* ---------- top bar ---------- */
 
@@ -173,7 +155,7 @@ img { max-width: 100%; }
   top: 0;
   z-index: 10;
   background: var(--cream);
-  border-bottom: var(--rule-hero);
+  border-bottom: var(--rule);
   view-transition-name: topbar;
 }
 .topbar-inner {
@@ -210,101 +192,17 @@ img { max-width: 100%; }
 }
 .loop-mark { flex: none; color: var(--ink); overflow: visible; }
 
-/* Loop's iMessage line: a full-width lime strip under the bar (SPEC6), from /api/health lineNumber. */
-.ear {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 0 8px;
-  min-height: 44px;
-  padding: 8px 16px;
-  background: var(--lime);
-  color: var(--ink);
-  border-bottom: var(--rule-hero);
-  font: 700 14px/1.25 var(--mono);
-  letter-spacing: .04em;
-  text-transform: uppercase;
-  text-decoration: none;
-  text-align: center;
-}
-.ear::before, .ear::after { content: "\2733\FE0E"; font-weight: 400; }
-.ear-dot { white-space: pre; }
-.ear-num { font-variant-numeric: tabular-nums; }
-.ear:hover .ear-num { text-decoration: underline 2px var(--ink); text-underline-offset: 3px; }
-/* Coral on lime is 2.4:1: the strip takes an ink ring inside its own edge instead. */
-.ear:focus-visible { outline: 3px solid var(--ink); outline-offset: -6px; box-shadow: none; }
-
+/* Demo mode only (GEMINI_MOCK): one small ink line above the bar, an honesty note rather than decoration. */
 .mock {
   margin: 0;
-  padding: 6px 16px;
+  padding: 5px 16px;
   background: var(--ink);
   color: var(--cream);
-  font: 700 12px/1.3 var(--mono);
-  letter-spacing: .06em;
+  font: 700 11px/1.3 var(--mono);
+  letter-spacing: .04em;
   text-transform: uppercase;
   text-align: center;
 }
-
-/* Language: the globe pill opens a menu; the three languages are an ink segmented pill, the current one cream. */
-.lang-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 44px;
-  padding: 6px 14px 6px 10px;
-  border: var(--rule);
-  border-radius: 999px;
-  background: var(--ink);
-  color: var(--cream);
-  font: 700 var(--fs-5)/1.2 var(--mono);
-  letter-spacing: .04em;
-  white-space: nowrap;
-  cursor: pointer;
-}
-.lang-btn:hover { text-decoration: underline 2px; text-underline-offset: 4px; }
-.lang-btn .i { width: 18px; height: 18px; }
-
-.menu {
-  position: fixed;
-  inset: auto;
-  margin: 0;
-  width: min(300px, calc(100vw - 16px));
-  max-height: calc(100vh - 84px);
-  max-height: calc(100dvh - 84px);
-  overflow: auto;
-  padding: 10px;
-  color: var(--ink);
-  background: var(--card);
-  border: var(--rule);
-  border-radius: var(--radius);
-  box-shadow: var(--lift-sm);
-}
-.menu:popover-open { animation: pop 160ms var(--ease); }
-@keyframes pop { from { opacity: 0; transform: translateY(-4px); } }
-.menu-title {
-  margin: 2px 4px 8px;
-  color: var(--muted);
-  font: 700 12px/1.2 var(--mono);
-  letter-spacing: .06em;
-  text-transform: uppercase;
-}
-.lang-row { display: flex; gap: 3px; padding: 3px; border-radius: 999px; background: var(--ink); }
-.lang {
-  flex: 1 1 auto;
-  min-height: 44px;
-  padding: 8px 10px;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--cream);
-  font: 700 var(--fs-4)/1.2 var(--mono);
-  cursor: pointer;
-  transition: background-color 150ms var(--ease), color 150ms var(--ease);
-}
-.lang:hover { text-decoration: underline 2px; text-underline-offset: 4px; }
-.lang[aria-pressed="true"] { background: var(--cream); color: var(--ink); }
-.lang:focus-visible { box-shadow: none; } /* the coral ring sits on ink here: 6.95:1 */
 
 /* ---------- buttons ---------- */
 
@@ -335,7 +233,7 @@ img { max-width: 100%; }
 .btn .i { width: 20px; height: 20px; }
 .btn-primary { background: var(--ink); color: var(--cream); --lift-now: var(--lift-sm); }
 .btn-moment, .btn-primary.btn-moment { background: var(--coral); color: var(--ink); --lift-now: var(--lift-sm); }
-.btn-primary:hover, .btn-moment:hover { translate: -2px -2px; --lift-now: var(--lift); }
+.btn-primary:hover, .btn-moment:hover { translate: -2px -2px; --lift-now: var(--lift-up); }
 .btn-secondary:hover { translate: -2px -2px; --lift-now: var(--lift-sm); }
 .btn-ghost {
   padding-inline: 10px;
@@ -351,27 +249,24 @@ img { max-width: 100%; }
 .btn-block { width: 100%; }
 
 .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
-.hero-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(176px, 1fr)); gap: 14px; }
 
-/* ---------- chips: stickers ---------- */
+/* ---------- chips: flat labels (v4.1; only the ticket's and the map's stickers still tilt) ---------- */
 
-.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 3px 8px;
-  border: var(--rule);
-  border-radius: 6px;
+  gap: 4px;
+  padding: 2px 7px;
+  border: 1px solid var(--ink);
+  border-radius: 5px;
   background: var(--card);
   color: var(--ink);
-  font: 700 12px/1.25 var(--mono);
+  font: 700 11px/1.3 var(--mono);
   letter-spacing: .04em;
   text-transform: uppercase;
   white-space: nowrap;
-  rotate: -1.5deg;
 }
-.chip:nth-child(even) { rotate: 1.5deg; }
 .chip-available, .chip-fulfilled { background: var(--lime); }
 .chip-reserved { background: var(--coral); }
 .chip-collected { background: var(--ink); color: var(--cream); }
@@ -381,8 +276,8 @@ img { max-width: 100%; }
 .chip-collected.dot::before, .chip-fulfilled.dot::before {
   content: "";
   flex: none;
-  width: 11px;
-  height: 11px;
+  width: 10px;
+  height: 10px;
   background: currentColor;
   -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.2 4.2L19 7'/%3E%3C/svg%3E") center / contain no-repeat;
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.2 4.2L19 7'/%3E%3C/svg%3E") center / contain no-repeat;
@@ -390,31 +285,65 @@ img { max-width: 100%; }
 
 /* ---------- board ---------- */
 
-/* The greeting is not a card: big type straight on the canvas, one word under a lime highlighter. */
-.hero.glass { position: relative; padding: 6px 0 0; background: none; border: 0; border-radius: 0; box-shadow: none; }
-.hero h1 { font-size: clamp(44px, 32px + 3.2vw, 60px); line-height: .98; letter-spacing: -.05em; }
-.hl {
-  display: inline-block;
-  padding: 0 .1em;
-  margin-inline: -.02em;
-  background: var(--lime);
+/* The greeting is not a card: plain ink type on the canvas, one line under it, one button and a quiet link. */
+.hero { padding-top: 4px; }
+.hero h1 { font-size: clamp(36px, 28px + 2.4vw, 48px); line-height: 1; letter-spacing: -.045em; }
+.hero .lead { font-size: 17px; }
+.hero-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; margin-top: 20px; }
+.quiet-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 2px;
   color: var(--ink);
-  rotate: -1deg;
+  font: 500 var(--fs-4)/1.2 var(--sans);
+  text-decoration: underline 2px var(--coral);
+  text-underline-offset: 4px;
 }
+.quiet-link:hover { text-decoration-color: var(--ink); }
 /* Lists set only margin-bottom: a "margin: 0" here would beat the stacks' margin-top and glue cards together. */
-.list { list-style: none; margin-bottom: 0; padding: 0; display: grid; gap: 18px; }
+.list { list-style: none; margin-bottom: 0; padding: 0; display: grid; gap: 12px; }
 .empty { padding: 20px; color: var(--muted); text-align: center; font-size: var(--fs-4); }
 .empty.glass { border-style: dashed; }
 
-/* Need cards: when (mono), what, details, status. */
-.need { padding: 16px 18px; box-shadow: var(--lift-sm); }
-.need-meta { color: var(--muted); font: 400 12px/1.3 var(--mono); letter-spacing: .04em; text-transform: uppercase; }
-.need h3 { margin-top: 6px; font-size: 22px; overflow-wrap: anywhere; }
-.need-details { margin-top: 4px; color: var(--muted); font-size: var(--fs-4); overflow-wrap: anywhere; }
-.need-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 14px; min-height: 28px; }
-.need-foot .btn { margin: -8px -10px -8px 0; }
+/* "yours" on the board: a small ink dot before the title (19:1 on white); screen readers hear "yours". */
+.mine-dot { display: inline-block; width: 8px; height: 8px; margin-right: 7px; border-radius: 50%; background: var(--ink); vertical-align: .1em; }
 
-.grid { list-style: none; margin-bottom: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 16px; }
+/* Need cards: title, "Asked …" and (once matched) a chip. With details or a Remove, the face is one button, the
+   whole card's width, that opens them inline; the card takes the focus ring. */
+.need { box-shadow: var(--focus, var(--none)), var(--lift-sm); }
+.need:has(> h3 > .need-face:focus-visible) { outline: 3px solid var(--coral); outline-offset: 2px; --focus: 0 0 0 2px var(--ink); }
+.need-face {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 14px 16px;
+}
+button.need-face {
+  margin: 0;
+  border: 0;
+  border-radius: inherit;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+button.need-face:focus-visible { outline: none; box-shadow: none; }
+.need-title, .need-meta { grid-column: 1; }
+.need-title { font: 700 18px/1.2 var(--sans); letter-spacing: -.02em; overflow-wrap: anywhere; }
+.need-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; color: var(--muted); font: 400 12px/1.4 var(--mono); }
+.need-face > .i { grid-column: 2; grid-row: 1 / span 2; width: 20px; height: 20px; transition: rotate 160ms var(--ease); }
+.need.is-open .need-face > .i { rotate: 180deg; }
+.need-more { padding: 0 16px 12px; }
+.need-details { color: var(--muted); font-size: var(--fs-4); overflow-wrap: anywhere; }
+.need-more .btn { margin: 4px 0 0 -10px; }
+.stack-sm > .more { margin: 8px 0 0 -10px; } /* the ghost button's text lines up with the cards */
+
+.grid { list-style: none; margin-bottom: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 12px; }
 .grid > li { display: flex; }
 .item-card, .foryou {
   color: inherit;
@@ -423,7 +352,7 @@ img { max-width: 100%; }
   transition: translate 140ms var(--ease), box-shadow 140ms var(--ease);
 }
 .item-card { display: flex; flex-direction: column; width: 100%; overflow: hidden; }
-.item-card:hover, .foryou:hover { translate: -2px -2px; box-shadow: var(--focus, var(--none)), var(--lift); }
+.item-card:hover, .foryou:hover { translate: -2px -2px; box-shadow: var(--focus, var(--none)), var(--lift-up); }
 .thumb {
   display: block;
   width: 100%;
@@ -432,9 +361,9 @@ img { max-width: 100%; }
   background: var(--sunk);
   border-bottom: var(--rule);
 }
-.item-body { display: grid; gap: 10px; padding: 12px 12px 14px; }
+.item-body { display: grid; gap: 8px; padding: 10px 12px 12px; justify-items: start; }
 .item-title {
-  font-size: 17px;
+  font-size: 16px;
   line-height: 1.2;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -442,37 +371,23 @@ img { max-width: 100%; }
   overflow: hidden;
 }
 
-.foryou { display: block; overflow: hidden; }
-/* A band across the top: lime for an offer, coral for a reservation, ink print on both. */
-.banner {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
-  background: var(--lime);
-  border-bottom: var(--rule);
-  color: var(--ink);
-  font: 700 12px/1.3 var(--mono);
-  letter-spacing: .04em;
-  text-transform: uppercase;
-}
-.is-reserved .banner { background: var(--coral); }
-.foryou-row { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 12px 14px 12px 12px; }
-.foryou-row img { width: 72px; height: 72px; border: var(--rule); border-radius: 8px; object-fit: cover; background: var(--sunk); }
+/* For you: one compact row (thumbnail, title, why it's here, chevron). */
+.foryou { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 12px 10px 10px; }
+.foryou img { width: 56px; height: 56px; border: var(--rule); border-radius: 8px; object-fit: cover; background: var(--sunk); }
 .foryou-text { display: grid; gap: 2px; min-width: 0; }
-.foryou-title { font: 700 19px/1.2 var(--sans); letter-spacing: -.02em; overflow-wrap: anywhere; }
-.foryou-row > .i { color: var(--ink); }
+.foryou-title { font: 700 17px/1.2 var(--sans); letter-spacing: -.02em; overflow-wrap: anywhere; }
+.foryou > .i { color: var(--ink); }
 
-/* The footer: a 3 px rule, the kept-in-use count, Reset demo, and the line as a mono link. */
+/* The footer: a light rule, the kept-in-use count, Reset demo, and the line as one mono link. */
 .foot {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   gap: 2px 8px;
-  margin-top: 44px;
+  margin-top: 40px;
   padding-top: 12px;
-  border-top: var(--rule-hero);
+  border-top: var(--rule);
   color: var(--muted);
   font: 400 var(--fs-5)/1.4 var(--mono);
   text-transform: uppercase;
@@ -485,9 +400,9 @@ img { max-width: 100%; }
   min-height: 44px;
   padding: 0 8px;
   color: var(--ink);
-  font: 700 var(--fs-4)/1.2 var(--mono);
-  text-decoration: underline 3px var(--coral);
-  text-underline-offset: 5px;
+  font: 700 var(--fs-5)/1.2 var(--mono);
+  text-decoration: underline 2px var(--coral);
+  text-underline-offset: 4px;
 }
 .line-link:hover { text-decoration-color: var(--ink); }
 
@@ -610,7 +525,7 @@ select.input {
   padding: 32px 24px;
   text-align: center;
   cursor: pointer;
-  border: 3px dashed var(--ink);
+  border: 1.5px dashed var(--ink);
   border-radius: var(--radius);
   transition: background-color 160ms var(--ease), transform 160ms var(--ease);
 }
@@ -634,22 +549,22 @@ select.input {
 .drop-title { font: 700 26px/1.1 var(--sans); letter-spacing: -.03em; }
 .drop .muted { max-width: 34ch; font-size: var(--fs-4); }
 .drop .btn { margin-top: 8px; pointer-events: none; }
-.text-in { text-align: center; color: var(--muted); font-size: var(--fs-4); }
+.text-in { text-align: center; color: var(--muted); font-size: var(--fs-5); } /* the line on the Post page: one small line */
 /* "Nothing identifies you…" under the Post title (SPEC5). */
 .appear { color: var(--muted); font: 400 var(--fs-5)/1.45 var(--mono); }
 .stack > h1 + .appear { margin-top: 8px; }
-.text-in a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 2px; color: var(--ink); font: 700 var(--fs-4)/1.2 var(--mono); text-decoration: underline 3px var(--coral); text-underline-offset: 5px; }
+.text-in a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 2px; color: var(--ink); font: 700 var(--fs-5)/1.2 var(--mono); text-decoration: underline 2px var(--coral); text-underline-offset: 4px; }
 
 .photo-frame {
   position: relative;
   overflow: hidden;
   aspect-ratio: 4 / 3;
   background: var(--sunk);
-  border: var(--rule-hero);
+  border: var(--rule);
   border-radius: 12px;
-  box-shadow: var(--lift);
+  box-shadow: var(--lift-sm);
 }
-.photo-frame.glass { border: var(--rule-hero); border-radius: 12px; }
+.photo-frame.glass { border: var(--rule); border-radius: 12px; }
 .photo-frame img { display: block; width: 100%; height: 100%; object-fit: contain; }
 /* Gemini is looking: a 3 px coral scan line sweeps the photo. */
 .photo-frame.is-busy::after {
@@ -691,15 +606,14 @@ select.input {
   align-items: center;
   gap: 6px;
   width: fit-content;
-  padding: 4px 10px;
-  border: var(--rule);
+  padding: 3px 9px;
+  border: 1px solid var(--ink);
   border-radius: 999px;
-  font: 700 12px/1.2 var(--mono);
+  font: 700 11px/1.3 var(--mono);
   letter-spacing: .04em;
   text-transform: uppercase;
-  rotate: -1deg;
 }
-.tag .i { width: 15px; height: 15px; }
+.tag .i { width: 14px; height: 14px; }
 .tag-ai { background: var(--lime); color: var(--ink); }
 .tag-human { background: var(--ink); color: var(--cream); }
 .draft.is-draft .tag-human, .draft.is-checked .tag-ai, .draft.is-checked .approve { display: none; }
@@ -738,17 +652,16 @@ select.input {
 .detail-head h1 { font-size: clamp(32px, 26px + 2vw, 44px); overflow-wrap: anywhere; }
 .from { margin-top: 10px; color: var(--muted); font: 400 var(--fs-5)/1.4 var(--mono); text-transform: uppercase; letter-spacing: .03em; }
 .desc { margin-top: 14px; overflow-wrap: anywhere; }
+/* "Gemini drafted this listing…": a small mono footnote (v4.1), no rule above it. */
 .provenance {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
-  margin-top: 16px;
-  padding-top: 14px;
-  border-top: 2px dashed var(--ink);
+  gap: 6px;
+  margin-top: 12px;
   color: var(--muted);
-  font: 400 var(--fs-5)/1.45 var(--mono);
+  font: 400 12px/1.45 var(--mono);
 }
-.provenance .i { width: 16px; height: 16px; margin-top: 1px; color: var(--ink); }
+.provenance .i { width: 13px; height: 13px; margin-top: 2px; color: var(--ink); }
 
 .timeline { list-style: none; margin-bottom: 0; padding: 18px 8px 16px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .timeline li { position: relative; display: grid; justify-items: center; align-content: start; gap: 6px; text-align: center; }
@@ -759,7 +672,7 @@ select.input {
   top: 17px;
   right: 50%;
   width: 100%;
-  border-top: 3px dotted var(--ink);
+  border-top: 2px dotted var(--ink);
 }
 .timeline li.reached::before { border-top-style: solid; }
 .step-dot {
@@ -980,7 +893,7 @@ select.input {
   max-width: 85%;
   border: var(--rule);
   border-radius: 12px;
-  background: var(--card); /* no overflow clip: the 44 px "translated" button pokes out of the header on purpose */
+  background: var(--card);
 }
 .msg-meta {
   margin: 0;
@@ -999,45 +912,26 @@ select.input {
   overflow-wrap: anywhere;
 }
 .msg-actions { display: flex; flex-wrap: wrap; gap: 10px; padding: 0 12px 14px; }
-/* Loop: a white system card, a lime title bar, mono text, full width. */
+/* Loop: a white system card, a lime title bar (28 px in v4.1), mono text, full width. */
 .msg-loop .msg-body { flex: 1; max-width: none; }
-.msg-loop .msg-meta { padding: 6px 12px; margin-bottom: 8px; border-radius: 10px 10px 0 0; background: var(--lime); border-bottom: var(--rule); color: var(--ink); }
+.msg-loop .msg-meta { padding: 5px 12px; line-height: 16px; margin-bottom: 8px; border-radius: 10px 10px 0 0; background: var(--lime); border-bottom: var(--rule); color: var(--ink); }
 .msg-loop .msg-text { font: 400 14px/1.55 var(--mono); }
 /* The other person: coral rule for the taker, ink for the giver. Me: a cream card. */
 .msg-theirs.is-taker .msg-body { border-color: var(--coral); }
 .msg-mine .msg-body { background: var(--cream); }
 
-.via, .tr-tag {
+.via {
   display: inline-block;
   margin-left: 4px;
-  padding: 0 6px;
-  border: var(--rule);
+  padding: 0 5px;
+  border: 1px solid var(--ink);
   border-radius: 4px;
   background: var(--card);
   color: var(--ink);
-  font: 700 11px/16px var(--mono);
+  font: 700 11px/15px var(--mono);
   letter-spacing: .04em;
   text-transform: uppercase;
-  rotate: -2deg;
 }
-/* "translated" toggles the original. The sticker stays small; the button around it is 44 px tall (negative margins
-   keep the header's height). */
-.tr {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  margin: -13px 0;
-  padding: 0 2px;
-  border: 0;
-  background: none;
-  color: inherit;
-  font: inherit;
-  vertical-align: middle;
-  cursor: pointer;
-}
-.tr .tr-tag { border-style: dashed; }
-.tr:hover .tr-tag { border-style: solid; }
-.tr.is-original .tr-tag { background: var(--cream); }
 
 /* The composer: one white dock with the ink edge, a small shadow and the focus ring; the textarea inside is bare. */
 .composer.glass {
@@ -1123,7 +1017,7 @@ select.input {
 
 /* ---------- give: one thing or a pile ---------- */
 
-/* The same ink pill as the language menu: cream for the current choice. */
+/* An ink pill: cream for the current choice. */
 .segmented {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1199,7 +1093,7 @@ select.input {
   border-radius: var(--radius-sm);
   background: var(--ink);
   color: var(--cream);
-  box-shadow: 4px 4px 0 var(--coral);
+  box-shadow: 3px 3px 0 var(--coral);
   font: 700 var(--fs-5)/1.3 var(--mono);
   text-align: center;
   text-transform: uppercase;
