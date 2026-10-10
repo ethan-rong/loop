@@ -1240,3 +1240,6 @@ select.input {
   .photo-frame.is-busy::after { display: none; }
   ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
 }
+
+/* v4 addendum: map caption (privacy note under the campus map) */
+.map-caption { margin: 8px 0 0; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; letter-spacing: .02em; color: var(--muted, #4a5068); }

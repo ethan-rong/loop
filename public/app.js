@@ -879,7 +879,7 @@ function planCard(t) {
   return html`<div class="glass card plan">
     <div class="plan-head"><h2 id="thread-title">Pickup plan</h2><span class="chip dot chip-${chip}">${label}</span></div>
     ${meetGrid(place, time)}
-    ${spotFor(place) ? html`<div class="map-fig">${campusMap({ highlight: place })}${meetSticker(place, time)}</div>` : ''}
+    ${spotFor(place) ? html`<div class="map-fig">${campusMap({ highlight: place })}${meetSticker(place, time)}</div><p class="map-caption">Public spots only. Nobody's room is on the map.</p>` : ''}
     ${isOpenThread(t) && (place || time) ? html`<ul class="agree" aria-label="Who agreed to this plan">${people.map((id) => {
       const yes = (t.plan.confirmedBy ?? []).includes(id);
       return html`<li class="${yes ? 'yes' : ''}"><span class="agree-dot" aria-hidden="true">${yes ? icon('check') : ''}</span><span><strong>${whoIn(t, id)}</strong> ${yes ? 'agreed' : 'not yet'}</span></li>`;
