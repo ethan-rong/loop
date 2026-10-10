@@ -4,14 +4,14 @@ import express from 'express';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { channelStatus, forwardNewMessages, sendToPerson, startChannel } from './channels/spectrum.mjs';
+import { channelStatus, forwardNewMessages, forwardTranslation, sendToPerson, startChannel } from './channels/spectrum.mjs';
 import { coordinate } from './coordinator.mjs';
 import { CATEGORIES, CONDITIONS, clamp, describeItem, isMock, modelName, suggestItems } from './gemini.mjs';
 import { pileRouter } from './pile.mjs';
 import { resetToSeed } from './seed.mjs';
 import * as store from './store.mjs';
 import { handleInbound, itemPosted, startTextflow } from './textflow.mjs';
-import { pendingTranslations, translate, translateOn } from './translate.mjs';
+import { startTranslations, translateOn } from './translate.mjs';
 
 const { ApiError, DATA_DIR } = store;
 const PORT = Number(process.env.PORT) || 3000;
@@ -30,21 +30,15 @@ mkdirSync(PHOTOS_DIR, { recursive: true });
 let db = store.loadDb(DATA_DIR) ?? resetToSeed(DATA_DIR);
 
 // Persist a transition's new state, then swap it in. Sync on purpose: no interleaved writes.
-// New thread messages go out to linked phones (no-op unless the iMessage channel is connected), then get translated
-// for a reader of another language (SPEC4 §C): async, each lands later as its own commit (version + 1). Forwards don't
-// wait for it, so a phone gets the original of a new message. A translation commit adds no messages: no re-trigger.
+// New thread messages get translated for a reader of another language (SPEC4 §C; async, each lands later as its own
+// commit) and go out to linked phones (no-op unless the iMessage channel is connected): right away in the message's
+// own language, after its translation (or the original if that failed) to a phone that reads the other one.
 function commit(result) {
   store.saveDb(DATA_DIR, result.db);
   const before = db;
   db = result.db;
-  forwardNewMessages(before, db);
-  if (translateOn()) {
-    for (const { threadId, messageId, text: said, lang } of pendingTranslations(before, db)) {
-      translate(said, lang)
-        .then((translated) => translated && commit(store.setTranslation(db, threadId, messageId, lang, translated)))
-        .catch((err) => console.error(err)); // a failed save must not become an unhandled rejection
-    }
-  }
+  const translating = startTranslations(before, db, { getDb: () => db, commit, forward: forwardTranslation });
+  forwardNewMessages(before, db, translating);
   return result;
 }
 

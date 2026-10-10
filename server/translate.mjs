@@ -1,10 +1,13 @@
 // Bilingual threads (SPEC4 §C). When a thread's two people read different languages, every new message (theirs or
-// Loop's) is translated once into the other language with one text-only Gemini call; index.mjs stores it as
-// message.translations[lang] through store.setTranslation. The original is always kept. A text with 4 digits in a row
+// Loop's) is translated once into the other language with one text-only Gemini call and stored as
+// message.translations[lang] (store.setTranslation). The original is always kept. A text with 4 digits in a row
 // (maybe the pickup code) is never sent, and a translation that came back with 4 digits in a row is dropped.
+// Phones that read the target language get the message once its translation is done (or the original if it failed).
 // translate() never throws: no translation = null. GEMINI_MOCK=1: "[lang] text", no network.
 import { callGemini, clamp, isMock } from './gemini.mjs';
-import { LANGUAGES, langOf } from './store.mjs';
+import * as store from './store.mjs';
+
+const { LANGUAGES, langOf } = store;
 
 const SCHEMA = { type: 'OBJECT', properties: { text: { type: 'STRING' } }, required: ['text'] };
 const FOUR_DIGITS = /[0-9０-９]{4}/; // full-width digits too (Chinese keyboards)
@@ -41,6 +44,31 @@ const prompt = (text, name) => `Translate the chat message between <<< and >>> i
 <<<
 ${text.replace(/<<<|>>>/g, '')}
 >>>`;
+
+/**
+ * The hook, run by index.mjs's commit() for every state change: starts the translations owed between two states and
+ * returns them, so the caller holds those messages back from phones that read the target language. Each one lands
+ * as its own commit (version + 1); then forward(after, job, translated) sends the held-back texts, the original when
+ * translated is null. A translation commit adds no messages, so it starts nothing new. deps.translate: tests only.
+ * @returns {{threadId: string, messageId: string, text: string, lang: string}[]}
+ */
+export function startTranslations(before, after, { getDb, commit, forward, translate: run = translate }) {
+  if (!translateOn()) return [];
+  const jobs = pendingTranslations(before, after);
+  for (const job of jobs) {
+    run(job.text, job.lang)
+      .catch(() => null)
+      .then((translated) => {
+        try {
+          if (translated) commit(store.setTranslation(getDb(), job.threadId, job.messageId, job.lang, translated));
+        } finally {
+          forward(after, job, translated); // even when saving failed: nobody misses the message
+        }
+      })
+      .catch((err) => console.error(err)); // never an unhandled rejection
+  }
+  return jobs;
+}
 
 /** @returns {Promise<string|null>} the translation, or null (failed, unchanged, or it carried 4 digits in a row) */
 export async function translate(text, lang) {

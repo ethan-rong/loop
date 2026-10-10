@@ -3,15 +3,24 @@
 //   PORT=3700 node scripts/e2e-translate.mjs        (BASE_URL overrides http://localhost:$PORT)
 // Refuses to run unless the server reports mock mode, so it never spends real Gemini calls (mock: "[lang] text").
 // Translations land a moment after the message (their own commit), so the checks poll GET /api/state.
+// The phone forwards run in-process (no server, no Spectrum): index.mjs's commit with recording phones.
 import assert from 'node:assert/strict';
 import { setTimeout as sleep } from 'node:timers/promises';
-import { threadTexts } from '../server/channels/spectrum.mjs';
+import { fileURLToPath } from 'node:url';
+import { threadTexts, translationTexts } from '../server/channels/spectrum.mjs';
+import { resetToSeed } from '../server/seed.mjs';
+import * as store from '../server/store.mjs';
+import { startTranslations } from '../server/translate.mjs';
+
+process.env.GEMINI_MOCK = '1'; // the in-process translations are mock ones too
 
 const BASE = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3700}`;
 const RUNS = 3;
 const WAIT_MS = 3000;
 const CHINESE = '我六点在图书馆可以吗';
 const meet = { place: 'Davis Library lobby', time: 'Today 5 pm' };
+const HINT = "\nReply 'works', 'here', or suggest a time.";
+const PHONES_DIR = fileURLToPath(new URL('../.tmp-g/phones', import.meta.url));
 
 async function call(method, path, body) {
   const res = await fetch(BASE + path, { method, headers: { 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
@@ -109,18 +118,70 @@ async function sameLanguage() {
   assert.deepEqual([t.recipientId, t.messages.length, t.messages[0].translations], ['thomas', 1, mock('es', t.messages[0])]);
 }
 
-// iMessage (pure, no server): a phone gets the message in its person's language when the translation is already there.
-function forwardsInTheirLanguage() {
-  const people = [{ id: 'jerry', name: 'Jerry Lin' }, { id: 'tom', name: 'Tom Zhao', lang: 'zh' }];
-  const db = (messages) => ({ people, threads: [{ id: 't_1', ownerId: 'jerry', recipientId: 'tom', plan: {}, messages }] });
-  const m = (from, text, translations) => ({ id: `m_${from}`, from, text, at: '', via: 'web', actions: [], forPersonId: null, translations });
-  const after = db([m('jerry', 'Davis at 5 pm?', { zh: '[zh] Davis at 5 pm?' }), m('tom', CHINESE, { en: `[en] ${CHINESE}` }), m('loop', 'Got it.', {})]);
-  assert.deepEqual(threadTexts(db([]), after), [
-    { personId: 'tom', text: 'Jerry: [zh] Davis at 5 pm?' },
-    { personId: 'jerry', text: `Tom: [en] ${CHINESE}` },
-    { personId: 'jerry', text: 'Loop: Got it.' },
-    { personId: 'tom', text: 'Loop: Got it.' }, // not translated yet: the original goes out
+// Stands in for index.mjs's commit() (same two calls) with phones that record what they get; everyone counts as linked.
+function phones(translate) {
+  let db = resetToSeed(PHONES_DIR);
+  let inbox = [];
+  const forward = (after, job, translated) => inbox.push(...translationTexts(after, job, translated));
+  const commit = (result) => {
+    const before = db;
+    db = result.db;
+    const translating = startTranslations(before, db, { getDb: () => db, commit, forward, translate });
+    inbox.push(...threadTexts(before, db, translating));
+    return result;
+  };
+  const take = () => {
+    const got = inbox;
+    inbox = [];
+    return got;
+  };
+  return { commit, take, db: () => db };
+}
+const settle = () => sleep(20); // mock translations land within a few microtasks
+
+// iMessage: a phone that reads another language gets the message once, translated; the same language at once, as
+// written; a failed translation (null or a throw) still delivers the original once.
+async function phoneForwards() {
+  let p = phones();
+  const { thread: fan } = p.commit(store.reserveItem(p.db(), 'i_fan', { personId: 'tom' }));
+  assert.deepEqual(p.take(), [{ personId: 'jerry', text: `Loop: Hi Jerry — Tom reserved your Small desk fan. You're the one handing it over, so you pick: when and where works for you?${HINT}` }]);
+  await settle();
+  assert.deepEqual(p.take(), [{ personId: 'tom', text: 'Loop: [zh] Tom, Jerry will suggest a time and place; you can reply here too.' }]);
+  p.commit(store.postHumanMessage(p.db(), fan.id, { personId: 'tom', text: CHINESE }));
+  assert.deepEqual(p.take(), [], "held back until it's translated");
+  await settle();
+  assert.deepEqual(p.take(), [{ personId: 'jerry', text: `Tom: [en] ${CHINESE}` }]);
+  p.commit(store.postLoopMessage(p.db(), fan.id, 'Got it.'));
+  assert.deepEqual(p.take(), [{ personId: 'jerry', text: 'Loop: Got it.' }]);
+  await settle();
+  assert.deepEqual(p.take(), [{ personId: 'tom', text: 'Loop: [zh] Got it.' }]);
+  await settle();
+  assert.deepEqual(p.take(), [], 'each exactly once');
+  assert.deepEqual(store.getThread(p.db(), fan.id).messages.map((m) => Object.keys(m.translations)), [['zh'], ['zh'], ['en'], ['zh']]);
+
+  const { thread: book } = p.commit(store.reserveItem(p.db(), 'i_book', { personId: 'jerry', ...meet }));
+  p.commit(store.postHumanMessage(p.db(), book.id, { personId: 'jerry', text: 'hello' }));
+  assert.deepEqual(p.take(), [
+    { personId: 'jack', text: `Loop: Hi Jack — Jerry reserved your Intro to Psychology textbook (8th ed.) and suggested Davis Library lobby, Today 5 pm. Does that work?${HINT}` },
+    { personId: 'jack', text: 'Jerry: hello' },
   ]);
+  await settle();
+  assert.deepEqual(p.take(), [], 'same language: nothing held back, nothing twice');
+
+  for (const failing of [async () => null, async () => { throw new Error('offline'); }]) {
+    p = phones(failing);
+    const { thread } = p.commit(store.reserveItem(p.db(), 'i_fan', { personId: 'tom' }));
+    p.commit(store.postHumanMessage(p.db(), thread.id, { personId: 'tom', text: CHINESE }));
+    assert.deepEqual(p.take().map((t) => t.personId), ['jerry'], "only Jerry's own-language line goes out at once");
+    await settle();
+    assert.deepEqual(p.take(), [
+      { personId: 'tom', text: 'Loop: Tom, Jerry will suggest a time and place; you can reply here too.' },
+      { personId: 'jerry', text: `Tom: ${CHINESE}` },
+    ], 'failed translation: the original, once');
+    await settle();
+    assert.deepEqual(p.take(), []);
+    assert.ok(store.getThread(p.db(), thread.id).messages.every((m) => !Object.keys(m.translations).length), 'nothing stored');
+  }
 }
 
 const health = await ok(call('GET', '/api/health'));
@@ -132,7 +193,7 @@ assert.equal(health.translate, true, 'health.translate');
 let failed = 0;
 for (let run = 1; run <= RUNS; run++) {
   try {
-    forwardsInTheirLanguage();
+    await phoneForwards();
     await zhThread();
     await sameLanguage();
     console.log(`run ${run}: PASS`);

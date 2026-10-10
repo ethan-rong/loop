@@ -246,40 +246,71 @@ export function sendToPerson(personId, text) {
   return deliver(personId, text);
 }
 
+const firstNameIn = (db, id) => db.people.find((p) => p.id === id)?.name.split(' ')[0] ?? 'Someone';
+const langIn = (db, id) => db.people.find((p) => p.id === id)?.lang ?? 'en';
+
+// One thread message on one participant's phone, prefixed with the sender; body = its text or a translation of it.
+// null when it isn't for them: their own, or addressed to the other person (forPersonId). Buttons meant for them
+// become one trailing hint line; when the recipient arrives, the owner is asked to text the code instead of typing it
+// on the item page (SPEC3 §2).
+function phoneText(db, thread, m, personId, body) {
+  if (personId === m.from || (m.forPersonId && m.forPersonId !== personId)) return null;
+  const sender = m.from === 'loop' ? 'Loop' : firstNameIn(db, m.from);
+  if (personId === thread.ownerId && m.actions.some((a) => a.action === 'enter_code')) {
+    const recipient = firstNameIn(db, thread.recipientId);
+    return `${sender}: ${recipient} is at ${thread.plan.place}. Ask ${recipient} for the 4-digit code and text it to me.`;
+  }
+  const replyable = m.actions.some((a) => a.action !== 'enter_code' && (a.forPersonId ?? m.forPersonId ?? personId) === personId);
+  return `${sender}: ${body}${replyable ? `\n${HINT}` : ''}`;
+}
+
 /**
- * What each participant's phone gets for the thread messages added between two states. A message addressed to one
- * person (forPersonId) goes only to them; the rest go to both participants except the author, prefixed with the
- * sender, in that person's language when the translation is already there (SPEC4 §C). Buttons meant for that person
- * become one trailing hint line; when the recipient arrives, the owner is
- * asked to text the code instead of typing it on the item page (SPEC3 §2). Pure, so tests can check it.
+ * What each participant's phone gets right away for the thread messages added between two states. `translating` =
+ * the translations just started for them ({messageId, lang}, translate.mjs, SPEC4 §C): a participant who reads that
+ * lang gets that message from translationTexts once it is done instead. Pure, so tests can check it.
  * @returns {{personId: string, text: string}[]}
  */
-export function threadTexts(before, after) {
+export function threadTexts(before, after, translating = []) {
   const seen = new Map((before?.threads ?? []).map((t) => [t.id, t.messages.length]));
-  const firstName = (id) => after.people.find((p) => p.id === id)?.name.split(' ')[0] ?? 'Someone';
-  const langOf = (id) => after.people.find((p) => p.id === id)?.lang ?? 'en';
+  const later = new Set(translating.map((job) => `${job.messageId} ${job.lang}`));
   const texts = [];
   for (const thread of after.threads ?? []) {
     for (const m of thread.messages.slice(seen.get(thread.id) ?? 0)) {
-      const sender = m.from === 'loop' ? 'Loop' : firstName(m.from);
       for (const personId of [thread.ownerId, thread.recipientId]) {
-        if (personId === m.from || (m.forPersonId && m.forPersonId !== personId)) continue;
-        if (personId === thread.ownerId && m.actions.some((a) => a.action === 'enter_code')) {
-          const recipient = firstName(thread.recipientId);
-          texts.push({ personId, text: `${sender}: ${recipient} is at ${thread.plan.place}. Ask ${recipient} for the 4-digit code and text it to me.` });
-          continue;
-        }
-        const replyable = m.actions.some((a) => a.action !== 'enter_code' && (a.forPersonId ?? m.forPersonId ?? personId) === personId);
-        const shown = m.translations?.[langOf(personId)] ?? m.text; // SPEC4 §C: their language, when it's there already
-        texts.push({ personId, text: `${sender}: ${shown}${replyable ? `\n${HINT}` : ''}` });
+        if (later.has(`${m.id} ${langIn(after, personId)}`)) continue;
+        const text = phoneText(after, thread, m, personId, m.text);
+        if (text) texts.push({ personId, text });
       }
     }
   }
   return texts;
 }
 
-// Forward each new thread message to the linked phones it is meant for (no-op until the channel is connected).
-export function forwardNewMessages(before, after) {
+/**
+ * The texts held back for one finished translation (a job from translate.mjs): each participant who reads job.lang
+ * gets the message in it, or the original when the translation failed (translated = null), so nobody misses it.
+ * `after` = the state the message was added in. Pure.
+ * @returns {{personId: string, text: string}[]}
+ */
+export function translationTexts(after, job, translated) {
+  const thread = (after.threads ?? []).find((t) => t.id === job.threadId);
+  const m = thread?.messages.find((x) => x.id === job.messageId);
+  if (!m) return [];
+  return [thread.ownerId, thread.recipientId]
+    .filter((personId) => langIn(after, personId) === job.lang)
+    .map((personId) => ({ personId, text: phoneText(after, thread, m, personId, translated ?? m.text) }))
+    .filter((t) => t.text);
+}
+
+// Forward each new thread message to the linked phones it is meant for (no-op until the channel is connected), except
+// to readers of a language it is being translated into: forwardTranslation sends theirs when the translation is done.
+// ponytail: a held-back message can land after a later immediate one (~0.5 s window); per-person ordering if it matters.
+export function forwardNewMessages(before, after, translating = []) {
   if (!im) return;
-  for (const { personId, text } of threadTexts(before, after)) sendToPerson(personId, text);
+  for (const { personId, text } of threadTexts(before, after, translating)) sendToPerson(personId, text);
+}
+
+export function forwardTranslation(after, job, translated) {
+  if (!im) return;
+  for (const { personId, text } of translationTexts(after, job, translated)) sendToPerson(personId, text);
 }
