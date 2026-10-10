@@ -33,6 +33,10 @@ npm start                       # http://localhost:3000
 ```
 GEMINI_API_KEY=...
 GEMINI_MODEL=gemini-3.5-flash-lite
+# optional, for iMessage:
+SPECTRUM_PROJECT_ID=...
+SPECTRUM_PROJECT_SECRET=...
+PHONE_ETHAN=+1...   # a demo phone linked to the seed id "ethan"
 ```
 
 Two people = two browser tabs (each tab becomes its own anonymous session automatically; nothing identifies it). "Reset demo" in the footer, or `npm run seed`, restores the seed data.
@@ -91,6 +95,10 @@ Measured on Oct 10 2026 on the development laptop (Node 22.23, Express 5.3, macO
 | `npm run e2e-textflow` (mock, no SDK) | 3 of 3 PASS: photo → draft → correction → YES → offered; BOARD; wrong then right code by text; proactive suggestion YES → reserved; HEIC, not-a-photo, no-match, STOP, strangers |
 | Pile photo (real call, yard-sale photo with 6 objects) | 6 items with valid boxes in about 3 s; the lamp matched the lamp request, the other five returned honest "no match" reasons after the schema change (reason before id); the same flow then listed all six from the browser with crops |
 | iMessage (real, Photon shared line) | channel connects; thread messages reached the linked phone; a dropped connection reconnects on restart; first send right after connect can fail once, so sends retry |
+| Live no-identities loop (browser, real Gemini, final look) | anonymous taker posts a need → anonymous giver's lamp photo matched it → offer → accept → giver's proposal via the spot chips → "works for me" → "I'm here" → wrong code rejected → right code → Collected, stamp, closing line |
+| Live bilingual thread (API, real Gemini) | Chinese taker line translated for the English giver in ~0.6 s; Loop's replies reached the Chinese reader in Chinese; names kept in Latin script |
+| Proactive connector (live) | a web post matching an open request texted the linked phone "…Reply YES to reserve it" (`sent to ethan` in the log) |
+| Judging-path runs (`npm start` on :3000) | 2 of 2 complete API loops with Reset between; reset clears text sessions |
 | Cold start | fresh data directory + `npm start`: server up, seed written, page served |
 | Bad input | malformed JSON, missing fields, a 7 MB image, a non-image file and a bad mimeType all return 400 and the server keeps answering |
 
