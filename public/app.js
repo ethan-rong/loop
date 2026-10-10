@@ -1236,7 +1236,6 @@ function pileCard(it) {
         <label class="label" for="${id('cat')}">Category</label>
         <select id="${id('cat')}" class="input" name="category" ${attrs}>${CATEGORIES.map((c) => html`<option value="${c}" ${it.category === c ? raw('selected') : ''}>${cap(c)}</option>`)}</select>
       </div>
-      ${priceField(id, it.price, attrs)}
       ${pileMatchLine(it, id, attrs)}` : ''}
     ${it.error ? html`<p class="error" id="${id('error')}">${it.error}</p>` : ''}
   </div>`;
