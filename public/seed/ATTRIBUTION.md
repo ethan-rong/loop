@@ -10,5 +10,6 @@ Each was downloaded as a 1280px thumbnail, then resized to at most 1024px and re
 | `fan.jpg` | [Small Desk Fan 1.jpg](https://commons.wikimedia.org/wiki/File:Small_Desk_Fan_1.jpg) | Couch-scratching-cats | Public domain |
 | `textbook.jpg` | [Hardcover book on a table (Unsplash).jpg](https://commons.wikimedia.org/wiki/File:Hardcover_book_on_a_table_(Unsplash).jpg) | Beatriz Pérez Moya | CC0 1.0 |
 | `coat.jpg` | [Polo Ralph Lauren winter coat jacket.jpg](https://commons.wikimedia.org/wiki/File:Polo_Ralph_Lauren_winter_coat_jacket.jpg) | Menswear Market | CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/) |
+| `pile.jpg` | [Yard sale, rummage sale, garage sale, tag sale, charity sale - horizontal.JPG](https://commons.wikimedia.org/wiki/File:Yard_sale,_rummage_sale,_garage_sale,_tag_sale,_charity_sale_-_horizontal.JPG) | ResaJoan | CC0 1.0 |
 
 `coat.jpg` is CC BY 2.0: keep this credit with the app.

@@ -14,25 +14,37 @@
   --ink-2: #3d5a78;
   --accent: #1b8fe6;
   --accent-deep: #0d6fc0;
-  --edge: #1a8ae0;           /* focus rings + dashed Gemini border: #1b8fe6 is 2.97:1 on the page, this is 3.15:1 */
-  --link: #0d6fc0;            /* #1b8fe6 is 3.4:1 on white, too light for text */
+  --edge: #1272c4;           /* focus rings + dashed Gemini border: 3.49:1 on the darkest sky (#1a8ae0 fell to 2.56:1) */
+  --link: #0b67b5;            /* 5.09:1 on glass over the darkest sky (#0d6fc0 was 4.55:1) */
   --aqua-ink: #0a4f8a;
   --field-border: #758ca4;    /* 3.5:1 against white, meets 3:1 for control edges */
   --green: #2fbf71;
   --green-ink: #14603a;
-  --green-edge: #2a925c;     /* 3.4:1 against the page, meets 3:1 for edges */
+  --green-edge: #23814e;     /* 3.41:1 against the darkest sky, meets 3:1 for edges */
   --amber: #f0a31a;
   --amber-ink: #6e4300;
   --violet: #7b61ff;
   --violet-ink: #4a32b8;
   --sky-ink: #0b4a78;
   --danger-ink: #a12a2a;
+  /* Sky to meadow. #b9dcff is the darkest stop: every contrast check composites over it. */
+  --sky-top: #b9dcff;
+  --sky-mid: #e6f4ff;
+  --meadow: #dff5e6;
   --glass: rgba(255, 255, 255, .62);
-  --glass-edge: rgba(255, 255, 255, .8);
-  --shadow: 0 10px 30px rgba(20, 80, 140, .10), inset 0 1px 0 rgba(255, 255, 255, .9);
+  --glass-edge: rgba(255, 255, 255, .6);
+  /* Aero glass: a diagonal reflection with a crisp edge, a pure-white 1px top line, a bluer shadow. */
+  --sheen: linear-gradient(118deg, rgba(255, 255, 255, .42) 0%, rgba(255, 255, 255, .15) 34%, rgba(255, 255, 255, .06) 34.3%, rgba(255, 255, 255, 0) 60%);
+  --shadow: 0 16px 36px -14px rgba(16, 86, 170, .30), 0 2px 8px rgba(20, 80, 140, .06), inset 0 1px 0 #fff, inset 0 -1px 0 rgba(255, 255, 255, .4);
+  --shadow-lift: 0 22px 44px -14px rgba(27, 120, 230, .42), 0 2px 8px rgba(20, 80, 140, .06), inset 0 1px 0 #fff, inset 0 -1px 0 rgba(255, 255, 255, .4);
   --radius: 20px;
   /* Gloss: bright only in the top 30%, so white label text always sits on >= 4.7:1 */
   --gloss: linear-gradient(180deg, #62b4f6 0%, #1676c9 30%, #0d6fc0 60%, #0a5fa8 100%);
+  /* Upper-half highlight band for white-label pills. Its white ends at 54% of the band (~28% of the
+     button), above the cap line, so the glyph rows keep the gloss contrast. */
+  --band: linear-gradient(180deg, rgba(255, 255, 255, .35), rgba(255, 255, 255, .12) 54%, rgba(255, 255, 255, 0) 54.5%);
+  /* Specular dot for orbs: top-left, clear of the centred icon. */
+  --spec: radial-gradient(circle at 32% 24%, rgba(255, 255, 255, .9) 0 6%, rgba(255, 255, 255, 0) 28%);
   --font: "Nunito", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --fs-1: 28px;
   --fs-2: 22px;
@@ -49,20 +61,21 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  background: #e9f5ff;
+  background: var(--sky-top); /* canvas + overscroll colour */
 }
 
+/* No body background: it would paint over the negative z-index sky and bubbles below. */
 body {
   margin: 0;
   min-height: 100vh;
   min-height: 100dvh;
   font: 500 var(--fs-3)/1.45 var(--font);
   color: var(--ink);
-  background: #e9f5ff;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Sky to mint, one soft sun top-left. A fixed layer, so iOS does not repaint it on scroll. */
+/* Sky to meadow, one sun top-left, a soft meadow swell at the bottom.
+   A fixed layer, so iOS does not repaint it on scroll. */
 body::before {
   content: "";
   position: fixed;
@@ -70,21 +83,39 @@ body::before {
   z-index: -2;
   pointer-events: none;
   background:
-    radial-gradient(circle at 20% 0%, rgba(255, 255, 255, .9), transparent 45%),
-    linear-gradient(180deg, #dff1ff 0%, #f3f9ff 45%, #e8f7ee 100%);
+    radial-gradient(circle at 6% 0%, rgba(255, 255, 255, .95) 0, rgba(255, 249, 232, .6) 12%, rgba(255, 255, 255, 0) 40%),
+    radial-gradient(130% 42% at 50% 106%, rgba(150, 220, 170, .45), rgba(150, 220, 170, 0) 70%),
+    linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 50%, var(--meadow) 100%);
 }
 
+/* Aero bubbles: clear spheres with a white rim, a crisp highlight arc and a specular dot.
+   Every colour is lighter than the sky behind, so dark text over them only gains contrast. */
 .bubble {
   position: fixed;
   z-index: -1;
   pointer-events: none;
   border-radius: 50%;
-  background: radial-gradient(circle at 32% 28%, rgba(255, 255, 255, .8) 0 7%, rgba(255, 255, 255, .16) 30%, rgba(150, 210, 255, .10) 60%, rgba(255, 255, 255, .45) 69%, rgba(255, 255, 255, 0) 71%);
-  animation: float 18s ease-in-out infinite alternate;
+  opacity: .34;
+  background:
+    radial-gradient(circle at 33% 29%, #fff 0 4%, rgba(255, 255, 255, 0) 16%),
+    radial-gradient(circle, rgba(255, 255, 255, .5) 0, rgba(214, 238, 255, .55) 52%, rgba(255, 255, 255, .95) 69%, rgba(255, 255, 255, 0) 71%);
+  animation: drift var(--t, 52s) ease-in-out var(--d, 0s) infinite alternate;
 }
-.b1 { width: 180px; height: 180px; right: -48px; top: 128px; }
-.b2 { width: 92px; height: 92px; left: -22px; top: 64vh; animation-duration: 24s; }
-@keyframes float { to { transform: translateY(-26px); } }
+.bubble::before {
+  content: "";
+  position: absolute;
+  inset: 7%;
+  border-radius: 50%;
+  border: 4px solid transparent;
+  border-top-color: #fff;
+  transform: rotate(-38deg);
+}
+.b1 { width: 420px; height: 420px; right: -150px; top: 70px; --t: 56s; --dx: -22px; --dy: -48px; }
+.b2 { width: 260px; height: 260px; left: -110px; top: 50vh; --t: 64s; --d: -24s; --dx: 26px; --dy: -36px; }
+.b3 { width: 150px; height: 150px; right: 7vw; bottom: 5vh; --t: 48s; --d: -12s; --dx: -16px; --dy: -40px; }
+.b4 { width: 96px; height: 96px; left: 13vw; top: 21vh; --t: 44s; --d: -30s; --dx: 14px; --dy: 30px; }
+.b4::before { border-width: 3px; }
+@keyframes drift { to { transform: translate(var(--dx, -18px), var(--dy, -40px)); } }
 
 h1, h2, h3, p, dl, dd, figure { margin: 0; }
 h1 { font-size: var(--fs-1); font-weight: 800; line-height: 1.15; letter-spacing: -.015em; }
@@ -125,9 +156,10 @@ img { max-width: 100%; }
 .section-title { font-size: var(--fs-3); font-weight: 800; letter-spacing: .01em; color: var(--ink); padding: 0 4px; }
 
 .glass {
-  background: var(--glass);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
-  backdrop-filter: blur(14px) saturate(140%);
+  background-color: var(--glass);
+  background-image: var(--sheen);
+  -webkit-backdrop-filter: blur(18px) saturate(170%);
+  backdrop-filter: blur(18px) saturate(170%);
   border: 1px solid var(--glass-edge);
   box-shadow: var(--shadow);
   border-radius: var(--radius);
@@ -170,7 +202,14 @@ img { max-width: 100%; }
   letter-spacing: -.01em;
   text-decoration: none;
 }
-.brand svg { width: 32px; height: 32px; filter: drop-shadow(0 3px 6px rgba(13, 111, 192, .25)); }
+.brand svg {
+  width: 32px;
+  height: 32px;
+  filter: drop-shadow(0 3px 6px rgba(13, 111, 192, .3));
+  transform-origin: 50% 50%;
+  animation: brand-pop 520ms var(--ease) 200ms both; /* once: the header is static markup */
+}
+@keyframes brand-pop { 50% { transform: scale(1.06); } }
 
 .mock {
   margin: 0;
@@ -259,12 +298,26 @@ img { max-width: 100%; }
 }
 .btn .i { width: 20px; height: 20px; }
 .btn-primary {
+  position: relative;
+  isolation: isolate;
   color: #fff;
   background: var(--gloss);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), inset 0 -1px 0 rgba(0, 40, 90, .18), 0 6px 16px rgba(13, 111, 192, .28);
   text-shadow: 0 1px 1px rgba(0, 40, 90, .3);
 }
-.btn-primary:hover { filter: brightness(.93) saturate(1.08); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), 0 8px 20px rgba(13, 111, 192, .34); }
+.btn-primary::before {
+  content: "";
+  position: absolute;
+  z-index: -1; /* above the gloss, below the label */
+  inset: 1px 1px 50%;
+  border-radius: 999px 999px 0 0;
+  background: var(--band);
+  pointer-events: none;
+}
+.btn-primary:hover {
+  filter: brightness(.93) saturate(1.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), inset 0 -5px 9px -4px rgba(140, 215, 255, .8), 0 8px 22px rgba(27, 143, 230, .45);
+}
 .btn-secondary {
   color: var(--link);
   background: rgba(255, 255, 255, .74);
@@ -291,24 +344,34 @@ img { max-width: 100%; }
   gap: 6px;
   padding: 5px 10px;
   border-radius: 999px;
-  background: rgba(11, 42, 74, .07);
+  background-color: rgba(11, 42, 74, .07);
   color: var(--ink-2);
   font-size: var(--fs-5);
   font-weight: 800;
   line-height: 1.15;
   white-space: nowrap;
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, .55), rgba(255, 255, 255, 0) 60%); /* top sheen: dark text only gains contrast */
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7);
   transition: background-color 180ms var(--ease), color 180ms var(--ease);
 }
 .chip.dot::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
-.chip-available { background: rgba(27, 143, 230, .14); color: var(--aqua-ink); }
-.chip-offered, .chip-matched { background: rgba(123, 97, 255, .14); color: var(--violet-ink); }
-.chip-reserved { background: rgba(240, 163, 26, .2); color: var(--amber-ink); }
-.chip-collected, .chip-fulfilled { background: rgba(47, 191, 113, .18); color: var(--green-ink); }
-.chip-open { background: rgba(98, 180, 246, .2); color: var(--sky-ink); }
+.chip-available { background-color: rgba(27, 143, 230, .14); color: var(--aqua-ink); }
+.chip-offered, .chip-matched { background-color: rgba(123, 97, 255, .14); color: var(--violet-ink); }
+.chip-reserved { background-color: rgba(240, 163, 26, .2); color: var(--amber-ink); }
+.chip-collected, .chip-fulfilled { background-color: rgba(47, 191, 113, .18); color: var(--green-ink); }
+.chip-open { background-color: rgba(98, 180, 246, .2); color: var(--sky-ink); }
 
 /* ---------- board ---------- */
 
-.hero { padding: 22px 20px 20px; }
+/* Sun flare in the top-right corner: a warm core, a faint halo ring and one ghost dot. */
+.hero {
+  padding: 22px 20px 20px;
+  background-image:
+    radial-gradient(150px 150px at 100% 0%, rgba(255, 255, 255, .95), rgba(255, 244, 212, .55) 30%, rgba(255, 255, 255, 0) 72%),
+    radial-gradient(230px 230px at 100% 0%, rgba(255, 255, 255, 0) 60%, rgba(255, 255, 255, .5) 65%, rgba(255, 255, 255, 0) 70%),
+    radial-gradient(12px 12px at 74% 52%, rgba(255, 255, 255, .7), rgba(255, 255, 255, 0)),
+    var(--sheen);
+}
 .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .empty { padding: 18px; color: var(--ink-2); text-align: center; font-size: var(--fs-4); }
 
@@ -345,7 +408,7 @@ img { max-width: 100%; }
   text-decoration: none;
   transition: transform 180ms var(--ease), box-shadow 180ms var(--ease);
 }
-.item-card:hover { transform: translateY(-2px); box-shadow: 0 16px 34px rgba(20, 80, 140, .16), inset 0 1px 0 #fff; }
+.item-card:hover, .item-card:focus-visible, .foryou:hover, .foryou:focus-visible { transform: translateY(-2px); box-shadow: var(--shadow-lift); }
 .thumb {
   display: block;
   width: 100%;
@@ -364,7 +427,6 @@ img { max-width: 100%; }
 }
 
 .foryou { display: block; overflow: hidden; color: inherit; text-decoration: none; border: 1.5px solid rgba(123, 97, 255, .45); transition: transform 180ms var(--ease), box-shadow 180ms var(--ease); }
-.foryou:hover { transform: translateY(-2px); box-shadow: 0 16px 34px rgba(20, 80, 140, .16), inset 0 1px 0 #fff; }
 .foryou.is-reserved { border-color: rgba(214, 140, 10, .55); }
 .banner {
   display: flex;
@@ -385,6 +447,15 @@ img { max-width: 100%; }
 
 .foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 2px 8px; margin-top: 28px; color: var(--ink-2); font-size: var(--fs-5); font-weight: 700; }
 .foot .btn { font-size: var(--fs-5); }
+
+/* Link-blue controls that sit on the bare sky get a glass pill: link text on the top sky alone is 4.07:1. */
+.back, .foot .btn-ghost, .swap .btn-ghost {
+  background-color: rgba(255, 255, 255, .62);
+  -webkit-backdrop-filter: blur(10px) saturate(160%);
+  backdrop-filter: blur(10px) saturate(160%);
+  box-shadow: inset 0 1px 0 #fff, 0 0 0 1px rgba(255, 255, 255, .7), 0 4px 12px rgba(20, 80, 140, .08);
+}
+.back:hover, .foot .btn-ghost:hover, .swap .btn-ghost:hover { background-color: rgba(255, 255, 255, .92); }
 
 /* ---------- forms ---------- */
 
@@ -490,7 +561,7 @@ select.input {
   border-radius: 24px;
   transition: background-color 180ms var(--ease), border-color 180ms var(--ease), transform 180ms var(--ease);
 }
-.drop:hover, .drop.is-over { background: rgba(255, 255, 255, .8); border-color: var(--accent-deep); }
+.drop:hover, .drop.is-over { background-color: rgba(255, 255, 255, .8); border-color: var(--accent-deep); }
 .drop.is-over { transform: scale(1.01); }
 #photo-input:focus-visible + .drop { outline: 3px solid var(--edge); outline-offset: 3px; }
 .drop-orb {
@@ -500,8 +571,8 @@ select.input {
   height: 76px;
   border-radius: 50%;
   color: #fff;
-  background: var(--gloss);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6), 0 10px 24px rgba(13, 111, 192, .3);
+  background: var(--spec), var(--gloss);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6), inset 0 -6px 12px -6px rgba(140, 215, 255, .8), 0 10px 24px rgba(13, 111, 192, .3);
 }
 .drop-orb .i { width: 34px; height: 34px; }
 .drop-title { font-size: var(--fs-2); font-weight: 800; }
@@ -554,7 +625,7 @@ select.input {
 /* AI draft vs human-checked: dashed aqua + sparkle, then solid + check. */
 .draft { transition: border-color 200ms var(--ease), background-color 200ms var(--ease); }
 .draft.is-draft, .ai-box { border: 1.5px dashed var(--edge); }
-.draft.is-draft { background: rgba(255, 255, 255, .7); }
+.draft.is-draft { background-color: rgba(255, 255, 255, .7); }
 .draft.is-checked, .draft.is-manual { border: 1.5px solid var(--green-edge); }
 .draft-head { display: flex; align-items: center; gap: 8px; min-height: 24px; margin-bottom: 14px; }
 .tag { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-5); font-weight: 800; letter-spacing: .01em; }
@@ -575,15 +646,13 @@ select.input {
   align-items: center;
   gap: 2px;
   min-height: 44px;
-  margin-left: -6px;
-  padding: 0 14px 0 6px;
+  padding: 0 16px 0 8px;
   border-radius: 999px;
   color: var(--link);
   font-weight: 700;
   text-decoration: none;
 }
 .back .i { width: 20px; height: 20px; }
-.back:hover { background: rgba(27, 143, 230, .09); }
 .back + h1 { margin-top: 4px; }
 
 .detail-photo { border-radius: var(--radius); }
@@ -617,8 +686,8 @@ select.input {
   border-radius: 3px;
   background: rgba(61, 90, 120, .2);
 }
-.timeline li.reached::before { background: var(--accent-deep); }
-.timeline li.final::before { background: var(--green-edge); }
+.timeline li.reached::before { background: linear-gradient(90deg, var(--accent-deep), #2b97ec); box-shadow: 0 0 8px 1px rgba(27, 143, 230, .55); }
+.timeline li.final::before { background: linear-gradient(90deg, #2b97ec, #2fae6a); box-shadow: 0 0 9px 1px rgba(47, 191, 113, .6); }
 .step-dot {
   position: relative;
   z-index: 1;
@@ -637,25 +706,51 @@ select.input {
 .step-dot .i { width: 18px; height: 18px; }
 .step-label { font-size: var(--fs-4); font-weight: 800; color: var(--ink); }
 .step-time { font-size: var(--fs-5); color: var(--ink-2); }
-.done .step-dot { background: var(--accent-deep); border-color: var(--accent-deep); color: #fff; }
+/* Done steps are glossy blue orbs; Collected is a green glass orb with a soft halo. */
+.done .step-dot {
+  background: var(--spec), linear-gradient(180deg, #2a8fe2, #0b5fae);
+  border-color: rgba(255, 255, 255, .85);
+  color: #fff;
+  box-shadow: inset 0 -3px 6px -2px rgba(140, 215, 255, .7), 0 3px 8px rgba(13, 111, 192, .35);
+}
 .current .step-dot { border-color: var(--accent-deep); color: var(--accent-deep); box-shadow: 0 0 0 5px rgba(27, 143, 230, .18); }
 .current.is-reserved .step-dot { border-color: #b86e00; color: var(--amber-ink); background: #fff7e6; box-shadow: 0 0 0 5px rgba(240, 163, 26, .25); }
-.final .step-dot { background: #1f9a57; border-color: #1f9a57; color: #fff; box-shadow: 0 0 0 5px rgba(47, 191, 113, .22); }
+.final .step-dot {
+  background: var(--spec), linear-gradient(180deg, #2eaa66, #12703c);
+  border-color: rgba(255, 255, 255, .9);
+  color: #fff;
+  box-shadow: inset 0 -3px 6px -2px rgba(170, 255, 200, .65), 0 0 0 5px rgba(47, 191, 113, .22), 0 0 16px rgba(47, 191, 113, .5);
+}
 
+/* Aero badge: deep-blue glossy pill, white digits. The band's white ends at ~18% of the pill,
+   above the digit tops (~27%), so the digits sit on >= 6:1. */
 .code {
-  margin-top: 10px;
-  padding: 14px 10px 14px calc(10px + .2em);
-  border-radius: 18px;
-  background: linear-gradient(180deg, #fff, #eaf5ff);
-  border: 1px solid rgba(255, 255, 255, .95);
-  box-shadow: inset 0 1px 0 #fff, 0 10px 24px rgba(20, 80, 140, .12), 0 0 0 1px rgba(13, 111, 192, .14);
-  color: var(--ink);
+  position: relative;
+  isolation: isolate;
+  width: fit-content;
+  margin: 12px auto 0;
+  padding: 16px 30px 16px calc(30px + .2em);
+  border-radius: 999px;
+  background: linear-gradient(180deg, #2a84d8 0%, #0e60b0 18%, #0a4f96 55%, #083f7c 100%);
+  border: 1px solid rgba(255, 255, 255, .75);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), inset 0 -8px 14px -6px rgba(110, 205, 255, .65), 0 12px 26px rgba(10, 70, 140, .32), 0 0 0 4px rgba(255, 255, 255, .5);
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 30, 70, .45);
   font-size: 46px;
   font-weight: 800;
   line-height: 1;
   letter-spacing: .2em;
   text-align: center;
   font-variant-numeric: tabular-nums;
+}
+.code::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 1px 12px 50%;
+  border-radius: 999px 999px 0 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .42), rgba(255, 255, 255, .12) 34%, rgba(255, 255, 255, 0) 34.5%);
+  pointer-events: none;
 }
 .code.reveal { animation: reveal 250ms var(--ease) both; }
 @keyframes reveal { from { opacity: 0; transform: scale(.9); } }
@@ -693,8 +788,8 @@ select.input {
   height: 52px;
   border-radius: 50%;
   color: #fff;
-  background: linear-gradient(180deg, #2fa866, #167f47);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), 0 8px 18px rgba(31, 154, 87, .3);
+  background: var(--spec), linear-gradient(180deg, #2fa866, #167f47);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), inset 0 -6px 12px -6px rgba(170, 255, 200, .7), 0 8px 18px rgba(31, 154, 87, .3);
 }
 .check-badge .i { width: 28px; height: 28px; stroke-width: 2.6; }
 .animate .check-badge { animation: pop-in 320ms var(--ease) both; }
@@ -747,5 +842,6 @@ select.input {
     transition-duration: .01ms !important;
     scroll-behavior: auto !important;
   }
+  .bubble, .brand svg { animation: none !important; } /* fully static, not a .01ms snap */
   ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
 }
