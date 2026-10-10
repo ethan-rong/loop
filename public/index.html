@@ -5,17 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Loop</title>
   <meta name="description" content="Loop helps students pass usable things to people nearby who need them.">
-  <meta name="theme-color" content="#b9dcff">
+  <meta name="theme-color" content="#f6f8fb">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preload" href="/fonts/nunito-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/styles.css">
   <script src="/app.js" defer></script>
 </head>
 <body>
-  <div class="bubble b1" aria-hidden="true"></div>
-  <div class="bubble b2" aria-hidden="true"></div>
-  <div class="bubble b3" aria-hidden="true"></div>
-  <div class="bubble b4" aria-hidden="true"></div>
+  <div class="ribbon" aria-hidden="true"><span class="bubble b1"></span><span class="bubble b2"></span></div>
 
   <header class="topbar">
     <p id="mock" class="mock" hidden>Demo mode: canned Gemini draft (model offline)</p>
@@ -24,13 +21,13 @@
         <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
           <defs>
             <radialGradient id="brand-orb" cx=".5" cy=".42" r=".6" fx=".34" fy=".24">
-              <stop offset="0" stop-color="#a6dcff"/>
-              <stop offset=".45" stop-color="#2a93ea"/>
-              <stop offset="1" stop-color="#0a4f96"/>
+              <stop offset="0" stop-color="#a9cfff"/>
+              <stop offset=".45" stop-color="#3a86ea"/>
+              <stop offset="1" stop-color="#154f9c"/>
             </radialGradient>
             <radialGradient id="brand-glow" cx=".5" cy="1" r=".55">
-              <stop offset="0" stop-color="#8fe3ff" stop-opacity=".85"/>
-              <stop offset="1" stop-color="#8fe3ff" stop-opacity="0"/>
+              <stop offset="0" stop-color="#9fd8ff" stop-opacity=".7"/>
+              <stop offset="1" stop-color="#9fd8ff" stop-opacity="0"/>
             </radialGradient>
             <linearGradient id="brand-gloss" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0" stop-color="#fff" stop-opacity=".92"/>
@@ -42,7 +39,7 @@
           <ellipse cx="16" cy="8.4" rx="10" ry="5.6" fill="url(#brand-gloss)"/>
           <circle cx="16" cy="16" r="14.5" fill="none" stroke="#fff" stroke-opacity=".55"/>
           <g fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-            <g stroke="#063a70" stroke-opacity=".35" transform="translate(0 .7)"><path d="M21.4 11.5A7 7 0 1 0 22.8 17.8"/><path d="M22.3 8.9 22 12.3 18.6 12"/></g>
+            <g stroke="#0d3a73" stroke-opacity=".35" transform="translate(0 .7)"><path d="M21.4 11.5A7 7 0 1 0 22.8 17.8"/><path d="M22.3 8.9 22 12.3 18.6 12"/></g>
             <g stroke="#fff"><path d="M21.4 11.5A7 7 0 1 0 22.8 17.8"/><path d="M22.3 8.9 22 12.3 18.6 12"/></g>
           </g>
         </svg>
