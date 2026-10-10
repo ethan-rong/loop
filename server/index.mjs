@@ -4,12 +4,13 @@ import express from 'express';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { channelStatus, forwardNewMessages, startChannel } from './channels/spectrum.mjs';
+import { channelStatus, forwardNewMessages, sendToPerson, startChannel } from './channels/spectrum.mjs';
 import { coordinate } from './coordinator.mjs';
 import { CATEGORIES, CONDITIONS, clamp, describeItem, isMock, modelName, suggestItems } from './gemini.mjs';
 import { pileRouter } from './pile.mjs';
 import { resetToSeed } from './seed.mjs';
 import * as store from './store.mjs';
+import { handleInbound, itemPosted, startTextflow } from './textflow.mjs';
 
 const { ApiError, DATA_DIR } = store;
 const PORT = Number(process.env.PORT) || 3000;
@@ -85,8 +86,12 @@ app.use(express.static(fileURLToPath(new URL('../public', import.meta.url))));
 app.use('/photos', express.static(PHOTOS_DIR));
 
 app.get('/api/health', (req, res) => {
-  const { imessage, linkedPhones } = channelStatus(); // person ids only, never numbers
-  res.json({ ok: true, mock: isMock(), model: modelName(), imessage, linkedPhones: linkedPhones.filter((id) => db.people.some((p) => p.id === id)) });
+  const { imessage, lastSendOk, lineNumber, linkedPhones } = channelStatus(); // person ids only, never their numbers
+  res.json({
+    ok: true, mock: isMock(), model: modelName(), imessage, lastSendOk, lineNumber,
+    linkedPhones: linkedPhones.filter((id) => db.people.some((p) => p.id === id)),
+    textSessions: Object.keys(db.textSessions ?? {}).length,
+  });
 });
 app.get('/api/state', (req, res) => res.json(db));
 
@@ -131,7 +136,7 @@ app.post('/api/items', (req, res) => {
   if (aiDraft !== null && (typeof aiDraft !== 'object' || Array.isArray(aiDraft) || JSON.stringify(aiDraft).length > MAX_AI_DRAFT_CHARS)) {
     throw new ApiError(400, 'invalid_field', 'aiDraft must be the draft object or null.');
   }
-  res.json(commit(store.createItem(db, {
+  const { item } = commit(store.createItem(db, {
     ownerId: text(b, 'ownerId', ID_MAX),
     photo: `/photos/${photoId}.jpg`,
     title: text(b, 'title', 60),
@@ -140,7 +145,9 @@ app.post('/api/items', (req, res) => {
     category: oneOf(b, 'category', CATEGORIES),
     aiDraft,
     offerToRequestId: text(b, 'offerToRequestId', ID_MAX, false) || null,
-  })).item);
+  }));
+  itemPosted(item); // SPEC3 §3: a board item that fits a linked person's open request gets them one text
+  res.json(item);
 });
 
 app.post('/api/items/:id/reserve', (req, res) => {
@@ -204,8 +211,8 @@ async function converse(threadId, personId, said, via) {
   return store.getThread(db, threadId);
 }
 
-// iMessage from a linked person -> their newest open thread, same path as the web composer.
-async function onInbound({ personId, text: said }) {
+// iMessage from a linked person that textflow routes to their newest open thread: same path as the web composer.
+async function threadReply(personId, said) {
   const thread = store.newestOpenThread(db, personId);
   if (!thread) return NO_PICKUP_REPLY;
   const message = clamp(said, 300);
@@ -269,4 +276,7 @@ app.listen(PORT, () => {
   const ai = isMock() ? 'GEMINI_MOCK=1 (canned drafts, no Gemini calls)' : `Gemini ${modelName()}`;
   console.log(`Loop on http://localhost:${PORT} | ${ai} | data in ${DATA_DIR}`);
 });
-startChannel({ onInbound }); // env-gated; does nothing without Spectrum credentials
+// Loop in iMessage (SPEC3): texts from linked phones go through textflow (photos, YES/BOARD, codes, suggestions),
+// which hands pickup-thread messages back to threadReply.
+startTextflow({ getDb: () => db, commit, send: sendToPerson, toThread: threadReply, linked: (id) => channelStatus().linkedPhones.includes(id) });
+startChannel({ onInbound: handleInbound }); // env-gated; does nothing without Spectrum credentials

@@ -9,7 +9,9 @@
     "dev": "node server/index.mjs",
     "seed": "node server/seed.mjs",
     "e2e": "GEMINI_MOCK=1 PORT=3100 DATA_DIR=.tmp-e2e node scripts/e2e.mjs",
-    "photo-test": "node scripts/photo-test.mjs"
+    "photo-test": "node scripts/photo-test.mjs",
+    "e2e-textflow": "node scripts/e2e-textflow.mjs",
+    "e2e-threads": "PORT=3100 DATA_DIR=.tmp-e2e node scripts/e2e-threads.mjs"
   },
   "engines": {
     "node": ">=22"
