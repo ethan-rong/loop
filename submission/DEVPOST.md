@@ -42,7 +42,7 @@ Gemini never publishes, reserves, contacts anyone or marks anything collected. A
 - The Gemini docs now lead with a newer Interactions API, so the first job was proving the classic `generateContent` request shape (image part + `responseSchema`) on gemini-3.5-flash-lite before writing any UI. It worked first try, about 2 seconds per photo.
 - Honest condition drafts: the first prompt rated a visibly dusty fan "good". Telling the model to look for dust, scratches, dents, stains and frayed cords, and to only say "good" when nothing is visible, fixed it ("fair", "The fan blades and center are dusty").
 - Two people, no accounts: each browser tab is one person (sessionStorage), the server owns the state machine, and both tabs poll a version counter so an offer or reservation shows up on the other screen within about 1.5 seconds without a refresh.
-- Keeping the AI draft visually separate from human-checked facts without making the UI preachy: a dashed card and "Drafted by Gemini — check it" until the owner edits or taps "Looks right", then a solid card and "Checked by Maya".
+- Keeping the AI draft visually separate from human-checked facts without making the UI preachy: a dashed card and "Drafted by Gemini — check it" until the owner edits or taps "Looks right", then a solid card and "Checked by Ethan".
 - Contrast: the glossy Frutiger Aero palette had to be darkened in places (button gradient, links, focus ring) to keep every text at 4.5:1 or better.
 - Free-tier rate limits (15 requests/min, 500/day): all automated tests run against a mock path, and the UI shows a clear "Demo mode" banner whenever the mock is on, so canned output can never pass as a live model result.
 

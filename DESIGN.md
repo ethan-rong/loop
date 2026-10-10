@@ -42,7 +42,7 @@ Google Fonts v32 latin subset, 38 KB variable file; licence in `public/fonts/OFL
 28/22/17/15/13. Motion: chips and buttons 150–200 ms, code reveal 250 ms, collected ripple 600 ms (once).
 
 AI vs human: a Gemini draft has a dashed `--edge` border, a sparkle and "Drafted by Gemini — check it".
-Editing any field or tapping **Looks right** turns it solid green ("Checked by Maya"). Publish
+Editing any field or tapping **Looks right** turns it solid green ("Checked by Ethan"). Publish
 buttons stay locked until then, and Enter never publishes a Gemini draft.
 
 ### Deviations from SPEC, all for contrast
