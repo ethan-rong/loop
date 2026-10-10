@@ -4,7 +4,10 @@ import express from 'express';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CATEGORIES, CONDITIONS, describeItem, isMock, modelName, suggestItems } from './gemini.mjs';
+import { channelStatus, forwardNewMessages, startChannel } from './channels/spectrum.mjs';
+import { coordinate } from './coordinator.mjs';
+import { CATEGORIES, CONDITIONS, clamp, describeItem, isMock, modelName, suggestItems } from './gemini.mjs';
+import { pileRouter } from './pile.mjs';
 import { resetToSeed } from './seed.mjs';
 import * as store from './store.mjs';
 
@@ -25,9 +28,12 @@ mkdirSync(PHOTOS_DIR, { recursive: true });
 let db = store.loadDb(DATA_DIR) ?? resetToSeed(DATA_DIR);
 
 // Persist a transition's new state, then swap it in. Sync on purpose: no interleaved writes.
+// New thread messages go out to linked phones (no-op unless the iMessage channel is connected).
 function commit(result) {
   store.saveDb(DATA_DIR, result.db);
+  const before = db;
   db = result.db;
+  forwardNewMessages(before, db);
   return result;
 }
 
@@ -51,6 +57,15 @@ function oneOf(b, key, allowed) {
   return b[key];
 }
 
+// Optional ISO date-time (client quick picks); normalised to UTC "…Z", null when absent.
+function isoTime(b, key) {
+  const value = b[key];
+  if (value === undefined || value === null || value === '') return null;
+  const ms = typeof value === 'string' && value.length <= 40 ? Date.parse(value) : NaN;
+  if (Number.isNaN(ms)) throw new ApiError(400, 'invalid_field', `${key} must be a date and time like 2026-10-10T21:00:00.000Z.`);
+  return new Date(ms).toISOString();
+}
+
 const looksLike = (buf, mime) =>
   SIGNATURES[mime].every(([at, hex]) => buf.subarray(at, at + hex.length / 2).toString('hex') === hex);
 
@@ -69,7 +84,10 @@ app.use(express.json({ limit: '8mb' }));
 app.use(express.static(fileURLToPath(new URL('../public', import.meta.url))));
 app.use('/photos', express.static(PHOTOS_DIR));
 
-app.get('/api/health', (req, res) => res.json({ ok: true, mock: isMock(), model: modelName() }));
+app.get('/api/health', (req, res) => {
+  const { imessage, linkedPhones } = channelStatus(); // person ids only, never numbers
+  res.json({ ok: true, mock: isMock(), model: modelName(), imessage, linkedPhones: linkedPhones.filter((id) => db.people.some((p) => p.id === id)) });
+});
 app.get('/api/state', (req, res) => res.json(db));
 
 app.post('/api/requests', async (req, res) => {
@@ -130,8 +148,9 @@ app.post('/api/items/:id/reserve', (req, res) => {
   res.json(commit(store.reserveItem(db, req.params.id, {
     personId: text(b, 'personId', ID_MAX),
     requestId: text(b, 'requestId', ID_MAX, false) || null,
-    place: text(b, 'place', 60),
-    time: text(b, 'time', 40),
+    place: text(b, 'place', 60, false) || null, // optional since SPEC2: the owner can pick in the thread
+    time: text(b, 'time', 40, false) || null,
+    timeISO: isoTime(b, 'timeISO'),
   })).item);
 });
 
@@ -157,6 +176,84 @@ app.post('/api/reset', (req, res) => {
   res.json(db);
 });
 
+// Pile photo (SPEC2 §2, Lane E): POST /api/items/pile and POST /api/photos.
+app.use('/api', pileRouter);
+
+// ---- Handoff threads (SPEC2 §1) ----
+// Button taps and the coordinator's suggestions go through the same store transitions.
+const THREAD_ACTIONS = { accept: store.acceptPlan, propose: store.proposePlan, arrived: store.markArrived, cancel: store.cancelThread };
+const AI_ERROR_REPLY = "I couldn't read that just now. Use the buttons, or try again in a moment.";
+const NO_PICKUP_REPLY = 'You have no active pickup right now.';
+
+// Post a person's message, then let the coordinator suggest Loop's reply and at most one action.
+async function converse(threadId, personId, said, via) {
+  const { thread } = commit(store.postHumanMessage(db, threadId, { personId, text: said, via }));
+  const item = db.items.find((i) => i.id === thread.itemId);
+  const { reply, action, aiError } = await coordinate({ thread, item, people: db.people, speakerId: personId, text: said, now: new Date() });
+  // Gemini can take seconds: re-check against the current state, not the snapshot it saw.
+  if (!store.isOpenThread(store.getThread(db, threadId))) return store.getThread(db, threadId);
+  try {
+    if (aiError) commit(store.postLoopMessage(db, threadId, AI_ERROR_REPLY));
+    else if (THREAD_ACTIONS[action.type]) commit(THREAD_ACTIONS[action.type](db, threadId, { ...action, personId, say: reply || null }));
+    else commit(store.postLoopMessage(db, threadId, reply));
+  } catch (err) {
+    if (!(err instanceof ApiError)) throw err;
+    // Not allowed right now (accept twice, "I'm here" before the plan is set, …): no state change, Loop says why.
+    commit(store.postLoopMessage(db, threadId, err.message));
+  }
+  return store.getThread(db, threadId);
+}
+
+// iMessage from a linked person -> their newest open thread, same path as the web composer.
+async function onInbound({ personId, text: said }) {
+  const thread = store.newestOpenThread(db, personId);
+  if (!thread) return NO_PICKUP_REPLY;
+  const message = clamp(said, 300);
+  if (!message) return null;
+  try {
+    await converse(thread.id, personId, message, 'imessage');
+    return null;
+  } catch (err) {
+    if (err instanceof ApiError) return err.message;
+    throw err;
+  }
+}
+
+app.post('/api/threads/:id/messages', async (req, res) => {
+  const b = body(req);
+  const thread = await converse(req.params.id, text(b, 'personId', ID_MAX), text(b, 'text', 300), 'web');
+  res.json({ thread });
+});
+
+app.post('/api/threads/:id/actions', (req, res) => {
+  const b = body(req);
+  const action = oneOf(b, 'action', Object.keys(THREAD_ACTIONS));
+  const { thread } = commit(THREAD_ACTIONS[action](db, req.params.id, {
+    personId: text(b, 'personId', ID_MAX),
+    place: text(b, 'place', 60, false) || null,
+    time: text(b, 'time', 40, false) || null,
+    timeISO: isoTime(b, 'timeISO'),
+  }));
+  res.json({ thread });
+});
+
+// Demo helper: post the reminder now (only when the plan is set and not yet reminded).
+app.post('/api/threads/:id/reminder', (req, res) => {
+  res.json({ thread: commit(store.postReminder(db, req.params.id, { force: true })).thread });
+});
+
+// Reminders: every 30 s, or every n s when DEMO_REMINDER_SECONDS=n so a sped-up reminder lands on time.
+const REMINDER_TICK_MS = Math.min(30_000, (store.reminderDemoSeconds() || 30) * 1000);
+setInterval(() => {
+  try {
+    for (const t of db.threads ?? []) {
+      if (t.status === 'set' && !t.reminded && t.remindAt && Date.parse(t.remindAt) <= Date.now()) commit(store.postReminder(db, t.id));
+    }
+  } catch (err) {
+    console.error(err); // a throw here would otherwise take the server down
+  }
+}, REMINDER_TICK_MS);
+
 app.use('/api', (req, res) => res.status(404).json({ error: 'not_found', message: 'No such API route.' }));
 
 app.use((err, req, res, _next) => { // four params: Express treats this as the error handler
@@ -172,3 +269,4 @@ app.listen(PORT, () => {
   const ai = isMock() ? 'GEMINI_MOCK=1 (canned drafts, no Gemini calls)' : `Gemini ${modelName()}`;
   console.log(`Loop on http://localhost:${PORT} | ${ai} | data in ${DATA_DIR}`);
 });
+startChannel({ onInbound }); // env-gated; does nothing without Spectrum credentials

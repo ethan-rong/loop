@@ -1,5 +1,5 @@
-// db.json persistence and the item/request state machine (SPEC "States").
-// Every transition is pure: (db, ...) -> {db: nextDb, item | request}. Inputs are never mutated,
+// db.json persistence, the item/request state machine (SPEC "States") and handoff threads (SPEC2 §1).
+// Every transition is pure: (db, ...) -> {db: nextDb, item | request | thread}. Inputs are never mutated,
 // version goes up by one per mutation, and rule violations throw ApiError {status, error, message}.
 import { randomBytes, randomInt } from 'node:crypto';
 import { readFileSync, renameSync, writeFileSync } from 'node:fs';
@@ -45,7 +45,9 @@ const firstName = (db, id) => db.people.find((p) => p.id === id)?.name.split(' '
 
 const putItem = (db, item) => db.items.map((x) => (x.id === item.id ? item : x));
 const patchRequest = (requests, id, patch) => (id ? requests.map((r) => (r.id === id ? { ...r, ...patch } : r)) : requests);
-const next = (db, { items = db.items, requests = db.requests }) => ({ ...db, items, requests, version: db.version + 1 });
+const threadsOf = (db) => db.threads ?? []; // older db.json files have no threads key
+const next = (db, { items = db.items, requests = db.requests, threads = threadsOf(db) }) =>
+  ({ ...db, items, requests, threads, version: db.version + 1 });
 const reopen = { status: 'open', matchedItemId: null };
 
 function claimedError(db, item) {
@@ -84,10 +86,13 @@ export function createItem(db, { ownerId, photo, title, description, condition, 
   return { db: next(db, { items: [...db.items, item], requests }), item };
 }
 
-// Reserve an available item, or accept an item offered to one of my requests.
-export function reserveItem(db, id, { personId, requestId, place, time }) {
+// Reserve an available item, or accept an item offered to one of my requests. Also opens the
+// handoff thread (SPEC2 §1). Place and time are optional, but only as a pair: with them Loop asks the
+// owner to confirm; without them the owner picks (plan stays empty until someone proposes).
+export function reserveItem(db, id, { personId, requestId, place = null, time = null, timeISO = null }) {
   const item = find(db.items, id, 'item');
   getPerson(db, personId);
+  if (!place !== !time) throw new ApiError(400, 'missing_field', 'Pick both a place and a time, or leave both empty.');
   if (item.ownerId === personId) throw new ApiError(403, 'own_item', "You can't reserve your own item.");
   const offer = item.status === 'offered' ? db.requests.find((r) => r.id === item.offeredToRequestId) : null;
   const offeredToMe = offer?.personId === personId;
@@ -105,7 +110,22 @@ export function reserveItem(db, id, { personId, requestId, place, time }) {
     ...item, status: 'reserved', offeredToRequestId: null,
     reservation: { personId, requestId: link, place, time, code: newCode(), at: now() },
   };
-  return { db: next(db, { items: putItem(db, reserved), requests }), item: reserved };
+  const owner = firstName(db, item.ownerId), recipient = firstName(db, personId);
+  const hello = `Hi ${owner} — ${recipient} reserved your ${item.title}`;
+  const thread = {
+    id: newId('t'), itemId: item.id, ownerId: item.ownerId, recipientId: personId, status: 'planning',
+    plan: place
+      ? { place, time, timeISO: timeISO ?? null, proposedBy: personId, confirmedBy: [personId] }
+      : { place: null, time: null, timeISO: null, proposedBy: null, confirmedBy: [] },
+    remindAt: null, reminded: false,
+    messages: place
+      ? [message('loop', `${hello} and suggested ${place}, ${time}. Does that work?`, { actions: PLAN_ACTIONS, forPersonId: item.ownerId })]
+      : [
+        message('loop', `${hello}. You're the one handing it over, so you pick: when and where works for you?`, { actions: PICK_ACTIONS, forPersonId: item.ownerId }),
+        message('loop', `${recipient}, ${owner} will suggest a time and place; you can reply here too.`, { forPersonId: personId }),
+      ],
+  };
+  return { db: next(db, { items: putItem(db, reserved), requests, threads: [...threadsOf(db), thread] }), item: reserved, thread };
 }
 
 export function declineItem(db, id, personId) {
@@ -118,7 +138,8 @@ export function declineItem(db, id, personId) {
   return { db: next(db, { items: putItem(db, available), requests: patchRequest(db.requests, offer.id, reopen) }), item: available };
 }
 
-export function releaseItem(db, id, personId) {
+// `say` replaces Loop's closing line (the coordinator's reply when the cancel came from free text).
+export function releaseItem(db, id, personId, say = null) {
   const item = find(db.items, id, 'item');
   getPerson(db, personId);
   if (item.status !== 'reserved') throw new ApiError(409, 'not_reserved', 'This is not reserved right now.');
@@ -127,7 +148,9 @@ export function releaseItem(db, id, personId) {
   }
   const available = { ...item, status: 'available', reservation: null };
   const requests = patchRequest(db.requests, item.reservation.requestId, reopen);
-  return { db: next(db, { items: putItem(db, available), requests }), item: available };
+  const { threads, thread } = closeItemThread(db, id, 'cancelled',
+    say || `Reservation cancelled. The ${noun(item.title)} is back on the board.`);
+  return { db: next(db, { items: putItem(db, available), requests, threads }), item: available, thread };
 }
 
 export function confirmItem(db, id, personId, code) {
@@ -141,7 +164,8 @@ export function confirmItem(db, id, personId, code) {
   }
   const collected = { ...item, status: 'collected', collectedAt: now() };
   const requests = patchRequest(db.requests, item.reservation.requestId, { status: 'fulfilled' });
-  return { db: next(db, { items: putItem(db, collected), requests }), item: collected };
+  const { threads, thread } = closeItemThread(db, id, 'done', `Handed over. Thanks, both — the ${noun(item.title)} stays in use.`);
+  return { db: next(db, { items: putItem(db, collected), requests, threads }), item: collected, thread };
 }
 
 export function withdrawItem(db, id, personId) {
@@ -156,4 +180,146 @@ export function withdrawItem(db, id, personId) {
   const withdrawn = { ...item, status: 'withdrawn', offeredToRequestId: null };
   const requests = patchRequest(db.requests, item.offeredToRequestId, reopen);
   return { db: next(db, { items: putItem(db, withdrawn), requests }), item: withdrawn };
+}
+
+// ---- Handoff threads (SPEC2 §1): owner + recipient + Loop, one per reservation ----
+// Same rules as above: pure, version + 1 per mutation, ApiError on violations. `say` (optional) replaces
+// Loop's template line with the coordinator's reply; the buttons stay the transition's own.
+const OPEN = ['planning', 'set', 'meeting'];
+const REMIND_LEAD_MS = 30 * 60_000;
+const PLAN_ACTIONS = [{ label: 'Works for me', action: 'accept' }, { label: 'Suggest another time', action: 'propose' }];
+const PICK_ACTIONS = [{ label: 'Suggest a time and place', action: 'propose' }];
+
+export const isOpenThread = (thread) => OPEN.includes(thread.status);
+export const getThread = (db, id) => find(threadsOf(db), id, 'thread');
+export const newestOpenThread = (db, personId) =>
+  threadsOf(db).findLast((t) => isOpenThread(t) && (t.ownerId === personId || t.recipientId === personId)) ?? null;
+// DEMO_REMINDER_SECONDS=n: the reminder fires n seconds after the plan is set instead of 30 min before it.
+export const reminderDemoSeconds = () => Math.max(0, Number(process.env.DEMO_REMINDER_SECONDS) || 0);
+
+const noun = (title) => (/^[A-Z][a-z]/.test(title) ? title[0].toLowerCase() + title.slice(1) : title);
+const putThread = (db, thread) => threadsOf(db).map((t) => (t.id === thread.id ? thread : t));
+const otherOf = (thread, personId) => (personId === thread.ownerId ? thread.recipientId : thread.ownerId);
+const closed = () => new ApiError(409, 'thread_closed', 'This pickup is already closed.');
+
+function message(from, text, { via = 'system', actions = [], forPersonId = null } = {}) {
+  return { id: newId('m'), from, text, at: now(), via, actions, forPersonId };
+}
+
+// Append a message (patching the thread first). A Loop message with buttons, or a closed thread, retires
+// the buttons on every earlier message, so at most one message ever carries live buttons.
+function withMessage(thread, msg, patch = {}) {
+  const updated = { ...thread, ...patch };
+  const retire = msg.actions.length > 0 || !isOpenThread(updated);
+  const earlier = retire ? thread.messages.map((m) => (m.actions.length ? { ...m, actions: [] } : m)) : thread.messages;
+  return { ...updated, messages: [...earlier, msg] };
+}
+
+// Close the item's open thread, if any (items reserved before phase 2 have none).
+function closeItemThread(db, itemId, status, text) {
+  const open = threadsOf(db).find((t) => t.itemId === itemId && isOpenThread(t));
+  if (!open) return { threads: threadsOf(db), thread: null };
+  const thread = withMessage(open, message('loop', text), { status });
+  return { threads: putThread(db, thread), thread };
+}
+
+// Lookup + guards shared by every participant action: 404 thread/person, 403 not_participant, 409 thread_closed.
+function participantThread(db, id, personId) {
+  const thread = getThread(db, id);
+  getPerson(db, personId);
+  if (personId !== thread.ownerId && personId !== thread.recipientId) {
+    throw new ApiError(403, 'not_participant', 'Only the two people in this pickup can do that.');
+  }
+  if (!isOpenThread(thread)) throw closed();
+  return thread;
+}
+
+const saved = (db, thread) => ({ db: next(db, { threads: putThread(db, thread) }), thread });
+
+// New time and/or place. Omitted fields keep the current value, but the result must have both
+// (an empty plan needs both at once); everyone has to agree again.
+export function proposePlan(db, id, { personId, place = null, time = null, timeISO = null, say = null }) {
+  const thread = participantThread(db, id, personId);
+  if (!place && !time) throw new ApiError(400, 'missing_field', 'Suggest a time and a place.');
+  const old = thread.plan;
+  const plan = {
+    place: place || old.place, time: time || old.time, timeISO: (time ? timeISO : old.timeISO) ?? null,
+    proposedBy: personId, confirmedBy: [personId],
+  };
+  if (!plan.place) throw new ApiError(400, 'missing_field', 'Add a place too, like Davis Library lobby.');
+  if (!plan.time) throw new ApiError(400, 'missing_field', 'Add a time too, like Today 5 pm.');
+  const other = otherOf(thread, personId);
+  const text = say || `New suggestion from ${firstName(db, personId)}: ${plan.place}, ${plan.time}. ${firstName(db, other)}, does that work?`;
+  const updated = withMessage(thread, message('loop', text, { actions: PLAN_ACTIONS, forPersonId: other }),
+    { status: 'planning', plan, remindAt: null, reminded: false });
+  const item = db.items.find((i) => i.id === thread.itemId);
+  const items = item?.reservation
+    ? putItem(db, { ...item, reservation: { ...item.reservation, place: plan.place, time: plan.time } })
+    : db.items;
+  return { db: next(db, { items, threads: putThread(db, updated) }), thread: updated };
+}
+
+// `set` needs a place, a time and both people. The proposer is always in confirmedBy, so in practice
+// the other person's accept completes the plan.
+export function acceptPlan(db, id, { personId, say = null }) {
+  const thread = participantThread(db, id, personId);
+  const { plan } = thread;
+  if (!plan.place || !plan.time) {
+    throw new ApiError(409, 'plan_incomplete', 'Nothing to agree to yet. Suggest a time and place first.');
+  }
+  if (plan.confirmedBy.includes(personId)) {
+    throw new ApiError(409, 'already_confirmed', `You already agreed to ${plan.place}, ${plan.time}.`);
+  }
+  const confirmedBy = [...plan.confirmedBy, personId];
+  if (![thread.ownerId, thread.recipientId].every((p) => confirmedBy.includes(p))) {
+    return saved(db, { ...thread, plan: { ...plan, confirmedBy } }); // unreachable while the proposer invariant holds
+  }
+  const demo = reminderDemoSeconds();
+  const due = Date.parse(plan.timeISO) - REMIND_LEAD_MS; // NaN without timeISO -> no reminder
+  const remindAt = demo ? new Date(Date.now() + demo * 1000).toISOString() : due > Date.now() ? new Date(due).toISOString() : null;
+  const recipient = firstName(db, thread.recipientId);
+  const text = say || `Pickup set: ${plan.place}, ${plan.time}.${remindAt ? " I'll remind you both 30 minutes before." : ''} ${recipient}, tap 'I'm here' when you arrive.`;
+  const actions = [{ label: "I'm here", action: 'arrived', forPersonId: thread.recipientId }, { label: "Can't make it", action: 'cancel' }];
+  return saved(db, withMessage(thread, message('loop', text, { actions }),
+    { status: 'set', plan: { ...plan, confirmedBy }, remindAt, reminded: false }));
+}
+
+export function markArrived(db, id, { personId, say = null }) {
+  const thread = participantThread(db, id, personId);
+  const recipient = firstName(db, thread.recipientId);
+  if (personId !== thread.recipientId) throw new ApiError(403, 'not_recipient', `Only ${recipient} can say they've arrived.`);
+  if (thread.status !== 'set') {
+    throw new ApiError(409, 'not_set', thread.status === 'meeting' ? "You're already marked as here." : 'Agree on a time and place first.');
+  }
+  const owner = firstName(db, thread.ownerId);
+  const text = say || `${recipient} is at ${thread.plan.place}. ${owner}, ask ${recipient} for the 4-digit code and type it on the item page.`;
+  // enter_code is client-side only: it opens the code input on the item page.
+  return saved(db, withMessage(thread, message('loop', text, { actions: [{ label: 'Enter code', action: 'enter_code' }], forPersonId: thread.ownerId }),
+    { status: 'meeting' }));
+}
+
+// Either person, any open status: same as releasing the item (request reopens, thread cancelled).
+export function cancelThread(db, id, { personId, say = null }) {
+  const thread = participantThread(db, id, personId);
+  return releaseItem(db, thread.itemId, personId, say);
+}
+
+export function postHumanMessage(db, id, { personId, text, via = 'web' }) {
+  const thread = participantThread(db, id, personId);
+  return saved(db, withMessage(thread, message(personId, text, { via })));
+}
+
+export function postLoopMessage(db, id, text) {
+  const thread = getThread(db, id);
+  if (!isOpenThread(thread)) throw closed();
+  return saved(db, withMessage(thread, message('loop', text)));
+}
+
+// Posts once per agreed plan; anything else is a no-op (same db, no version bump).
+// `force` = the demo route asked for it now, so the text says it was sped up.
+export function postReminder(db, id, { force = false } = {}) {
+  const thread = getThread(db, id);
+  if (thread.status !== 'set' || thread.reminded) return { db, thread };
+  const sped = force || reminderDemoSeconds() > 0 ? ' (demo: reminder sped up)' : '';
+  return saved(db, withMessage(thread, message('loop', `Reminder: pickup in 30 minutes at ${thread.plan.place}.${sped}`), { reminded: true }));
 }
