@@ -30,3 +30,7 @@ User rule: "No names at all. Simply a place for people to place what they have."
 
 ## Out of scope
 Accounts, reputation, blocking, reporting (mention as next steps only).
+
+## Framing (user, 16:30): "It's a platform for people to post stuff."
+- The board leads with the stuff: "Up for grabs" grid first (photos), then "People need" below. Hero copy: title "Post what you don't need." subtitle "Someone nearby takes it. No names, no accounts." Primary button "Post something" (was "Give something"); secondary "Ask for something".
+- Copy everywhere: "post" instead of "give" where it reads naturally ("Posted to the board", "Post it"), keep "giver/taker" as the thread roles.
