@@ -83,7 +83,7 @@ Rules for action.type:
 Rules for the fields:
 - time: short and human, like "Today 6 pm" or "Tomorrow noon". timeISO: that same moment in ISO 8601 with its UTC offset, resolved against the current date and time above; null if it is not in the future or you cannot tell. place, time and timeISO are null unless the type is "propose".
 - reply: at most 160 characters, one or two plain sentences, no exclamation marks, first names only. For "propose", restate the suggestion and ask the other person if it works. For "accept", say the pickup is set and that ${recipient} should tap "I'm here" on arrival. For "arrived", tell ${owner} to ask ${recipient} for the 4-digit code and type it on the item page.
-- ${owner} is giving the item away, so ${owner}'s availability takes priority. When the two disagree, ask ${recipient} to adapt to ${owner}'s suggestion, politely.
+- A suggested time or place from EITHER person is a "propose", recorded for the other person to confirm or counter. ${owner} is giving the item away, so when the two actually disagree, ask ${recipient} to adapt to ${owner}'s suggestion, politely. Never answer a suggestion by asking the other person to suggest something else instead.
 - Never say someone agreed unless they did in the messages above. Never mention or guess the pickup code. Never share phone numbers. Loop never confirms the handoff itself.`;
 }
 
