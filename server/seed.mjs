@@ -24,18 +24,22 @@ export function resetToSeed(dataDir, prevVersion = 0) {
     version: prevVersion + 1,
     people: [
       { id: 'ethan', name: 'Ethan', spot: 'South Campus' },
-      { id: 'caleb', name: 'Caleb Mott', spot: 'Ehringhaus' },
-      { id: 'dani', name: 'Dani Kowalski', spot: 'Granville Towers' },
+      { id: 'jerry', name: 'Jerry Lin', spot: 'Ehringhaus' },
+      { id: 'jack', name: 'Jack Reyes', spot: 'Granville Towers' },
+      { id: 'tom', name: 'Tom Zhao', spot: 'Craige', lang: 'zh' },
+      { id: 'thomas', name: 'Thomas Hale', spot: 'Carmichael' },
     ],
     requests: [
-      request('r_lamp', 'caleb', 'Reading lamp for my desk', 'Anything that clips or stands. My room light is awful.', 95),
-      request('r_coat', 'dani', 'Winter coat, size M-ish', 'First real winter for me. Anything warm works.', 70),
+      request('r_lamp', 'jerry', 'Reading lamp for my desk', 'Anything that clips or stands. My room light is awful.', 95),
+      request('r_coat', 'jack', 'Winter coat, size M-ish', 'First real winter for me. Anything warm works.', 70),
       request('r_fridge', 'ethan', 'Mini fridge for a double', 'Small enough to fit under a desk. Shared with my roommate.', 40),
+      request('r_cooker', 'tom', '小电饭煲', '两个人用的就够了，带内胆就行。', 35),
+      request('r_fan', 'thomas', 'Desk fan, any size', 'Third floor, no AC. Anything that moves air.', 25),
     ],
     threads: [],
     items: [
-      item('i_book', 'dani', 'Intro to Psychology textbook (8th ed.)', 'Hardcover. Some highlighting in the first few chapters.', 'fair', 'textbooks', 60),
-      item('i_fan', 'caleb', 'Small desk fan', 'Blue metal fan on a stand. A little dusty.', 'fair', 'electronics', 30),
+      item('i_book', 'jack', 'Intro to Psychology textbook (8th ed.)', 'Hardcover. Some highlighting in the first few chapters.', 'fair', 'textbooks', 60),
+      item('i_fan', 'jerry', 'Small desk fan', 'Blue metal fan on a stand. A little dusty.', 'fair', 'electronics', 30),
     ],
   };
   saveDb(dataDir, db);

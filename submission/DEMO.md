@@ -9,23 +9,23 @@ cd ~/loop && (lsof -ti :3000 | xargs kill 2>/dev/null; true) && npm run seed && 
 - Exactly ONE Loop server may run with the real channel (it consumes the shared line's inbound messages). Stop any test server first (`lsof -ti :3500 | xargs kill`).
 - `.env.local` must hold the Gemini key, the Photon project id/secret, and `PHONE_ETHAN=+1…` (your phone). Your number must be on Photon's Users page and must have texted the line once (done Oct 10).
 - Loop's number: **+1 (773) 912-3997** (also in `/api/health` as `lineNumber`). Save it in your phone as "Loop".
-- Browser window = **Caleb** (recipient, pick Caleb on first load). Your phone = **Ethan** (giver, over iMessage). Second browser tab = Ethan's web view, optional, to show the board updating.
+- Browser window = **Jerry** (recipient, pick Jerry on first load). Your phone = **Ethan** (giver, over iMessage). Second browser tab = Ethan's web view, optional, to show the board updating.
 - Before every judge: click "Reset demo" in the footer (or `npm run seed`), and start a fresh thread in Messages (previous Loop messages stay; that's fine).
 - Wi-Fi fallback: tether the laptop to your phone's hotspot (both Gemini and Photon need the internet). Last resort: `GEMINI_MOCK=1 npm start` shows a "Demo mode" banner and turns iMessage off; say so to the judge. Never present mock output as live.
-- Keep a real object on the table to photograph (a lamp-like object matches the seeded request "Reading lamp for my desk"; otherwise edit Caleb's seed request to match your object before `npm run seed`).
+- Keep a real object on the table to photograph (a lamp-like object matches the seeded request "Reading lamp for my desk"; otherwise edit Jerry's seed request to match your object before `npm run seed`).
 
 ## Two-minute video / live demo script (giver on iMessage, recipient on the web)
 
 | Time | Where | Say | Do |
 |---|---|---|---|
-| 0:00 | board (Caleb) | "Every move-out, working lamps and chargers go in the dumpster while someone down the hall is about to buy one. Listings don't finish the job. Loop does, and you don't even need the app." | Show the board: Caleb's open need for a reading lamp. |
+| 0:00 | board (Jerry) | "Every move-out, working lamps and chargers go in the dumpster while someone down the hall is about to buy one. Listings don't finish the job. Loop does, and you don't even need the app." | Show the board: Jerry's open need for a reading lamp. |
 | 0:12 | phone (Ethan) | "Ethan texts a photo of the lamp he's about to toss to Loop's number." | Send the lamp photo to Loop. |
-| 0:20 | phone | "Four seconds later Loop replies with a draft and a match: Caleb across campus asked for exactly this." | Show the reply: title, condition, "Caleb (Ehringhaus) asked for a reading lamp — it fits. Reply YES…". |
+| 0:20 | phone | "Four seconds later Loop replies with a draft and a match: Jerry across campus asked for exactly this." | Show the reply: title, condition, "Jerry (Ehringhaus) asked for a reading lamp — it fits. Reply YES…". |
 | 0:32 | phone | "Ethan corrects the condition himself — Loop only drafts — then says YES." | Text "condition fair, dent on base", show the updated draft, text YES. |
-| 0:45 | board (Caleb) | "Caleb gets the offer on the web, accepts, and leaves the pickup blank." | Open "Ethan offered you this" → Accept & reserve with blank place/time. |
+| 0:45 | board (Jerry) | "Jerry gets the offer on the web, accepts, and leaves the pickup blank." | Open "Ethan offered you this" → Accept & reserve with blank place/time. |
 | 0:58 | phone + web | "Now Loop coordinates. It asks the giver first — Ethan is giving, so his availability wins." | Show Ethan's phone: "You're the one handing it over, so you pick…". Text "6 pm at Davis Library?". |
-| 1:10 | web (Caleb) | "Gemini turns that into a proposal; Caleb confirms with one tap. Both get the plan and a reminder." | Caleb taps "Works for me". Show the plan card "Set". |
-| 1:25 | web → phone | "At the library Caleb taps I'm here; Ethan gets the code prompt and texts the four digits." | Caleb taps "I'm here" → show Ethan's phone prompt → text the code from Caleb's screen. |
+| 1:10 | web (Jerry) | "Gemini turns that into a proposal; Jerry confirms with one tap. Both get the plan and a reminder." | Jerry taps "Works for me". Show the plan card "Set". |
+| 1:25 | web → phone | "At the library Jerry taps I'm here; Ethan gets the code prompt and texts the four digits." | Jerry taps "I'm here" → show Ethan's phone prompt → text the code from Jerry's screen. |
 | 1:40 | both | "Collected. Fulfilled. One item kept in use, and the whole handoff happened in a text thread." | Show Collected on the web and the closing text on the phone. |
 | 1:50 | code | "Plain JavaScript on Node, Gemini 3.5 Flash-Lite behind JSON schemas for drafts, piles and the coordinator's actions, Photon Spectrum for iMessage. The server validates every suggestion; a person approves every step." | 5 s on gemini.mjs / coordinator.mjs / textflow.mjs. |
 | 1:58 | — | "Loop." | End. |
@@ -35,7 +35,7 @@ Optional 10-second insert if time allows (replace the code shot): "One photo, a 
 Rehearse with a timer three times. Cut words, not steps. Record phone and screen together (QuickTime: screen recording + iPhone mirrored via USB, or film the phone with a second device).
 
 ### Seed for the demo
-`server/seed.mjs` holds the three people, their requests and the two available items. Caleb's request is "Reading lamp for my desk"; change its title/details to match the object you will photograph, then `npm run seed`. Keep Dani's coat request and Ethan's fridge request as unmatched background needs.
+`server/seed.mjs` holds the three people, their requests and the two available items. Jerry's request is "Reading lamp for my desk"; change its title/details to match the object you will photograph, then `npm run seed`. Keep Jack's coat request and Ethan's fridge request as unmatched background needs.
 
 ## How it works (for the two minutes of questions)
 

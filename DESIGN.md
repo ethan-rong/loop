@@ -151,7 +151,7 @@ its real backdrop, then computes the WCAG ratio. Text on the ribbon is measured 
 | for-you banner, offered (10 % violet) | `#4b33b8` | `#f0edfc` | 7.41 | 4.5 |
 | reserved step number | `#7a4800` | `#fff7e6` | 7.15 | 4.5 |
 | "Checked by" tag / white | `#136b3d` | `#ffffff` | 6.57 | 4.5 |
-| avatar initials, lowest of the three (Dani) | `#ffffff` | `#1b7f45` | 5.04 | 4.5 |
+| avatar initials, lowest of the three (Jack) | `#ffffff` | `#1b7f45` | 5.04 | 4.5 |
 | edge: field, quick pick, composer / white | `#7d8ea1` | `#ffffff` | 3.36 | 3 |
 | edge: field / page | `#7d8ea1` | `#f6f8fb` | 3.16 | 3 |
 | edge: idle timeline and agree dots / white | `#7d8ea1` | `#ffffff` | 3.36 | 3 |
@@ -180,12 +180,12 @@ Not counted as edges, because they are decorative or text identifies the thing: 
 
 ### Verified (2026-10-10, `GEMINI_MOCK=1`, port 3005, Chrome in the Browser pane)
 
-- **Two tabs at 390 px**, Ethan (owner) and Caleb (recipient):
-  1. Board → Give (`/seed/lamp.jpg` fed through a DataTransfer) → draft → **Looks right** → **Offer to Caleb**.
-  2. Caleb accepts with a blank place and time → the thread opens with Loop's two opening messages.
-  3. Ethan: **Suggest a time and place** (Student Union, Today 8 pm) → Caleb: **Works for me** →
+- **Two tabs at 390 px**, Ethan (owner) and Jerry (recipient):
+  1. Board → Give (`/seed/lamp.jpg` fed through a DataTransfer) → draft → **Looks right** → **Offer to Jerry**.
+  2. Jerry accepts with a blank place and time → the thread opens with Loop's two opening messages.
+  3. Ethan: **Suggest a time and place** (Student Union, Today 8 pm) → Jerry: **Works for me** →
      the reminder lands about 3 s later.
-  4. A message from Caleb ("On my way, see you at the Union") was read by the mock as a new suggestion,
+  4. A message from Jerry ("On my way, see you at the Union") was read by the mock as a new suggestion,
      so Ethan re-accepted. That is app behaviour, not styling.
   5. **I'm here** → one wrong code (403, intentional) → the right code → **Collected**.
 - **Pile review** on `/seed/pile.jpg`: 3 items, one unticked to check the "not listing" state.
@@ -194,7 +194,7 @@ Not counted as edges, because they are decorative or text identifies the thing: 
   - 640 px, `scrollWidth === innerWidth`: board, draft, item, ask.
   - The pane width (1179 px): board, item, pile, draft. `scrollWidth` was 1164 there, the viewport
     minus its 15 px scrollbar.
-- **Console.** Clean in Caleb's tab. Ethan's tab shows one error, the intentional wrong-code 403.
+- **Console.** Clean in Jerry's tab. Ethan's tab shows one error, the intentional wrong-code 403.
 - **Focus.** Keyboard Tab shows the 3 px `#1f6fd3` ring at a 2 px offset.
 
 ## Accessibility checks run

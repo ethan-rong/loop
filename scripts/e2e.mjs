@@ -35,8 +35,8 @@ async function mainLoop() {
   const seed = await ok(call('POST', '/api/reset'));
   assert.deepEqual([seed.people.length, seed.requests.length, seed.items.length], [3, 3, 2]);
 
-  // Caleb posts a need.
-  const posted = await ok(call('POST', '/api/requests', { personId: 'caleb', title: 'Desk lamp for late reading', details: 'Mine broke.' }));
+  // Jerry posts a need.
+  const posted = await ok(call('POST', '/api/requests', { personId: 'jerry', title: 'Desk lamp for late reading', details: 'Mine broke.' }));
   const need = posted.request;
   assert.equal(need.status, 'open');
   assert.ok(Array.isArray(posted.suggestions));
@@ -51,7 +51,7 @@ async function mainLoop() {
   assert.ok(lampNeeds.includes(drafted.draft.match.requestId), 'draft matched an open lamp request');
   assert.equal((await fetch(BASE + drafted.photo)).status, 200, 'photo is served');
 
-  // Ethan posts it, offered to Caleb's need.
+  // Ethan posts it, offered to Jerry's need.
   const { title, description, condition, category } = drafted.draft;
   const item = await ok(call('POST', '/api/items', {
     ownerId: 'ethan', photoId: drafted.photoId, title, description, condition, category, aiDraft: drafted.draft, offerToRequestId: need.id,
@@ -59,8 +59,8 @@ async function mainLoop() {
   assert.equal(item.status, 'offered');
   assert.equal(await requestStatus(need.id), 'matched');
 
-  // Caleb accepts and reserves.
-  const reserved = await ok(call('POST', `/api/items/${item.id}/reserve`, { personId: 'caleb', ...meet }));
+  // Jerry accepts and reserves.
+  const reserved = await ok(call('POST', `/api/items/${item.id}/reserve`, { personId: 'jerry', ...meet }));
   assert.equal(reserved.status, 'reserved');
   assert.match(reserved.reservation.code, /^\d{4}$/);
   assert.notEqual(reserved.reservation.code, '0000');
@@ -77,39 +77,39 @@ async function mainLoop() {
   assert.ok(after.version > seed.version, 'version went up');
 
   // Reserving a collected item conflicts.
-  await expect(call('POST', `/api/items/${item.id}/reserve`, { personId: 'dani', ...meet }), 409, 'already_claimed');
+  await expect(call('POST', `/api/items/${item.id}/reserve`, { personId: 'jack', ...meet }), 409, 'already_claimed');
 }
 
 async function sideFlows() {
-  // Offer to Dani -> others can't take it -> Dani declines -> Caleb reserves, cancels -> Ethan takes it back.
+  // Offer to Jack -> others can't take it -> Jack declines -> Jerry reserves, cancels -> Ethan takes it back.
   const drafted = await draftLamp();
   const item = await ok(call('POST', '/api/items', {
     ownerId: 'ethan', photoId: drafted.photoId, title: 'Spare lamp', condition: 'fair', category: 'lighting', aiDraft: null, offerToRequestId: 'r_coat',
   }));
   assert.equal(await requestStatus('r_coat'), 'matched');
-  await expect(call('POST', `/api/items/${item.id}/reserve`, { personId: 'caleb', ...meet }), 409, 'already_claimed');
-  assert.equal((await ok(call('POST', `/api/items/${item.id}/decline`, { personId: 'dani' }))).status, 'available');
+  await expect(call('POST', `/api/items/${item.id}/reserve`, { personId: 'jerry', ...meet }), 409, 'already_claimed');
+  assert.equal((await ok(call('POST', `/api/items/${item.id}/decline`, { personId: 'jack' }))).status, 'available');
   assert.equal(await requestStatus('r_coat'), 'open');
   await expect(call('POST', `/api/items/${item.id}/reserve`, { personId: 'ethan', ...meet }), 403, 'own_item');
-  assert.equal((await ok(call('POST', `/api/items/${item.id}/reserve`, { personId: 'caleb', ...meet }))).status, 'reserved');
+  assert.equal((await ok(call('POST', `/api/items/${item.id}/reserve`, { personId: 'jerry', ...meet }))).status, 'reserved');
   await expect(call('POST', `/api/items/${item.id}/withdraw`, { personId: 'ethan' }), 409, 'cant_withdraw');
-  const released = await ok(call('POST', `/api/items/${item.id}/release`, { personId: 'caleb' }));
+  const released = await ok(call('POST', `/api/items/${item.id}/release`, { personId: 'jerry' }));
   assert.equal(released.status, 'available');
   assert.equal(released.reservation, null);
   assert.equal((await ok(call('POST', `/api/items/${item.id}/withdraw`, { personId: 'ethan' }))).status, 'withdrawn');
-  await expect(call('POST', `/api/items/${item.id}/reserve`, { personId: 'caleb', ...meet }), 409, 'already_claimed');
-  await expect(call('DELETE', '/api/requests/r_lamp', { personId: 'dani' }), 403, 'not_yours');
-  assert.equal((await ok(call('DELETE', '/api/requests/r_lamp', { personId: 'caleb' }))).status, 'closed');
+  await expect(call('POST', `/api/items/${item.id}/reserve`, { personId: 'jerry', ...meet }), 409, 'already_claimed');
+  await expect(call('DELETE', '/api/requests/r_lamp', { personId: 'jack' }), 403, 'not_yours');
+  assert.equal((await ok(call('DELETE', '/api/requests/r_lamp', { personId: 'jerry' }))).status, 'closed');
 }
 
 async function badInput() {
-  await expect(call('POST', '/api/requests', undefined, '{"personId": "caleb", '), 400, 'invalid_json');
-  await expect(call('POST', '/api/requests', { personId: 'caleb' }), 400, 'missing_field');
-  await expect(call('POST', '/api/requests', { personId: 'caleb', title: 'x'.repeat(61) }), 400, 'too_long');
+  await expect(call('POST', '/api/requests', undefined, '{"personId": "jerry", '), 400, 'invalid_json');
+  await expect(call('POST', '/api/requests', { personId: 'jerry' }), 400, 'missing_field');
+  await expect(call('POST', '/api/requests', { personId: 'jerry', title: 'x'.repeat(61) }), 400, 'too_long');
   await expect(call('POST', '/api/requests', { personId: 'nobody', title: 'Lamp' }), 404, 'unknown_person');
   await expect(call('POST', '/api/items', { ownerId: 'ethan' }), 400, 'missing_field');
-  await expect(call('POST', '/api/items/i_book/confirm', { personId: 'dani', code: 1234 }), 400, 'invalid_field');
-  await expect(call('POST', '/api/items/nope/reserve', { personId: 'caleb', ...meet }), 404, 'unknown_item');
+  await expect(call('POST', '/api/items/i_book/confirm', { personId: 'jack', code: 1234 }), 400, 'invalid_field');
+  await expect(call('POST', '/api/items/nope/reserve', { personId: 'jerry', ...meet }), 404, 'unknown_item');
   const sevenMb = Buffer.alloc(7 * 1024 * 1024, 0xff).toString('base64');
   await expect(call('POST', '/api/items/draft', { ownerId: 'ethan', mimeType: 'image/jpeg', imageBase64: sevenMb }), 400, 'too_large');
   const notAPhoto = Buffer.from('<html>hello</html>').toString('base64');

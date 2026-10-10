@@ -1,7 +1,7 @@
 // iMessage channel through Photon Spectrum (SPEC2 §1, SPEC3). Off unless the project id and secret are set
 // (SPECTRUM_PROJECT_ID / SPECTRUM_PROJECT_SECRET, or the PHOTON_* aliases) and GEMINI_MOCK is not 1, so automated
 // tests never text real phones. PHONE_<PERSONID>=+1XXXXXXXXXX (E.164) links a demo person to a number. A number
-// links to one person; when two share it, ethan wins (SPEC3: PHONE_ETHAN takes over the phase-2 PHONE_CALEB link).
+// links to one person; when two share it, ethan wins (SPEC3: PHONE_ETHAN takes over the phase-2 PHONE_JERRY link).
 //
 // SDK facts (spectrum-ts 12.10.1 source, plus live checks on Oct 10):
 //   const app = await Spectrum({projectId, projectSecret, providers: [imessage.config()]})
@@ -83,7 +83,7 @@ export const channelStatus = () => ({ imessage: connected, lastSendOk, lineNumbe
 export function startChannel({ onInbound }) {
   const { projectId, projectSecret } = credentials();
   if (!projectId || !projectSecret) return;
-  // Every automated test runs with GEMINI_MOCK=1 and reserves items for Caleb: never text real phones from them.
+  // Every automated test runs with GEMINI_MOCK=1 and reserves items for Jerry: never text real phones from them.
   if (process.env.GEMINI_MOCK === '1') return console.log('imessage: off while GEMINI_MOCK=1, so tests never text real phones.');
   connect(projectId, projectSecret, onInbound).catch((err) => fail('connect', err));
 }

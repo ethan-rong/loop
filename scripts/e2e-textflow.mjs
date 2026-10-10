@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 process.env.GEMINI_MOCK = '1';
 delete process.env.DEMO_REMINDER_SECONDS;
 process.env.DATA_DIR ||= fileURLToPath(new URL('../.tmp-f/e2e-textflow', import.meta.url));
-const PHONES = { ethan: '+15550100001', caleb: '+15550100002', dani: '+15550100003' };
+const PHONES = { ethan: '+15550100001', jerry: '+15550100002', jack: '+15550100003' };
 for (const [id, phone] of Object.entries(PHONES)) process.env[`PHONE_${id.toUpperCase()}`] = phone;
 
 const store = await import('../server/store.mjs');
@@ -30,7 +30,7 @@ const WELCOME = "Hi Ethan — this is Loop. Text me a photo of something you don
 const ACK = 'Got it — looking at your photo…';
 const HINT = "\nReply 'works', 'here', or suggest a time.";
 const LAMP_LINE = 'Desk lamp with a jointed arm, a round base, and a metal shade.';
-const FITS = 'Caleb (Ehringhaus) asked for "Reading lamp for my desk" 2 h ago — it fits. Reply YES to offer it to Caleb, '
+const FITS = 'Jerry (Ehringhaus) asked for "Reading lamp for my desk" 2 h ago — it fits. Reply YES to offer it to Jerry, '
   + "BOARD to post it for anyone, or type a correction (e.g. 'condition fair, dent on base').";
 const NO_FIT = 'No open request fits yet. Reply BOARD to post it, or type a correction.';
 const E164_ANYWHERE = /\+\d{8,15}/;
@@ -98,10 +98,10 @@ function noLeaks() {
   for (const { text } of everSent) assert.ok(!E164_ANYWHERE.test(text), `a text carried a phone number: ${text}`);
 }
 
-// §1 photo -> draft -> corrections -> YES -> offered; §2 Caleb accepts on the web and Ethan's phone gets the
-// thread's opening line, and nothing addressed to Caleb reaches Caleb's phone.
+// §1 photo -> draft -> corrections -> YES -> offered; §2 Jerry accepts on the web and Ethan's phone gets the
+// thread's opening line, and nothing addressed to Jerry reaches Jerry's phone.
 async function offerByText() {
-  fresh('ethan', 'caleb');
+  fresh('ethan', 'jerry');
   assert.equal(await say('ethan', 'hi'), WELCOME);
   assert.equal(await say('ethan', 'what is this?'), HELP);
   assert.equal(await snap('ethan'), `Adjustable desk lamp · good · ${LAMP_LINE} ${FITS}`);
@@ -113,7 +113,7 @@ async function offerByText() {
   assert.equal(await say('ethan', 'title: Blue adjustable desk lamp'), `Updated: Blue adjustable desk lamp · fair · ${LAMP_LINE} ${FITS}`);
   assert.equal(await say('ethan', 'dent on base'), `Updated: Blue adjustable desk lamp · fair (dent on base) · ${LAMP_LINE} ${FITS}`);
   assert.equal(db.items.length, 2, 'nothing published before YES');
-  assert.equal(await say('ethan', 'YES'), "Offered to Caleb. I'll tell you when Caleb accepts and we'll sort out the pickup here.");
+  assert.equal(await say('ethan', 'YES'), "Offered to Jerry. I'll tell you when Jerry accepts and we'll sort out the pickup here.");
   const item = db.items.at(-1);
   assert.deepEqual(
     [item.ownerId, item.status, item.offeredToRequestId, item.source, item.title, item.condition, item.category, item.photo],
@@ -124,31 +124,31 @@ async function offerByText() {
   assert.equal(db.requests.find((r) => r.id === 'r_lamp').status, 'matched');
   assert.deepEqual([db.textSessions.ethan.state, db.textSessions.ethan.itemId], ['offered', item.id]);
   assert.deepEqual(take('ethan'), []);
-  commit(store.reserveItem(db, item.id, { personId: 'caleb', place: 'Davis Library lobby', time: 'Today 5 pm' }));
-  assert.deepEqual(take('ethan'), [`Loop: Hi Ethan — Caleb reserved your Blue adjustable desk lamp and suggested Davis Library lobby, Today 5 pm. Does that work?${HINT}`]);
-  assert.deepEqual(take('caleb'), [], "the owner's line is not texted to Caleb");
+  commit(store.reserveItem(db, item.id, { personId: 'jerry', place: 'Davis Library lobby', time: 'Today 5 pm' }));
+  assert.deepEqual(take('ethan'), [`Loop: Hi Ethan — Jerry reserved your Blue adjustable desk lamp and suggested Davis Library lobby, Today 5 pm. Does that work?${HINT}`]);
+  assert.deepEqual(take('jerry'), [], "the owner's line is not texted to Jerry");
   assert.equal(await say('ethan', 'works'), 'thread:ethan:works', 'after the offer, texts go to the pickup thread');
   noLeaks();
 }
 
 // §1 BOARD, §2 owner by text: reserved on the web; at the meeting Ethan is asked to text the code; a wrong code gets
-// the store's message, the right one collects. Caleb has no linked phone, so Loop never texts him.
+// the store's message, the right one collects. Jerry has no linked phone, so Loop never texts him.
 async function boardAndCode() {
   fresh('ethan');
   await snap('ethan');
   assert.equal(await say('ethan', 'BOARD'), "Posted to the board. I'll text you when someone reserves it.");
   const item = db.items.at(-1);
   assert.deepEqual([item.status, item.source, item.offeredToRequestId], ['available', 'imessage', null]);
-  assert.equal(db.textSessions.caleb, undefined, 'no suggestion for a requester without a linked phone');
+  assert.equal(db.textSessions.jerry, undefined, 'no suggestion for a requester without a linked phone');
   assert.deepEqual(take('ethan'), [ACK]);
-  const { code } = commit(store.reserveItem(db, item.id, { personId: 'caleb', place: 'Davis Library lobby', time: 'Today 5 pm' })).item.reservation;
-  assert.deepEqual(take('ethan'), [`Loop: Hi Ethan — Caleb reserved your Adjustable desk lamp and suggested Davis Library lobby, Today 5 pm. Does that work?${HINT}`]);
+  const { code } = commit(store.reserveItem(db, item.id, { personId: 'jerry', place: 'Davis Library lobby', time: 'Today 5 pm' })).item.reservation;
+  assert.deepEqual(take('ethan'), [`Loop: Hi Ethan — Jerry reserved your Adjustable desk lamp and suggested Davis Library lobby, Today 5 pm. Does that work?${HINT}`]);
   const thread = store.newestOpenThread(db, 'ethan');
   commit(store.acceptPlan(db, thread.id, { personId: 'ethan' }));
-  assert.deepEqual(take('ethan'), [`Loop: Pickup set: Davis Library lobby, Today 5 pm. Caleb, tap 'I'm here' when you arrive.${HINT}`]);
-  commit(store.markArrived(db, thread.id, { personId: 'caleb' }));
-  assert.deepEqual(take('ethan'), ['Loop: Caleb is at Davis Library lobby. Ask Caleb for the 4-digit code and text it to me.']);
-  assert.equal(await say('ethan', code === '1234' ? '4321' : '1234'), "That code doesn't match. Ask Caleb to show the code on their screen.");
+  assert.deepEqual(take('ethan'), [`Loop: Pickup set: Davis Library lobby, Today 5 pm. Jerry, tap 'I'm here' when you arrive.${HINT}`]);
+  commit(store.markArrived(db, thread.id, { personId: 'jerry' }));
+  assert.deepEqual(take('ethan'), ['Loop: Jerry is at Davis Library lobby. Ask Jerry for the 4-digit code and text it to me.']);
+  assert.equal(await say('ethan', code === '1234' ? '4321' : '1234'), "That code doesn't match. Ask Jerry to show the code on their screen.");
   assert.equal(itemById(item.id).status, 'reserved');
   assert.equal(await say('ethan', `it's ${code}`), null);
   assert.equal(itemById(item.id).status, 'collected');
@@ -156,25 +156,25 @@ async function boardAndCode() {
   assert.deepEqual(take('ethan'), ['Loop: Handed over. Thanks, both — the adjustable desk lamp stays in use.']);
   assert.ok(!store.getThread(db, thread.id).messages.some((m) => m.text.includes(code)), 'the code never enters the thread');
   assert.ok(!everSent.some((t) => t.text.includes(code)), 'no text carries the code');
-  assert.deepEqual(everSent.filter((t) => t.personId !== 'ethan'), [], 'Caleb is never texted');
+  assert.deepEqual(everSent.filter((t) => t.personId !== 'ethan'), [], 'Jerry is never texted');
   noLeaks();
 }
 
-// §3 from a text post: Caleb's open request fits and his phone is linked, so he gets one text; YES reserves it.
+// §3 from a text post: Jerry's open request fits and his phone is linked, so he gets one text; YES reserves it.
 async function connectorByText() {
-  fresh('ethan', 'caleb');
+  fresh('ethan', 'jerry');
   await snap('ethan');
   await say('ethan', 'board');
   const item = db.items.at(-1);
-  assert.deepEqual(take('caleb'), ['Ethan just posted an adjustable desk lamp that fits your request "Reading lamp for my desk". Reply YES to reserve it, or ignore this.']);
-  assert.equal(await say('caleb', 'YES'), null);
+  assert.deepEqual(take('jerry'), ['Ethan just posted an adjustable desk lamp that fits your request "Reading lamp for my desk". Reply YES to reserve it, or ignore this.']);
+  assert.equal(await say('jerry', 'YES'), null);
   const reserved = itemById(item.id);
-  assert.deepEqual([reserved.status, reserved.reservation.personId, reserved.reservation.requestId], ['reserved', 'caleb', 'r_lamp']);
+  assert.deepEqual([reserved.status, reserved.reservation.personId, reserved.reservation.requestId], ['reserved', 'jerry', 'r_lamp']);
   assert.equal(db.requests.find((r) => r.id === 'r_lamp').status, 'matched');
-  assert.equal(db.textSessions.caleb.suggestion, null);
-  assert.deepEqual(take('ethan'), [ACK, `Loop: Hi Ethan — Caleb reserved your Adjustable desk lamp. You're the one handing it over, so you pick: when and where works for you?${HINT}`]);
-  assert.deepEqual(take('caleb'), ['Loop: Caleb, Ethan will suggest a time and place; you can reply here too.']);
-  assert.equal(await say('caleb', 'yes'), 'thread:caleb:yes', 'the next YES goes to the pickup thread');
+  assert.equal(db.textSessions.jerry.suggestion, null);
+  assert.deepEqual(take('ethan'), [ACK, `Loop: Hi Ethan — Jerry reserved your Adjustable desk lamp. You're the one handing it over, so you pick: when and where works for you?${HINT}`]);
+  assert.deepEqual(take('jerry'), ['Loop: Jerry, Ethan will suggest a time and place; you can reply here too.']);
+  assert.equal(await say('jerry', 'yes'), 'thread:jerry:yes', 'the next YES goes to the pickup thread');
   noLeaks();
 }
 
@@ -183,7 +183,7 @@ async function connectorFromWeb() {
   fresh('ethan');
   sendWorks = false;
   const { item } = commit(store.createItem(db, {
-    ownerId: 'dani', photo: '/photos/i_book.jpg', title: 'Mini fridge', description: 'Small black mini fridge.', condition: 'good',
+    ownerId: 'jack', photo: '/photos/i_book.jpg', title: 'Mini fridge', description: 'Small black mini fridge.', condition: 'good',
     category: 'kitchen', aiDraft: { match: { requestId: 'r_fridge', reason: 'It is a mini fridge.' } }, offerToRequestId: null,
   }));
   itemPosted(item);
@@ -195,11 +195,11 @@ async function connectorFromWeb() {
   assert.equal(await say('ethan', 'yes'), null);
   assert.deepEqual([itemById(item.id).status, itemById(item.id).reservation.personId], ['reserved', 'ethan']);
   assert.equal(db.requests.find((r) => r.id === 'r_fridge').status, 'matched');
-  assert.deepEqual(take('ethan'), ['Loop: Ethan, Dani will suggest a time and place; you can reply here too.']);
+  assert.deepEqual(take('ethan'), ['Loop: Ethan, Jack will suggest a time and place; you can reply here too.']);
   itemPosted(itemById(item.id));
   assert.deepEqual(take('ethan'), [], 'a reserved item never triggers a text');
   // Offered items and the owner's own request never trigger one either.
-  const offered = commit(store.createItem(db, { ownerId: 'dani', photo: '/photos/i_book.jpg', title: 'Coat', description: '', condition: 'good',
+  const offered = commit(store.createItem(db, { ownerId: 'jack', photo: '/photos/i_book.jpg', title: 'Coat', description: '', condition: 'good',
     category: 'clothing', aiDraft: { match: { requestId: 'r_coat' } }, offerToRequestId: null })).item;
   itemPosted(offered);
   assert.deepEqual(outbox, []);
@@ -217,7 +217,7 @@ async function edges() {
     const stored = readFileSync(join(store.DATA_DIR, 'photos', `${db.textSessions.ethan.photoId}.jpg`));
     assert.equal(stored.subarray(0, 3).toString('hex'), 'ffd8ff', 'HEIC is stored as JPEG');
   }
-  commit(store.closeRequest(db, 'r_lamp', 'caleb'));
+  commit(store.closeRequest(db, 'r_lamp', 'jerry'));
   assert.equal(await snap('ethan'), `Adjustable desk lamp · good · ${LAMP_LINE} ${NO_FIT}`);
   const first = db.textSessions.ethan.photoId;
   assert.equal(await say('ethan', 'yes'), 'No open request fits it right now. Reply BOARD to post it for anyone, or type a correction.');
@@ -286,12 +286,12 @@ async function channelChecks(run) {
   assert.equal(out.at(-1), "This number isn't linked to a Loop handoff.");
   assert.equal(calls.length, 2);
 
-  process.env.PHONE_CALEB = PHONES.ethan; // one number, one person: ethan wins it
-  assert.deepEqual(['ethan', 'caleb'].map((id) => channelStatus().linkedPhones.includes(id)), [true, false]);
-  delete process.env.PHONE_ETHAN; // without PHONE_ETHAN the phase-2 PHONE_CALEB link keeps working
-  assert.deepEqual(['ethan', 'caleb'].map((id) => channelStatus().linkedPhones.includes(id)), [false, true]);
+  process.env.PHONE_JERRY = PHONES.ethan; // one number, one person: ethan wins it
+  assert.deepEqual(['ethan', 'jerry'].map((id) => channelStatus().linkedPhones.includes(id)), [true, false]);
+  delete process.env.PHONE_ETHAN; // without PHONE_ETHAN the phase-2 PHONE_JERRY link keeps working
+  assert.deepEqual(['ethan', 'jerry'].map((id) => channelStatus().linkedPhones.includes(id)), [false, true]);
   process.env.PHONE_ETHAN = PHONES.ethan;
-  process.env.PHONE_CALEB = PHONES.caleb;
+  process.env.PHONE_JERRY = PHONES.jerry;
 
   // A reply that fails twice (one retry after 1.5 s) waits, then goes out before the answer to the next text.
   await receive({ send: async () => { throw new Error('offline'); } }, msg(PHONES.ethan, text('first')), onInbound);
