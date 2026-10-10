@@ -40,6 +40,17 @@ Rehearse with a timer three times. Cut words, not steps. Record phone and screen
 ### Seed for the demo
 `server/seed.mjs` holds the three people, their requests and the two available items. the taker's request is "Reading lamp for my desk"; change its title/details to match the object you will photograph, then `npm run seed`. Keep another tab's coat request and Ethan's fridge request as unmatched background needs.
 
+## What makes Loop different (say these, in this order, when a judge asks "how is this different from X")
+
+1. **Needs first.** Every campus board is supply-first: you list, you wait. Loop starts with "someone asked for a reading lamp" and matches the photo to that person. The listing is a by-product.
+2. **The AI only drafts.** Gemini writes the listing and names the match with a reason; a person fixes the condition and says yes. The server validates every model output (known request ids only, reason before id, blocked categories) and the coordinator cannot accept, arrive or reveal anything on anyone's behalf.
+3. **A third voice in the handoff.** Most apps stop at "message the seller". Loop sits in the thread: asks the giver first, turns a sentence into a proposal, asks the other side, reminds both, and tells the giver when the taker is there. Buttons take a deterministic path; typed sentences go to the model; the rules are enforced in code.
+4. **Proof instead of trust.** No ratings, no profiles. Four digits shown by the taker and entered by the giver are the only handshake, so the item flips to Collected exactly once and only in person.
+5. **Nobody has a name.** No accounts, names, avatars or dorms anywhere: a tab or a phone is an anonymous session. What Loop keeps: a photo, a title, a time, a code. What it never keeps: who you are.
+6. **No app needed.** The same loop runs from iMessage: text a photo, reply YES, settle the pickup by text, text the four digits. The web board and the phone are two doors into one state machine.
+7. **One photo, many listings.** A pile becomes up to six items with their own boxes, drafts and matches, and Gemini says "no match" honestly for the rest.
+8. **It loops.** A collected item can be passed on again by the person who took it, without a new photo, and carries its lap count. (Say this only if the "Pass it on again" button is in the build you are showing.)
+
 ## How it works (for the two minutes of questions)
 
 - **Flow:** photo → client resizes to ≤1024 px JPEG → `POST /api/items/draft` (or `/api/items/pile` for a pile) → server stores the photo, calls Gemini `generateContent` with the image + the open requests + a JSON schema → server validates (known request IDs only, reason written before the id, string clamps, blocked categories) → editable draft → owner publishes or offers → recipient reserves → **handoff thread** opens with Loop as coordinator → both confirm a plan → reminder → "I'm here" → giver enters (or texts) the 4-digit code → `collected` + `fulfilled`.
