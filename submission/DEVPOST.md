@@ -33,7 +33,7 @@ Loop is a small web app plus an iMessage agent for passing usable belongings to 
 6. Bilingual by default: each person picks a language; in a mixed-language handoff every message, including Loop's, is translated once by Gemini and shown in the reader's language, original one tap away, pickup code never translated.
 7. No app needed: through Photon's Spectrum, the same thread reaches people's phones as iMessages, and a giver can text a photo to Loop's number, get the draft back, reply YES to offer it, settle the pickup by text and send the code by text.
 
-Gemini never publishes, reserves, contacts anyone or marks anything collected; a person taps or texts every state change. If Gemini cannot identify the object, is rate-limited, or times out, the owner gets a plain explanation and fills in the form by hand. If iMessage is unavailable, everything works in the browser.
+Anonymous by design: people appear as a nickname and a coarse campus area, never a name, dorm or phone number; the 4-digit code proves identity at the handoff. Gemini never publishes, reserves, contacts anyone or marks anything collected; a person taps or texts every state change. If Gemini cannot identify the object, is rate-limited, or times out, the owner gets a plain explanation and fills in the form by hand. If iMessage is unavailable, everything works in the browser.
 
 ### How we built it
 - Node 22 + Express server with a JSON-file store; every state change is a pure transition function. Items: available → offered → reserved → collected (409 when someone else already claimed it, 403 on a wrong code). Threads: planning → set → meeting → done or cancelled.

@@ -14,6 +14,8 @@ Built solo at **HackNC 2026** (UNC–Chapel Hill, Oct 10–11). Tracks: Beginner
 6. **Bilingual threads**: each person has a language (English, 中文, Español). When the two people in a handoff differ, every message, including Loop's, is translated once by Gemini and shown in the reader's language with a "translated" tag; the original stays one tap away, names, places, times and digits are kept, and the pickup code is never translated.
 7. **iMessage, no app needed** (Photon Spectrum): the same thread reaches people's phones; a giver can text a photo to Loop's number, get the draft back, reply YES to offer it, settle the pickup by text and send the code by text.
 
+**Anonymous by design.** People appear as a nickname (Heron, Fox, Owl…) and a coarse campus area, never a name, dorm, or phone number. Nobody needs to know who you are: the 4-digit pickup code proves identity at the handoff, and Loop refuses to share numbers or the code in a thread.
+
 Gemini never publishes, reserves, contacts anyone, or marks anything collected. A person taps (or texts) every state change. When Gemini can't identify the object, is rate-limited, or times out, the owner sees a plain explanation and fills the form in by hand; when iMessage is unavailable, everything works in the browser.
 
 ## Run it
