@@ -32,6 +32,7 @@ export function resetToSeed(dataDir, prevVersion = 0) {
       request('r_coat', 'dani', 'Winter coat, size M-ish', 'First real winter for me. Anything warm works.', 70),
       request('r_fridge', 'ethan', 'Mini fridge for a double', 'Small enough to fit under a desk. Shared with my roommate.', 40),
     ],
+    threads: [],
     items: [
       item('i_book', 'dani', 'Intro to Psychology textbook (8th ed.)', 'Hardcover. Some highlighting in the first few chapters.', 'fair', 'textbooks', 60),
       item('i_fan', 'caleb', 'Small desk fan', 'Blue metal fan on a stand. A little dusty.', 'fair', 'electronics', 30),
