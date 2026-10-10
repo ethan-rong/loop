@@ -50,7 +50,7 @@ Rehearse with a timer three times. Cut words, not steps. Record phone and screen
 - **What's checked:** scripted end-to-end runs (items ×3, threads ×3, mock AI) + real-photo calls (lamp → matched; fan → no match and honest "dusty"; pile → 6 items, 1 correct match, 5 honest no-matches) + full UI loop with the live model.
 - **Limits, said plainly:** no accounts (demo identities), single-server JSON store, free-tier iMessage line (10 people, must text the line once), image accuracy spot-checked only, no real users yet, no environmental impact measured.
 - **What I built vs. reused:** everything in `server/` and `public/` was written during the event with AI coding assistance that I directed, reviewed and tested; Express, spectrum-ts and Nunito are third-party; seed photos are Wikimedia Commons (credited).
-- **Why it looks like a campus paper:** judges see dozens of light-blue SaaS screens; Loop is set like a zine — paper, ink, one accent, a ticket stub for the code and a stamp for "Kept in use" — so the physical handoff reads as physical.
+- **Why it looks like a poster:** judges see dozens of pale SaaS screens; Loop is set like a bold light poster — cream and ink, lime and coral stickers, hard shadows, a ticket stub for the code, a "Kept in use" stamp, a campus map — so the physical handoff reads as physical. The Knot mark is one continuous over-under line, built from a parametric curve.
 
 ## Backup plan
 
