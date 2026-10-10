@@ -10,13 +10,12 @@ Photograph something you don't need. Loop finds who does and walks you both to t
 
 ## Tracks / opt-in prizes to select
 - HackNC Beginner (you are a first-time hackathon participant; answer the experience question truthfully)
-- Frutiger Aero
 - Best Community Hack
 - [MLH] Best Use of Gemini API
 
 - Photon (Agents in iMessage)
 
-Do not opt into Nessie, Solana, ElevenLabs, Snowflake, .Tech, or Tiger Data: Loop does not use them.
+Do not opt into Frutiger Aero (the look is editorial, not aero), Nessie, Solana, ElevenLabs, Snowflake, .Tech, or Tiger Data.
 
 ## About the project
 
@@ -40,7 +39,7 @@ Gemini never publishes, reserves, contacts anyone or marks anything collected; a
 - Gemini 3.5 Flash-Lite through `generateContent` with image parts and JSON response schemas: one schema for a single item, one for a pile (boxes in 0–1000 units), one for the coordinator's actions (propose / accept / arrived / cancel / chat / decline). The server validates everything: unknown request ids are dropped, the schema asks for the reason before the id so the model commits to its reasoning first, strings are clamped, "not allowed" items (food, medicine, weapons) are blocked, and the coordinator can never confirm on someone's behalf or reveal the code.
 - Photon Spectrum (`spectrum-ts`) on a shared iMessage line: thread messages are forwarded to linked phones, replies are routed back into the same thread, and a texted photo runs the same draft pipeline.
 - Front end in plain HTML, CSS and JavaScript, no framework, no build step: hash routing, one render function, polling with a version counter so two people see each other's actions within about 1.5 seconds, View Transitions, `prefers-reduced-motion` respected, every text pair measured at 4.5:1 or better.
-- Visual language: modern and mostly white, with Frutiger Aero kept as an accent (a sky-to-mint ribbon, a glossy orb, a glossy pickup-code badge). References: Shupatto brand site (Awwwards Site of the Day, Feb 3 2024) for making a physical action legible; Ocean Lovers Guide to Compost (Awwwards Honorable Mention, May 16 2025) for blue/white sustainability storytelling; motion.dev examples for state transitions.
+- Visual language: a "campus paper" editorial look — warm paper, ink type (Fraunces + Inter), one tangerine accent, a ticket-stub pickup code and a rubber-stamp "Kept in use". References: Shupatto brand site (Awwwards Site of the Day, Feb 3 2024) for making a physical action legible; motion.dev examples for state transitions.
 
 ### Challenges we ran into
 - The Gemini docs now lead with a newer Interactions API, so the first job was proving the classic `generateContent` request shape (image part + `responseSchema`) on gemini-3.5-flash-lite before writing any UI. It worked first try, about 2 seconds per photo.

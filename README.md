@@ -2,7 +2,7 @@
 
 Photograph something you don't need. Loop finds who does and walks you both to the handoff.
 
-Built solo at **HackNC 2026** (UNC–Chapel Hill, Oct 10–11, theme Frutiger Aero). Tracks: Beginner, Frutiger Aero, Best Community Hack, MLH Best Use of Gemini API.
+Built solo at **HackNC 2026** (UNC–Chapel Hill, Oct 10–11). Tracks: Beginner, Best Community Hack, MLH Best Use of Gemini API, Photon (Agents in iMessage).
 
 ## What it does
 
