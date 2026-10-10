@@ -29,8 +29,10 @@ export const DRAFT_SCHEMA = {
     notAllowed: { type: 'STRING', nullable: true },
     match: {
       type: 'OBJECT',
-      properties: { requestId: { type: 'STRING', nullable: true }, reason: { type: 'STRING' } },
-      required: ['requestId', 'reason'],
+      // reason BEFORE requestId: the API emits keys in schema order, so the model commits to its
+      // reasoning before it picks an id (Lane E saw ids chosen that the reason then argued against).
+      properties: { reason: { type: 'STRING' }, requestId: { type: 'STRING', nullable: true } },
+      required: ['reason', 'requestId'],
     },
   },
   required: ['identified', 'title', 'description', 'condition', 'conditionNotes', 'category', 'notAllowed', 'match'],

@@ -1,6 +1,6 @@
 # Seed photo credits
 
-All four photos come from Wikimedia Commons (fetched with the Commons API on Oct 10 2026).
+All five photos come from Wikimedia Commons (fetched with the Commons API on Oct 10 2026).
 Each was downloaded as a 1280px thumbnail, then resized to at most 1024px and re-encoded as JPEG
 (quality 85) with `sips`. No other edits.
 
