@@ -1,51 +1,57 @@
-/* Loop v3 — "campus paper": warm paper, ink type, one tangerine accent, printed objects (a ticket stub,
-   a rubber stamp). No gradients, no blur, no gloss. Tokens first; reasons and measured contrast in DESIGN.md ("v3"). */
+/* Loop v4 — "poster, light": a cream canvas, ink type and 2–3 px ink rules, hard offset ink shadows, acid lime and
+   hot coral as fills only (always with ink on them), Space Grotesk for UI and display, JetBrains Mono for labels,
+   times, chips, Loop's system cards and stickers. No gradients, no blur. Tokens first; contrast in DESIGN.md ("v4"). */
 
 @font-face {
-  font-family: "Fraunces";
-  font-style: normal;
-  font-weight: 400 700; /* variable: wght 400-700, opsz 9-144 */
+  font-family: "Space Grotesk";
+  font-weight: 500;
   font-display: swap;
-  src: url("/fonts/fraunces-latin.woff2") format("woff2");
+  src: url("/fonts/space-grotesk-latin-500-normal.woff2") format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
-  font-family: "Fraunces";
-  font-style: italic;
-  font-weight: 400 700;
+  font-family: "Space Grotesk";
+  font-weight: 700;
   font-display: swap;
-  src: url("/fonts/fraunces-italic-latin.woff2") format("woff2");
+  src: url("/fonts/space-grotesk-latin-700-normal.woff2") format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
-  font-family: "Inter";
-  font-style: normal;
-  font-weight: 400 700;
+  font-family: "JetBrains Mono";
+  font-weight: 400;
   font-display: swap;
-  src: url("/fonts/inter-latin.woff2") format("woff2");
+  src: url("/fonts/jetbrains-mono-latin-400-normal.woff2") format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
+@font-face {
+  font-family: "JetBrains Mono";
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/jetbrains-mono-latin-700-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* The focus ring's ink band. Not inherited, so a focused card never rings the controls inside it. */
+@property --focus { syntax: "*"; inherits: false; }
 
 :root {
-  --paper: #f6f1e8;          /* page */
-  --card: #fffcf6;
-  --sunk: #ece5d8;           /* photo letterbox, skeleton bars */
-  --ink: #15130f;
-  --ink-2: #5c5649;          /* 6.48:1 paper, 7.11:1 card */
-  --rule: rgba(21, 19, 15, .14);        /* decorative only: card edges, dividers */
-  --rule-strong: rgba(21, 19, 15, .32); /* hovered cards, the other person's bubble */
-  --field: #857f71;          /* control edges: 3.54:1 paper, 3.89:1 card */
-  --tangerine: #e4572e;      /* fills (ink label 5.04:1), focus ring, underline motif: 3.27:1 paper, 3.60:1 card */
-  --tangerine-ink: #b5401a;  /* tangerine as text (links): 5.03:1 paper, 5.52:1 card */
-  --moss: #2f6b3a;           /* collected / fulfilled: 5.68:1 paper */
-  --ochre: #b7791f;          /* reserved / warnings: fills, rings and dots only (3.24:1 paper); ink on it is 5.10:1 */
-  --slate: #3b5b8a;          /* offered / Loop's voice / Gemini: 6.12:1 paper */
-  --danger: #a3271b;         /* 6.52:1 paper */
-  --radius: 16px;
-  --radius-photo: 12px;
-  --display: "Fraunces", Georgia, "Songti SC", "Noto Serif SC", serif;
-  --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", sans-serif;
-  --fs-1: clamp(38px, 32px + 1.6vw, 44px);
+  --cream: #f6f1e3;          /* canvas */
+  --card: #ffffff;
+  --sunk: #ebe4d1;           /* photo letterbox, skeleton bars, idle track (decorative) */
+  --ink: #0b0d17;            /* text, rules, shadows, primary fill */
+  --muted: #4a5068;          /* secondary text: 7.06:1 cream, 8.00:1 white */
+  --lime: #c8ff3c;           /* FILL only, ink on it (16.3:1) */
+  --coral: #ff6b57;          /* FILL only, ink on it (6.95:1) */
+  --rule: 2px solid var(--ink);
+  --rule-hero: 3px solid var(--ink);
+  --lift-sm: 4px 4px 0 var(--ink);
+  --lift: 6px 6px 0 var(--ink);
+  --none: 0 0 #0000;
+  --radius: 14px;
+  --radius-sm: 10px;
+  --sans: "Space Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, "PingFang SC", "Noto Sans SC", monospace;
+  --fs-1: clamp(34px, 28px + 2vw, 44px);
   --fs-2: 24px;
   --fs-3: 16px;
   --fs-4: 15px;
@@ -57,39 +63,43 @@
 *, *::before, *::after { box-sizing: border-box; }
 [hidden] { display: none !important; }
 
-/* The paper lives on html: body stays transparent so the ruled lines (z-index -1) under the greeting can paint. */
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  background: var(--paper);
+  background: var(--cream);
 }
-
 body {
   margin: 0;
   min-height: 100vh;
   min-height: 100dvh;
-  font: 400 var(--fs-3)/1.5 var(--sans);
+  background: var(--cream);
   color: var(--ink);
+  font: 500 var(--fs-3)/1.5 var(--sans);
   -webkit-font-smoothing: antialiased;
-  font-feature-settings: "ss01"; /* Inter: open digits (6, 9, 0) for codes and the phone number */
 }
-::selection { background: rgba(228, 87, 46, .22); }
+::selection { background: var(--lime); color: var(--ink); }
 
 h1, h2, h3, p, dl, dd, figure { margin: 0; }
-h1, h2, h3 { font-family: var(--display); font-weight: 600; color: var(--ink); }
-h1 { font-size: var(--fs-1); line-height: 1.02; letter-spacing: -.01em; word-spacing: .06em; font-variation-settings: "opsz" 144; }
-h1, h2, h3 { text-wrap: balance; }
+h1, h2, h3 { font-family: var(--sans); font-weight: 700; color: var(--ink); text-wrap: balance; }
+h1 { font-size: var(--fs-1); line-height: 1.02; letter-spacing: -.04em; }
+h2 { font-size: var(--fs-2); line-height: 1.12; letter-spacing: -.03em; }
+h3 { font-size: 19px; line-height: 1.2; letter-spacing: -.02em; }
 p { text-wrap: pretty; }
-h2 { font-size: var(--fs-2); line-height: 1.15; letter-spacing: -.005em; }
-h3 { font-size: 19px; line-height: 1.2; }
 h1:focus { outline: none; }
-a { color: var(--tangerine-ink); text-decoration-thickness: 1px; text-underline-offset: 3px; }
-strong { font-weight: 650; }
-h1 strong, h2 strong, h3 strong { font-weight: 700; }
+a { color: var(--ink); text-decoration-color: var(--coral); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+strong { font-weight: 700; }
 em { font-style: italic; }
 img { max-width: 100%; }
 
-:focus-visible { outline: 3px solid var(--tangerine); outline-offset: 2px; }
+/* Focus: the 3 px coral ring at a 2 px offset, with that offset filled in ink. Coral alone is 2.48:1 on cream; the
+   ink band makes the ring pass on every surface (DESIGN.md v4). Components with their own shadow compose --focus. */
+:focus-visible {
+  outline: 3px solid var(--coral);
+  outline-offset: 2px;
+  --focus: 0 0 0 2px var(--ink);
+  box-shadow: var(--focus);
+}
+[tabindex="-1"]:focus { outline: none; box-shadow: none; }
 
 .sr-only {
   position: absolute !important;
@@ -105,42 +115,65 @@ img { max-width: 100%; }
 }
 
 .i { width: 1.15em; height: 1.15em; flex: none; vertical-align: -.2em; }
-.muted { color: var(--ink-2); }
+.muted { color: var(--muted); }
 .small { font-size: var(--fs-5); }
-.lead { color: var(--ink-2); margin-top: 10px; font-size: 17px; line-height: 1.45; }
+.lead { margin-top: 12px; color: var(--muted); font-size: 18px; line-height: 1.4; }
 .center { text-align: center; }
 
 /* ---------- layout ---------- */
 
-.wrap { max-width: 592px; margin: 0 auto; padding: 24px 16px 72px; overflow-x: clip; } /* the stamp starts at 1.8x: no sideways scroll */
-.stack > * + * { margin-top: 16px; }
-.stack > .stack-sm:not(.card) { margin-top: 36px; } /* board sections breathe; cards inside a flow stay close */
-.stack-sm > * + * { margin-top: 12px; }
-/* The one ornament: a 2 px tangerine underline under section titles. */
+.wrap { max-width: 592px; margin: 0 auto; padding: 24px 16px 72px; overflow-x: clip; } /* the stamp starts at 1.8x */
+.stack > * + * { margin-top: 18px; }
+.stack > .stack-sm:not(.card) { margin-top: 44px; } /* board sections breathe; cards inside a flow stay close */
+.stack-sm > * + * { margin-top: 14px; }
+
+/* Section titles: uppercase on a 3 px ink rule, with a coral count sticker. */
 .section-title {
-  width: fit-content;
-  padding: 0 0 4px;
-  border-bottom: 2px solid var(--tangerine);
-  font-size: 26px;
-  line-height: 1.1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: var(--rule-hero);
+  font-size: clamp(26px, 20px + 2vw, 34px);
+  line-height: 1;
+  letter-spacing: -.035em;
+  text-transform: uppercase;
+}
+.count {
+  flex: none;
+  display: grid;
+  place-items: center;
+  min-width: 40px;
+  height: 40px;
+  padding: 0 8px;
+  border: var(--rule);
+  border-radius: 999px;
+  background: var(--coral);
+  color: var(--ink);
+  font: 700 17px/1 var(--mono);
+  letter-spacing: 0;
+  rotate: 6deg;
 }
 
-/* .glass is the card surface (the name predates v3): flat card on paper, 1 px rule, no shadow. */
+/* .glass is the card surface (the name predates v3): white, a 2 px ink rule, no shadow until it lifts. */
 .glass {
   background: var(--card);
-  border: 1px solid var(--rule);
+  border: var(--rule);
   border-radius: var(--radius);
 }
 .card { padding: 20px; }
+/* Hero cards: the plan, Gemini's match, the collected moment. */
+.plan.glass, .match.glass, .action.glass:has(.collected) { border: var(--rule-hero); box-shadow: var(--lift); }
 
-/* ---------- top bar: a masthead ---------- */
+/* ---------- top bar ---------- */
 
 .topbar {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: var(--paper);
-  border-bottom: 1px solid var(--ink);
+  background: var(--cream);
+  border-bottom: var(--rule-hero);
   view-transition-name: topbar;
 }
 .topbar-inner {
@@ -149,75 +182,87 @@ img { max-width: 100%; }
   padding: 8px 16px;
   min-height: 64px;
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 4px 6px;
+  gap: 12px;
 }
+/* The lockup (brand/README.md): the knot at cap height, its ink box cropped, a 12 px gap at 26 px that scales in em. */
 .brand {
   display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  min-height: 44px;
+  align-items: baseline;
+  gap: .4615em;
   margin-right: auto;
+  padding: 8px 0; /* 28 + 16 = a 44 px target */
   color: var(--ink);
-  font: italic 600 26px/1 var(--display);
-  font-variation-settings: "opsz" 72;
-  letter-spacing: -.01em;
+  font: 700 28px/1 var(--sans);
+  letter-spacing: -.04em;
   text-decoration: none;
 }
-.brand .loop-mark { width: 26px; height: 26px; margin-top: 2px; }
-.loop-mark { flex: none; color: var(--ink); }
+.brand .knot {
+  flex: none;
+  position: relative;
+  height: .728em;               /* Space Grotesk caps are .70 em; fallback where `cap` is missing */
+  width: calc(.728em * 1.0722);
+  top: .014em;
+  height: 1.04cap;
+  width: calc(1.04cap * 1.0722);
+  top: .02cap;
+  overflow: visible;
+}
+.loop-mark { flex: none; color: var(--ink); overflow: visible; }
 
-/* Loop's iMessage line, from /api/health lineNumber: a newspaper "ear", stacked on a phone, one line from 640 px. */
+/* Loop's iMessage line: a full-width lime strip under the bar (SPEC6), from /api/health lineNumber. */
 .ear {
-  display: inline-flex;
-  flex-direction: column;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: center;
+  gap: 0 8px;
   min-height: 44px;
-  padding: 2px 2px 2px 6px;
-  border-left: 1px solid var(--rule-strong);
+  padding: 8px 16px;
+  background: var(--lime);
   color: var(--ink);
-  font-size: 12px;
-  line-height: 1.3;
-  text-align: left;
+  border-bottom: var(--rule-hero);
+  font: 700 14px/1.25 var(--mono);
+  letter-spacing: .04em;
+  text-transform: uppercase;
   text-decoration: none;
-  white-space: nowrap;
+  text-align: center;
 }
-.ear-label { color: var(--ink-2); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
-.ear-dot { display: none; }
-.ear-num { font-weight: 600; font-variant-numeric: tabular-nums; }
-.ear:hover .ear-num { text-decoration: underline 2px var(--tangerine); text-underline-offset: 3px; }
+.ear::before, .ear::after { content: "\2733\FE0E"; font-weight: 400; }
+.ear-dot { white-space: pre; }
+.ear-num { font-variant-numeric: tabular-nums; }
+.ear:hover .ear-num { text-decoration: underline 2px var(--ink); text-underline-offset: 3px; }
+/* Coral on lime is 2.4:1: the strip takes an ink ring inside its own edge instead. */
+.ear:focus-visible { outline: 3px solid var(--ink); outline-offset: -6px; box-shadow: none; }
 
 .mock {
   margin: 0;
   padding: 6px 16px;
   background: var(--ink);
-  color: var(--paper);
-  font-size: 12px;
-  font-weight: 600;
+  color: var(--cream);
+  font: 700 12px/1.3 var(--mono);
   letter-spacing: .06em;
   text-transform: uppercase;
   text-align: center;
 }
 
-/* SPEC5: no person menu. The far-right control is a globe and the current language; its menu holds three toggles. */
+/* Language: the globe pill opens a menu; the three languages are an ink segmented pill, the current one cream. */
 .lang-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   min-height: 44px;
   padding: 6px 14px 6px 10px;
-  border: 1px solid var(--ink-2);
+  border: var(--rule);
   border-radius: 999px;
-  background: var(--card);
-  color: var(--ink);
-  font: 600 var(--fs-5)/1.2 var(--sans);
+  background: var(--ink);
+  color: var(--cream);
+  font: 700 var(--fs-5)/1.2 var(--mono);
   letter-spacing: .04em;
   white-space: nowrap;
   cursor: pointer;
-  transition: transform 160ms var(--ease), border-color 160ms var(--ease);
 }
-.lang-btn:hover { border-color: var(--ink); transform: translateY(-1px); }
+.lang-btn:hover { text-decoration: underline 2px; text-underline-offset: 4px; }
 .lang-btn .i { width: 18px; height: 18px; }
 
 .menu {
@@ -228,43 +273,43 @@ img { max-width: 100%; }
   max-height: calc(100vh - 84px);
   max-height: calc(100dvh - 84px);
   overflow: auto;
-  padding: 6px;
+  padding: 10px;
   color: var(--ink);
   background: var(--card);
-  border: 1px solid var(--ink);
-  border-radius: 14px;
-  box-shadow: 4px 4px 0 rgba(21, 19, 15, .12); /* a hard print offset, no blur */
+  border: var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--lift-sm);
 }
 .menu:popover-open { animation: pop 160ms var(--ease); }
 @keyframes pop { from { opacity: 0; transform: translateY(-4px); } }
 .menu-title {
-  margin: 8px 10px 4px;
-  font-size: 12px;
-  font-weight: 600;
+  margin: 2px 4px 8px;
+  color: var(--muted);
+  font: 700 12px/1.2 var(--mono);
   letter-spacing: .06em;
   text-transform: uppercase;
-  color: var(--ink-2);
 }
-/* Language toggles (SPEC4 §D): the server keeps the choice. */
-.lang-row { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 4px 4px; }
+.lang-row { display: flex; gap: 3px; padding: 3px; border-radius: 999px; background: var(--ink); }
 .lang {
   flex: 1 1 auto;
   min-height: 44px;
-  padding: 8px 12px;
-  border: 1px solid var(--field);
+  padding: 8px 10px;
+  border: 0;
   border-radius: 999px;
-  background: var(--card);
-  color: var(--ink);
-  font: 500 var(--fs-4)/1.2 var(--sans);
+  background: transparent;
+  color: var(--cream);
+  font: 700 var(--fs-4)/1.2 var(--mono);
   cursor: pointer;
-  transition: background-color 150ms var(--ease), border-color 150ms var(--ease), color 150ms var(--ease);
+  transition: background-color 150ms var(--ease), color 150ms var(--ease);
 }
-.lang:hover { border-color: var(--ink); }
-.lang[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.lang:hover { text-decoration: underline 2px; text-underline-offset: 4px; }
+.lang[aria-pressed="true"] { background: var(--cream); color: var(--ink); }
+.lang:focus-visible { box-shadow: none; } /* the coral ring sits on ink here: 6.95:1 */
 
 /* ---------- buttons ---------- */
 
-/* A transparent border (not border: 0) keeps every button's outline in forced-colors mode. */
+/* Primary: ink fill, cream label, hard ink shadow. Moments: coral fill, ink label. Secondary: white, no shadow until
+   hover. Hover lifts 2 px and the shadow grows 2 px; press sinks it. --lift is per button, --focus is the ring. */
 .btn {
   -webkit-appearance: none;
   appearance: none;
@@ -273,123 +318,123 @@ img { max-width: 100%; }
   justify-content: center;
   gap: 8px;
   min-height: 48px;
-  padding: 12px 22px;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  font: 600 var(--fs-3)/1.2 var(--sans);
+  padding: 10px 20px;
+  border: var(--rule);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  color: var(--ink);
+  font: 700 var(--fs-3)/1.2 var(--sans);
+  letter-spacing: -.01em;
   text-align: center;
   text-decoration: none;
   cursor: pointer;
-  transition: transform 160ms var(--ease), box-shadow 160ms var(--ease), background-color 160ms var(--ease), border-color 160ms var(--ease), color 160ms var(--ease);
+  --lift-now: var(--none);
+  box-shadow: var(--focus, var(--none)), var(--lift-now);
+  transition: translate 120ms var(--ease), box-shadow 120ms var(--ease), background-color 120ms var(--ease), color 120ms var(--ease);
 }
 .btn .i { width: 20px; height: 20px; }
-/* Primary: ink fill, paper label (16.5:1). */
-.btn-primary { color: var(--paper); background: var(--ink); border-color: var(--ink); }
-.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 2px 0 var(--rule-strong); }
-/* Moments (Offer to …, Reserve, Accept & reserve, Confirm handoff, the thread's next step): tangerine with an ink
-   label. Paper on #e4572e is 3.27:1, under 4.5 for a 16 px label; ink on it is 5.04:1 (DESIGN.md v3). */
-.btn-moment, .btn-primary.btn-moment { color: var(--ink); background: var(--tangerine); border-color: var(--ink); }
-.btn-moment:hover { box-shadow: 0 2px 0 var(--ink); }
-/* Secondary: paper fill, ink-2 rule that darkens to ink on hover. */
-.btn-secondary { color: var(--ink); background: var(--paper); border-color: var(--ink-2); }
-.btn-secondary:hover { border-color: var(--ink); transform: translateY(-1px); }
-/* Ghost: a text action, underlined in tangerine like a marked-up proof. */
+.btn-primary { background: var(--ink); color: var(--cream); --lift-now: var(--lift-sm); }
+.btn-moment, .btn-primary.btn-moment { background: var(--coral); color: var(--ink); --lift-now: var(--lift-sm); }
+.btn-primary:hover, .btn-moment:hover { translate: -2px -2px; --lift-now: var(--lift); }
+.btn-secondary:hover { translate: -2px -2px; --lift-now: var(--lift-sm); }
 .btn-ghost {
-  color: var(--ink);
+  padding-inline: 10px;
+  border-color: transparent; /* kept, not removed: forced-colors mode still outlines it */
   background: transparent;
-  padding-inline: 12px;
-  text-decoration: underline 2px var(--tangerine);
+  text-decoration: underline 3px var(--coral);
   text-underline-offset: 5px;
 }
 .btn-ghost:hover { text-decoration-color: var(--ink); }
-.btn-small { min-height: 44px; font-size: var(--fs-4); padding: 8px 16px; }
-.btn:active { transform: translateY(1px); box-shadow: none; }
-.btn[disabled] { cursor: not-allowed; opacity: .45; box-shadow: none; transform: none; }
+.btn-small { min-height: 44px; padding: 8px 14px; font-size: var(--fs-4); }
+.btn:active { translate: 2px 2px; --lift-now: var(--none); }
+.btn[disabled] { cursor: not-allowed; opacity: .45; translate: none; --lift-now: var(--none); }
 .btn-block { width: 100%; }
 
-.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
-.hero-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(176px, 1fr)); }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
+.hero-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(176px, 1fr)); gap: 14px; }
 
-/* ---------- chips: ink outline and ink text; colour only in the dot ---------- */
+/* ---------- chips: stickers ---------- */
 
-.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 3px 10px;
-  border: 1px solid rgba(21, 19, 15, .4);
-  border-radius: 999px;
+  gap: 5px;
+  padding: 3px 8px;
+  border: var(--rule);
+  border-radius: 6px;
+  background: var(--card);
   color: var(--ink);
-  font-size: var(--fs-5);
-  font-weight: 550;
-  line-height: 1.25;
+  font: 700 12px/1.25 var(--mono);
+  letter-spacing: .04em;
+  text-transform: uppercase;
   white-space: nowrap;
+  rotate: -1.5deg;
 }
-.chip.dot::before { content: ""; flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--dot, var(--ink-2)); }
-.chip-available, .chip-open { --dot: var(--tangerine); }
-.chip-offered, .chip-matched { --dot: var(--slate); }
-.chip-reserved { --dot: var(--ochre); }
-/* Collected / fulfilled: moss text and edge, a tiny check instead of the dot. */
-.chip-collected, .chip-fulfilled { color: var(--moss); border-color: var(--moss); }
-/* "yours": the only mark of what this tab posted (SPEC5). Dashed, ink-2 (7.11:1 on card). */
-.chip-yours { border-style: dashed; border-color: var(--ink-2); color: var(--ink-2); }
+.chip:nth-child(even) { rotate: 1.5deg; }
+.chip-available, .chip-fulfilled { background: var(--lime); }
+.chip-reserved { background: var(--coral); }
+.chip-collected { background: var(--ink); color: var(--cream); }
+.chip-withdrawn, .chip-closed { background: var(--cream); color: var(--muted); border-style: dashed; }
+/* "yours": the only mark of what this tab posted (SPEC5). */
+.chip-yours { background: var(--cream); border-style: dashed; }
 .chip-collected.dot::before, .chip-fulfilled.dot::before {
+  content: "";
+  flex: none;
   width: 11px;
   height: 11px;
-  border-radius: 0;
   background: currentColor;
-  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.2 4.2L19 7'/%3E%3C/svg%3E") center / contain no-repeat;
-  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.2 4.2L19 7'/%3E%3C/svg%3E") center / contain no-repeat;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.2 4.2L19 7'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.2 4.2L19 7'/%3E%3C/svg%3E") center / contain no-repeat;
 }
 
 /* ---------- board ---------- */
 
-/* The greeting is not a card: big type straight on the paper. */
-.hero.glass { position: relative; padding: 4px 0 0; background: none; border: 0; border-radius: 0; }
-/* Ruled paper behind the board header only (6 % ink, the one allowed pattern). */
-.hero.ruled::before {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  inset: -24px -16px -16px;
-  background: repeating-linear-gradient(180deg, transparent 0 31px, rgba(21, 19, 15, .06) 31px 32px);
-  pointer-events: none;
+/* The greeting is not a card: big type straight on the canvas, one word under a lime highlighter. */
+.hero.glass { position: relative; padding: 6px 0 0; background: none; border: 0; border-radius: 0; box-shadow: none; }
+.hero h1 { font-size: clamp(44px, 32px + 3.2vw, 60px); line-height: .98; letter-spacing: -.05em; }
+.hl {
+  display: inline-block;
+  padding: 0 .1em;
+  margin-inline: -.02em;
+  background: var(--lime);
+  color: var(--ink);
+  rotate: -1deg;
 }
-.hero h1 { font-size: clamp(44px, 36px + 2vw, 52px); }
 /* Lists set only margin-bottom: a "margin: 0" here would beat the stacks' margin-top and glue cards together. */
-.list { list-style: none; margin-bottom: 0; padding: 0; display: grid; gap: 12px; }
-.empty { padding: 20px; color: var(--ink-2); text-align: center; font-size: var(--fs-4); }
+.list { list-style: none; margin-bottom: 0; padding: 0; display: grid; gap: 18px; }
+.empty { padding: 20px; color: var(--muted); text-align: center; font-size: var(--fs-4); }
+.empty.glass { border-style: dashed; }
 
-/* Need cards read like classifieds with no byline (SPEC5): when, what, details, status. */
-.need { padding: 16px 18px; }
-.need-meta { font-size: var(--fs-5); color: var(--ink-2); }
-.need h3 { margin-top: 4px; font-size: 21px; overflow-wrap: anywhere; }
-.need-details { margin-top: 4px; font-size: var(--fs-4); color: var(--ink-2); overflow-wrap: anywhere; }
-.need-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; min-height: 28px; }
+/* Need cards: when (mono), what, details, status. */
+.need { padding: 16px 18px; box-shadow: var(--lift-sm); }
+.need-meta { color: var(--muted); font: 400 12px/1.3 var(--mono); letter-spacing: .04em; text-transform: uppercase; }
+.need h3 { margin-top: 6px; font-size: 22px; overflow-wrap: anywhere; }
+.need-details { margin-top: 4px; color: var(--muted); font-size: var(--fs-4); overflow-wrap: anywhere; }
+.need-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 14px; min-height: 28px; }
 .need-foot .btn { margin: -8px -10px -8px 0; }
 
-.grid { list-style: none; margin-bottom: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.grid { list-style: none; margin-bottom: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 16px; }
 .grid > li { display: flex; }
 .item-card, .foryou {
   color: inherit;
   text-decoration: none;
-  transition: transform 180ms var(--ease), border-color 180ms var(--ease);
+  box-shadow: var(--focus, var(--none)), var(--lift-sm);
+  transition: translate 140ms var(--ease), box-shadow 140ms var(--ease);
 }
 .item-card { display: flex; flex-direction: column; width: 100%; overflow: hidden; }
-.item-card:hover, .item-card:focus-visible, .foryou:hover, .foryou:focus-visible { transform: translateY(-1px); border-color: var(--ink); }
-/* Photos run edge to edge at the top of the card, with a thin ink rule under them. */
+.item-card:hover, .foryou:hover { translate: -2px -2px; box-shadow: var(--focus, var(--none)), var(--lift); }
 .thumb {
   display: block;
   width: 100%;
   aspect-ratio: 1;
   object-fit: cover;
   background: var(--sunk);
-  border-bottom: 1px solid var(--ink);
+  border-bottom: var(--rule);
 }
-.item-body { display: grid; gap: 10px; padding: 12px 14px 14px; }
+.item-body { display: grid; gap: 10px; padding: 12px 12px 14px; }
 .item-title {
-  font-size: 18px;
+  font-size: 17px;
   line-height: 1.2;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -398,41 +443,53 @@ img { max-width: 100%; }
 }
 
 .foryou { display: block; overflow: hidden; }
-/* The banner is a band across the top: slate for an offer, ochre for a reservation. */
+/* A band across the top: lime for an offer, coral for a reservation, ink print on both. */
 .banner {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 9px 16px;
-  background: var(--slate);
-  color: var(--paper);           /* 6.12:1 */
-  font-size: var(--fs-4);
-  font-weight: 600;
+  padding: 8px 14px;
+  background: var(--lime);
+  border-bottom: var(--rule);
+  color: var(--ink);
+  font: 700 12px/1.3 var(--mono);
+  letter-spacing: .04em;
+  text-transform: uppercase;
 }
-.is-reserved .banner { background: var(--ochre); color: var(--ink); } /* ink on ochre 5.10:1 */
+.is-reserved .banner { background: var(--coral); }
 .foryou-row { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 12px 14px 12px 12px; }
-.foryou-row img { width: 72px; height: 72px; border-radius: 8px; object-fit: cover; background: var(--sunk); }
+.foryou-row img { width: 72px; height: 72px; border: var(--rule); border-radius: 8px; object-fit: cover; background: var(--sunk); }
 .foryou-text { display: grid; gap: 2px; min-width: 0; }
-.foryou-title { font: 600 19px/1.2 var(--display); overflow-wrap: anywhere; }
+.foryou-title { font: 700 19px/1.2 var(--sans); letter-spacing: -.02em; overflow-wrap: anywhere; }
 .foryou-row > .i { color: var(--ink); }
 
-/* The colophon. */
+/* The footer: a 3 px rule, the kept-in-use count, Reset demo, and the line as a mono link. */
 .foot {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   gap: 2px 8px;
-  margin-top: 40px;
+  margin-top: 44px;
   padding-top: 12px;
-  border-top: 1px solid var(--ink);
-  color: var(--ink-2);
-  font-size: var(--fs-5);
+  border-top: var(--rule-hero);
+  color: var(--muted);
+  font: 400 var(--fs-5)/1.4 var(--mono);
+  text-transform: uppercase;
 }
 .foot .btn { font-size: var(--fs-5); }
 .foot-line { flex-basis: 100%; display: flex; justify-content: center; }
-.line-link { display: inline-flex; align-items: center; min-height: 44px; padding: 0 8px; color: var(--ink); font-weight: 600; text-decoration: underline 1px var(--tangerine); text-underline-offset: 4px; }
-.line-link:hover { text-decoration-thickness: 2px; }
+.line-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 8px;
+  color: var(--ink);
+  font: 700 var(--fs-4)/1.2 var(--mono);
+  text-decoration: underline 3px var(--coral);
+  text-underline-offset: 5px;
+}
+.line-link:hover { text-decoration-color: var(--ink); }
 
 /* ---------- forms ---------- */
 
@@ -442,83 +499,84 @@ img { max-width: 100%; }
   display: block;
   margin-bottom: 8px;
   padding: 0;
-  font-size: var(--fs-5);
-  font-weight: 600;
+  color: var(--muted);
+  font: 700 12px/1.3 var(--mono);
   letter-spacing: .06em;
   text-transform: uppercase;
-  color: var(--ink-2);
 }
 .label strong { color: var(--ink); }
 .label em, .label .muted { text-transform: none; letter-spacing: 0; }
+.label em { font-style: normal; color: var(--ink); }
 .input {
   display: block;
   width: 100%;
   min-height: 48px;
   padding: 11px 14px;
-  font: 400 var(--fs-3)/1.4 var(--sans);
   color: var(--ink);
   background: var(--card);
-  border: 1px solid var(--field);
-  border-radius: 10px;
-  transition: border-color 150ms var(--ease);
+  border: var(--rule);
+  border-radius: var(--radius-sm);
+  font: 500 var(--fs-3)/1.4 var(--sans);
 }
-.input:hover { border-color: var(--ink-2); }
-.input:focus { border-color: var(--ink); }
-.input::placeholder { color: #6e685b; opacity: 1; } /* 5.40:1 on card */
-.input[aria-invalid="true"] { border-color: var(--danger); }
+.input::placeholder { color: var(--muted); opacity: 1; } /* 8.00:1 on white */
+/* Invalid: a coral bar inside the ink edge; aria-invalid and the message under it carry the state. */
+.input[aria-invalid="true"] { box-shadow: var(--focus, var(--none)), inset 8px 0 0 var(--coral); }
 textarea.input { min-height: 96px; resize: vertical; }
 select.input {
   -webkit-appearance: none;
   appearance: none;
   padding-right: 42px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2315130f' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230b0d17' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 14px center;
   background-size: 18px;
   cursor: pointer;
 }
-.hint { margin-top: 6px; font-size: var(--fs-5); color: var(--ink-2); }
-.error { margin-top: 6px; font-size: var(--fs-4); font-weight: 600; color: var(--danger); }
+.hint { margin-top: 6px; color: var(--muted); font-size: var(--fs-5); }
+/* No red in v4: errors are ink, marked by a coral bar (the words carry the meaning). */
+.error { margin-top: 8px; padding-left: 10px; border-left: 4px solid var(--coral); color: var(--ink); font-size: var(--fs-4); font-weight: 700; }
 
-.picks { display: flex; flex-wrap: wrap; gap: 8px; }
-.picks ~ .input { margin-top: 10px; } /* ~ not +: a visually hidden label sits between them */
+.picks { display: flex; flex-wrap: wrap; gap: 10px; }
+.picks ~ .input { margin-top: 12px; } /* ~ not +: a visually hidden label sits between them */
 .pick {
   position: relative;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   min-height: 44px;
-  padding: 8px 16px;
-  border: 1px solid var(--field);
-  border-radius: 999px;
+  padding: 8px 14px;
+  border: var(--rule);
+  border-radius: var(--radius-sm);
   background: var(--card);
   color: var(--ink);
-  font: 500 var(--fs-4)/1.2 var(--sans);
+  font: 700 var(--fs-4)/1.2 var(--sans);
   cursor: pointer;
-  transition: background-color 150ms var(--ease), border-color 150ms var(--ease), color 150ms var(--ease);
+  --lift-now: var(--none);
+  box-shadow: var(--focus, var(--none)), var(--lift-now);
+  transition: background-color 120ms var(--ease), box-shadow 120ms var(--ease);
 }
-.pick:hover { border-color: var(--ink); }
+.pick:hover { --lift-now: 2px 2px 0 var(--ink); }
 .pick input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; pointer-events: none; }
-.pick .tick { display: none; width: 16px; height: 16px; }
-.pick[aria-pressed="true"], .pick:has(input:checked) { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.pick .tick { display: none; width: 16px; height: 16px; stroke-width: 3; }
+.pick[aria-pressed="true"], .pick:has(input:checked) { background: var(--lime); --lift-now: 3px 3px 0 var(--ink); }
 .pick[aria-pressed="true"] .tick, .pick:has(input:checked) .tick { display: inline-block; }
-.pick:has(input:focus-visible) { outline: 3px solid var(--tangerine); outline-offset: 2px; }
+.pick:has(input:focus-visible) { outline: 3px solid var(--coral); outline-offset: 2px; --focus: 0 0 0 2px var(--ink); }
 
-/* ---------- notices & banners: card, ink text, a 4 px coloured rule on the left ---------- */
+/* ---------- notices: white, ink rule, a 6 px fill bar on the left (lime info / ok, coral warning / error) ---------- */
 
 .notice {
-  padding: 12px 14px 12px 14px;
-  border: 1px solid var(--rule);
-  border-left: 4px solid var(--slate);
-  border-radius: 8px;
+  padding: 12px 14px;
+  border: var(--rule);
+  border-left-width: 8px;
+  border-radius: var(--radius-sm);
   background: var(--card);
   color: var(--ink);
   font-size: var(--fs-4);
   font-weight: 500;
+  box-shadow: inset 4px 0 0 var(--lime);
 }
-.notice.warn { border-left-color: var(--ochre); }
-.notice.error { border-left-color: var(--danger); color: var(--danger); }
-.notice.ok { border-left-color: var(--moss); }
+.notice.warn, .notice.error { box-shadow: inset 4px 0 0 var(--coral); }
+.notice.error { font-weight: 700; }
 
 .net {
   position: fixed;
@@ -532,12 +590,12 @@ select.input {
   margin: 0;
   padding: 10px 18px;
   max-width: calc(100vw - 32px);
-  border-radius: 999px;
-  border: 2px solid var(--ochre);
+  border: 2px solid var(--coral);
+  border-radius: var(--radius-sm);
   background: var(--ink);
-  color: var(--paper);
-  font-size: var(--fs-4);
-  font-weight: 600;
+  color: var(--cream);
+  font: 700 var(--fs-5)/1.3 var(--mono);
+  text-transform: uppercase;
 }
 
 /* ---------- give ---------- */
@@ -552,62 +610,67 @@ select.input {
   padding: 32px 24px;
   text-align: center;
   cursor: pointer;
-  border: 1.5px dashed var(--ink-2);
+  border: 3px dashed var(--ink);
   border-radius: var(--radius);
-  transition: background-color 180ms var(--ease), border-color 180ms var(--ease), transform 180ms var(--ease);
+  transition: background-color 160ms var(--ease), transform 160ms var(--ease);
 }
-.drop:hover, .drop.is-over { border-color: var(--ink); }
+.drop:hover, .drop.is-over { background: #fffdf5; }
 .drop.is-over { transform: scale(1.01); }
-#photo-input:focus-visible + .drop { outline: 3px solid var(--tangerine); outline-offset: 3px; }
+#photo-input:focus-visible + .drop { outline: 3px solid var(--coral); outline-offset: 2px; box-shadow: 0 0 0 2px var(--ink); }
 .drop-orb {
   display: grid;
   place-items: center;
-  width: 72px;
-  height: 72px;
+  width: 76px;
+  height: 76px;
   margin-bottom: 4px;
+  border: var(--rule);
   border-radius: 50%;
-  color: var(--paper);
-  background: var(--ink);
+  color: var(--ink);
+  background: var(--lime);
+  box-shadow: var(--lift-sm);
+  rotate: -6deg;
 }
-.drop-orb .i { width: 32px; height: 32px; }
-.drop-title { font: 600 26px/1.15 var(--display); }
+.drop-orb .i { width: 34px; height: 34px; }
+.drop-title { font: 700 26px/1.1 var(--sans); letter-spacing: -.03em; }
 .drop .muted { max-width: 34ch; font-size: var(--fs-4); }
 .drop .btn { margin-top: 8px; pointer-events: none; }
-.text-in { text-align: center; font-size: var(--fs-4); color: var(--ink-2); }
+.text-in { text-align: center; color: var(--muted); font-size: var(--fs-4); }
 /* "Nothing identifies you…" under the Post title (SPEC5). */
-.appear { font-size: var(--fs-4); color: var(--ink-2); }
-.stack > h1 + .appear { margin-top: 6px; }
-.text-in a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 2px; color: var(--ink); font-weight: 600; text-decoration: underline 1px var(--tangerine); text-underline-offset: 4px; }
+.appear { color: var(--muted); font: 400 var(--fs-5)/1.45 var(--mono); }
+.stack > h1 + .appear { margin-top: 8px; }
+.text-in a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 2px; color: var(--ink); font: 700 var(--fs-4)/1.2 var(--mono); text-decoration: underline 3px var(--coral); text-underline-offset: 5px; }
 
 .photo-frame {
   position: relative;
   overflow: hidden;
   aspect-ratio: 4 / 3;
   background: var(--sunk);
-  border-radius: var(--radius-photo);
+  border: var(--rule-hero);
+  border-radius: 12px;
+  box-shadow: var(--lift);
 }
-.photo-frame.glass { border-color: var(--ink); border-radius: var(--radius-photo); }
+.photo-frame.glass { border: var(--rule-hero); border-radius: 12px; }
 .photo-frame img { display: block; width: 100%; height: 100%; object-fit: contain; }
-/* Gemini is looking: a thin tangerine scan line sweeps the photo (no gradient). */
+/* Gemini is looking: a 3 px coral scan line sweeps the photo. */
 .photo-frame.is-busy::after {
   content: "";
   position: absolute;
   inset: 0;
-  border-top: 2px solid var(--tangerine);
+  border-top: 3px solid var(--coral);
   animation: scan 1.6s var(--ease) infinite alternate;
   pointer-events: none;
 }
-@keyframes scan { to { transform: translateY(calc(100% - 2px)); } }
+@keyframes scan { to { transform: translateY(calc(100% - 3px)); } }
 
-.stack > .swap { margin-top: 4px; display: flex; justify-content: center; }
-.status-line { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+.stack > .swap { margin-top: 6px; display: flex; justify-content: center; }
+.status-line { display: flex; align-items: center; gap: 10px; font-weight: 700; }
 .spinner {
   flex: none;
   width: 20px;
   height: 20px;
   border-radius: 50%;
   border: 3px solid var(--sunk);
-  border-top-color: var(--tangerine);
+  border-top-color: var(--ink);
   animation: spin .9s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -619,163 +682,169 @@ select.input {
 .skeleton span:nth-child(3) { width: 40%; }
 @keyframes pulse { to { opacity: .45; } }
 
-/* AI draft vs human-checked: dashed slate rule + sparkle, then a solid ink rule + check. */
-.draft { transition: border-color 200ms var(--ease); }
-.draft.is-draft, .ai-box { border: 1.5px dashed var(--slate); }
-.draft.is-checked, .draft.is-manual { border: 1.5px solid var(--ink); }
-.draft-head { display: flex; align-items: center; gap: 8px; min-height: 24px; margin-bottom: 18px; }
-.tag { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-5); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
-.tag .i { width: 16px; height: 16px; }
-.tag-ai { color: var(--slate); }
-.tag-human { color: var(--ink); }
+/* AI draft vs human-checked: a dashed ink edge and a lime "Gemini" sticker, then a solid edge and an ink "checked" one. */
+.draft.is-draft, .ai-box { border: 2px dashed var(--ink); }
+.draft.is-checked, .draft.is-manual { border: var(--rule); }
+.draft-head { display: flex; align-items: center; gap: 8px; min-height: 28px; margin-bottom: 18px; }
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  padding: 4px 10px;
+  border: var(--rule);
+  border-radius: 999px;
+  font: 700 12px/1.2 var(--mono);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  rotate: -1deg;
+}
+.tag .i { width: 15px; height: 15px; }
+.tag-ai { background: var(--lime); color: var(--ink); }
+.tag-human { background: var(--ink); color: var(--cream); }
 .draft.is-draft .tag-human, .draft.is-checked .tag-ai, .draft.is-checked .approve { display: none; }
-.note { display: flex; gap: 6px; margin-top: 10px; font-size: var(--fs-5); color: var(--ink-2); }
-.note .i { width: 15px; height: 15px; margin-top: 1px; color: var(--slate); }
+.note { display: flex; gap: 8px; margin-top: 10px; color: var(--muted); font-size: var(--fs-5); }
+.note .i { width: 16px; height: 16px; margin-top: 1px; color: var(--ink); }
 
-.match h2 { margin-top: 10px; font-size: 22px; line-height: 1.25; }
-.match > .muted { margin-top: 6px; font-size: var(--fs-4); }
+.match h2 { margin-top: 12px; font-size: 24px; line-height: 1.25; }
+.match.ai-box { border-style: solid; }
+/* The request's title under a lime highlighter. */
+.match h2 em, .suggestion em { padding: 0 .12em; background: var(--lime); font-style: normal; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.match > .muted { margin-top: 8px; font-size: var(--fs-4); }
 
 /* ---------- detail ---------- */
 
 .back {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   min-height: 44px;
-  padding: 0 14px 0 6px;
-  margin-left: -6px;
-  border-radius: 999px;
+  padding: 0 14px 0 4px;
+  margin-left: -4px;
+  border-radius: 8px;
   color: var(--ink);
-  font-weight: 600;
+  font: 700 var(--fs-5)/1 var(--mono);
+  letter-spacing: .04em;
+  text-transform: uppercase;
   text-decoration: none;
 }
-.back:hover { text-decoration: underline 2px var(--tangerine); text-underline-offset: 5px; }
-.back .i { width: 20px; height: 20px; }
+.back:hover { text-decoration: underline 3px var(--coral); text-underline-offset: 5px; }
+.back .i { width: 20px; height: 20px; stroke-width: 2.6; }
 .back + h1 { margin-top: 4px; }
 
-.action > * + * { margin-top: 12px; }
+.action > * + * { margin-top: 14px; }
 .action > h2 + p { margin-top: 6px; }
 .detail-head .chips { margin-bottom: 14px; }
-.detail-head h1 { font-size: clamp(32px, 26px + 1.6vw, 40px); overflow-wrap: anywhere; }
-.from { margin-top: 10px; color: var(--ink-2); font-size: var(--fs-4); }
+.detail-head h1 { font-size: clamp(32px, 26px + 2vw, 44px); overflow-wrap: anywhere; }
+.from { margin-top: 10px; color: var(--muted); font: 400 var(--fs-5)/1.4 var(--mono); text-transform: uppercase; letter-spacing: .03em; }
 .desc { margin-top: 14px; overflow-wrap: anywhere; }
 .provenance {
   display: flex;
-  align-items: center;
-  gap: 6px;
+  align-items: flex-start;
+  gap: 8px;
   margin-top: 16px;
   padding-top: 14px;
-  border-top: 1px solid var(--rule);
-  color: var(--ink-2);
-  font-size: var(--fs-5);
-  font-weight: 500;
+  border-top: 2px dashed var(--ink);
+  color: var(--muted);
+  font: 400 var(--fs-5)/1.45 var(--mono);
 }
-.provenance .i { width: 15px; height: 15px; color: var(--slate); }
+.provenance .i { width: 16px; height: 16px; margin-top: 1px; color: var(--ink); }
 
 .timeline { list-style: none; margin-bottom: 0; padding: 18px 8px 16px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.timeline li { position: relative; display: grid; justify-items: center; align-content: start; gap: 4px; text-align: center; }
+.timeline li { position: relative; display: grid; justify-items: center; align-content: start; gap: 6px; text-align: center; }
+/* Connectors: 3 px dotted ink ahead, solid ink once reached. */
 .timeline li + li::before {
   content: "";
   position: absolute;
-  top: 15px;
+  top: 17px;
   right: 50%;
   width: 100%;
-  height: 2px;
-  background: var(--rule);
+  border-top: 3px dotted var(--ink);
 }
-.timeline li.reached::before { background: var(--ink); }
-.timeline li.final::before { background: var(--moss); }
+.timeline li.reached::before { border-top-style: solid; }
 .step-dot {
   position: relative;
   z-index: 1;
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  border: var(--rule);
+  border-radius: var(--radius-sm);
   background: var(--card);
-  border: 1.5px solid var(--field);
-  color: var(--ink-2);
-  font-size: var(--fs-5);
-  font-weight: 650;
-  transition: background-color 220ms var(--ease), border-color 220ms var(--ease);
+  color: var(--ink);
+  font: 700 var(--fs-4)/1 var(--mono);
 }
-.step-dot .i { width: 18px; height: 18px; }
-.step-label { font-size: var(--fs-4); font-weight: 600; color: var(--ink); }
-.step-time { font-size: var(--fs-5); color: var(--ink-2); }
-.done .step-dot { background: var(--ink); border-color: var(--ink); color: var(--paper); }
-.current .step-dot { border: 2px solid var(--tangerine); color: var(--ink); background: var(--card); }
-.current.is-reserved .step-dot { border-color: var(--ochre); }
-.final .step-dot { background: var(--moss); border-color: var(--moss); color: var(--paper); }
+.step-dot .i { width: 20px; height: 20px; stroke-width: 3; }
+.step-label { color: var(--ink); font: 700 var(--fs-5)/1.15 var(--sans); letter-spacing: .02em; text-transform: uppercase; }
+.step-time { color: var(--muted); font: 400 12px/1.2 var(--mono); }
+.done .step-dot { background: var(--ink); color: var(--cream); }
+.current .step-dot { background: var(--coral); rotate: -6deg; }
+.final .step-dot { background: var(--lime); color: var(--ink); rotate: -6deg; }
 
-/* The pickup code is a ticket stub: tangerine (a moment surface), ink print, a dashed perforation with two notches,
-   tilted -1.5°. The rotation sits on the ticket and in both keyframes, so the scale-in keeps it. */
+/* The pickup code: a white ticket with a 3 px ink rule and the hero shadow, a lime sticker above the digits, giant
+   digits on a dotted coral underline, and the knot in the corner. It scales in once. */
 .ticket {
   position: relative;
-  display: flex;
-  width: fit-content;
-  margin: 18px auto 6px;
+  margin: 30px 0 8px;
+  padding: 34px 16px 22px;
   color: var(--ink);
-  background: var(--tangerine);
-  border: 1px solid var(--ink);
-  border-radius: 10px;
-  transform: rotate(-1.5deg);
+  background: var(--card);
+  border: var(--rule-hero);
+  border-radius: var(--radius);
+  box-shadow: var(--lift);
+  text-align: center;
 }
 .ticket.reveal { animation: reveal 250ms var(--ease) both; }
-@keyframes reveal { from { opacity: 0; transform: rotate(-1.5deg) scale(.9); } to { transform: rotate(-1.5deg); } }
-.ticket-main { display: grid; justify-items: center; gap: 2px; padding: 12px 22px 14px; }
-.ticket-label { font-size: 12px; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; }
+@keyframes reveal { from { opacity: 0; scale: .92; } }
+.ticket-main { display: grid; justify-items: center; }
+.ticket-label {
+  position: absolute;
+  top: -17px;
+  left: 50%;
+  translate: -50% 0;
+  rotate: -3deg;
+  padding: 6px 12px;
+  border: var(--rule);
+  border-radius: 6px;
+  background: var(--lime);
+  font: 700 var(--fs-5)/1.2 var(--mono);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
 .ticket .code {
   margin: 0;
-  padding-left: .12em; /* balances the letter-spacing after the last digit */
-  font: 600 56px/1 var(--display);
-  font-variation-settings: "opsz" 144;
-  letter-spacing: .12em;
-  font-variant-numeric: tabular-nums lining-nums;
+  font: 700 clamp(96px, 80px + 3vw, 104px)/1 var(--sans);
+  letter-spacing: .03em;
+  font-variant-numeric: tabular-nums;
 }
-.ticket-stub {
-  position: relative;
-  display: grid;
-  place-items: center;
-  padding: 0 14px;
-  border-left: 2px dashed var(--ink);
-}
-.ticket-stub .loop-mark { width: 26px; height: 26px; }
-/* Notches: card-coloured half circles over the perforation's two ends. */
-.ticket-stub::before, .ticket-stub::after {
-  content: "";
-  position: absolute;
-  left: -10px;
-  width: 18px;
-  height: 18px;
-  border: 1px solid var(--ink);
-  border-radius: 50%;
-  background: var(--card);
-}
-.ticket-stub::before { top: -10px; clip-path: inset(50% 0 0 0); }
-.ticket-stub::after { bottom: -10px; clip-path: inset(0 0 50% 0); }
-.ticket + p { margin-top: 14px; }
+.ticket .code > [aria-hidden] { display: inline-block; padding: 0 0 8px .03em; border-bottom: 8px dotted var(--coral); }
+.ticket-stub { position: absolute; top: 12px; right: 14px; display: block; line-height: 0; }
+.ticket-stub .loop-mark { width: 30px; height: auto; }
+.ticket + p { margin-top: 16px; }
 
-/* Where / when: a two-cell ledger with Fraunces values. */
+/* Where / when: a two-cell ledger, mono labels, bold values. */
 .meet {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-top: 14px;
-  border: 1px solid var(--rule-strong);
-  border-radius: 10px;
+  border: var(--rule);
+  border-radius: var(--radius-sm);
+  background: var(--card);
 }
-.meet div { padding: 12px 14px; min-width: 0; }
-.meet div + div { border-left: 1px solid var(--rule-strong); }
-.meet dt { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); }
-.meet dd { margin-top: 2px; font: 600 19px/1.2 var(--display); overflow-wrap: anywhere; }
+.meet div { min-width: 0; padding: 10px 14px 12px; }
+.meet div + div { border-left: var(--rule); }
+.meet dt { color: var(--muted); font: 700 12px/1.3 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+.meet dd { margin-top: 4px; font: 700 19px/1.2 var(--sans); letter-spacing: -.02em; overflow-wrap: anywhere; }
 
 .code-input {
   max-width: 220px;
   padding-left: calc(14px + .3em);
-  font: 600 32px/1.2 var(--display);
+  font: 700 32px/1.2 var(--mono);
   letter-spacing: .3em;
   text-align: center;
-  font-variant-numeric: tabular-nums lining-nums;
+  font-variant-numeric: tabular-nums;
 }
 .shake { animation: shake 380ms ease-in-out; }
 @keyframes shake {
@@ -785,124 +854,179 @@ select.input {
   80% { transform: translateX(4px); }
 }
 
+/* A coral check sticker (the Ask "Posted" badge, and the collected card's corner). */
 .success { display: flex; align-items: center; gap: 14px; }
 .check-badge {
   flex: none;
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
+  border: var(--rule);
   border-radius: 50%;
-  color: var(--paper);
-  background: var(--ink);
+  color: var(--ink);
+  background: var(--coral);
+  rotate: -6deg;
 }
-.check-badge .i { width: 26px; height: 26px; stroke-width: 2.6; }
+.check-badge .i { width: 28px; height: 28px; stroke-width: 3; }
 .animate .check-badge { animation: pop-in 320ms var(--ease) both; }
-@keyframes pop-in { from { opacity: 0; transform: scale(.7); } }
+@keyframes pop-in { from { opacity: 0; scale: .7; } }
 
-/* Collected: a moss rubber stamp, rotated -8°, stamped once (scale-in 250 ms, none under reduced motion). */
-.collected { display: flow-root; }
+/* Collected: the coral check sticker, the line, then an ink rubber stamp "KEPT IN USE" at -8°, stamped once. */
+.success.collected { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 4px 14px; }
+.collected::before {
+  content: "";
+  grid-row: 1 / span 2;
+  width: 52px;
+  height: 52px;
+  border: var(--rule);
+  border-radius: 50%;
+  background: var(--coral) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230b0d17' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.2 4.2L19 7'/%3E%3C/svg%3E") center / 28px no-repeat;
+  rotate: -6deg;
+}
+.collected h2 { grid-column: 2; grid-row: 1; align-self: end; }
+.collected .muted { grid-column: 2; grid-row: 2; align-self: start; font: 400 var(--fs-5)/1.4 var(--mono); text-transform: uppercase; }
 .stamp {
-  float: right;
-  margin: 2px 0 10px 14px;
-  padding: 7px 12px 6px;
-  border: 5px double var(--moss);
+  grid-column: 1 / -1;
+  grid-row: 3;
+  justify-self: center;
+  margin: 22px 0 8px;
+  padding: 10px 16px;
+  border: var(--rule-hero);
   border-radius: 8px;
-  color: var(--moss);
-  font: 750 15px/1 var(--sans);
+  box-shadow: inset 0 0 0 3px var(--card), inset 0 0 0 5px var(--ink); /* a second, inner rule: a rubber stamp */
+  color: var(--ink);
+  font: 700 22px/1 var(--mono);
   letter-spacing: .14em;
   text-transform: uppercase;
   white-space: nowrap;
-  transform: rotate(-8deg);
+  rotate: -8deg;
 }
 .animate .stamp { animation: stamp 250ms cubic-bezier(.3, 1.3, .5, 1) both; }
-@keyframes stamp { from { opacity: 0; transform: rotate(-8deg) scale(1.8); } to { opacity: 1; transform: rotate(-8deg); } }
-.collected .muted { margin-top: 4px; }
+@keyframes stamp { from { opacity: 0; scale: 1.8; } to { opacity: 1; scale: 1; } }
 
-.suggestions { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 10px; }
-.suggestion { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px; border-radius: 12px; background: var(--paper); border: 1px solid var(--rule); }
-.suggestion img { width: 56px; height: 56px; border-radius: 8px; object-fit: cover; background: var(--sunk); }
+.suggestions { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 12px; }
+.suggestion { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px; border: var(--rule); border-radius: 12px; background: var(--cream); }
+.suggestion img { width: 56px; height: 56px; border: var(--rule); border-radius: 8px; object-fit: cover; background: var(--sunk); }
 
 .loading { display: flex; align-items: center; gap: 12px; }
-.loading h1 { font-size: var(--fs-3); }
-
-/* Headings get focus after a route change so screen readers land on them; no ring needed there. */
-[tabindex="-1"]:focus { outline: none; }
+.loading h1 { font-size: var(--fs-3); letter-spacing: 0; }
 
 .ask-fields { margin-top: 24px; }
-.thanks { margin-top: 12px; }
-.sugg-title { margin-top: 8px; }
+.thanks { margin-top: 14px; }
+.sugg-title { margin-top: 12px; }
 .success h1 { font-size: var(--fs-2); }
 .success + .muted { margin-top: 10px; }
 
 /* ---------- handoff thread ---------- */
 
-.optional { font: 400 var(--fs-4) var(--sans); color: var(--ink-2); }
-.thread { display: grid; gap: 14px; }
-.thread-live { display: grid; gap: 14px; }
+.optional { color: var(--muted); font: 400 var(--fs-5) var(--mono); text-transform: uppercase; letter-spacing: .04em; }
+.thread { display: grid; gap: 18px; }
+.thread-live { display: grid; gap: 18px; }
 .plan-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
-.plan .meet { margin-top: 14px; }
+.plan-head h2 { text-transform: uppercase; letter-spacing: -.03em; }
+.plan .meet { margin-top: 16px; }
 .plan .note { margin-top: 12px; }
-.agree { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: var(--fs-4); color: var(--ink-2); }
+.agree { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 10px 20px; color: var(--muted); font: 400 var(--fs-5)/1.3 var(--mono); text-transform: uppercase; }
 .agree li { display: inline-flex; align-items: center; gap: 8px; }
 .agree strong { color: var(--ink); }
 .agree-dot {
   display: grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: 1.5px solid var(--field);
+  width: 24px;
+  height: 24px;
+  border: var(--rule);
+  border-radius: 6px;
   background: var(--card);
-  color: var(--paper);
+  color: var(--ink);
 }
-.agree-dot .i { width: 13px; height: 13px; stroke-width: 3; }
-.agree .yes .agree-dot { border-color: var(--moss); background: var(--moss); }
+.agree-dot .i { width: 15px; height: 15px; stroke-width: 3.2; }
+.agree .yes .agree-dot { background: var(--lime); }
 
-/* Conversation: Loop and the other person on the left, me on the right. It sits on the paper, not in a card. */
-.msgs { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
-.msg { display: flex; align-items: flex-start; gap: 8px; }
-/* Roles, not people (SPEC5): a plain disc with Y, G or T, level with the bubble; mine sits on the right. */
+/* Conversation: Loop and the other person on the left, me on the right; the card carries its own header. */
+.msgs { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }
+.msg { display: flex; align-items: flex-start; gap: 10px; }
+/* Roles, not people (SPEC5): a disc with Y, G or T. Giver ink, Taker coral, You cream; Loop a lime tile with the knot. */
 .role {
   flex: none;
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
-  margin-top: 22px;
-  border: 1.5px solid var(--ink);
+  width: 34px;
+  height: 34px;
+  border: var(--rule);
   border-radius: 50%;
   background: var(--card);
   color: var(--ink);
-  font-size: var(--fs-5);
-  font-weight: 650;
-  line-height: 1;
+  font: 700 var(--fs-5)/1 var(--mono);
 }
-.msg-mine > .role { order: 1; }
-.msg > .loop-mark { width: 32px; height: 20px; margin-top: 28px; }
+.is-giver > .role { background: var(--ink); color: var(--cream); }
+.is-taker > .role { background: var(--coral); color: var(--ink); }
+.msg-mine > .role { order: 1; background: var(--cream); color: var(--ink); }
+.disc-loop {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: var(--rule);
+  border-radius: 8px;
+  background: var(--lime);
+  color: var(--ink);
+}
+.disc-loop .loop-mark { width: 22px; height: auto; }
 .msg-mine { justify-content: flex-end; }
-.msg-body { min-width: 0; max-width: 85%; }
-.msg-mine .msg-body { display: grid; justify-items: end; }
-.msg-meta { margin: 0 4px 4px; font-size: var(--fs-5); color: var(--ink-2); }
+.msg-body {
+  min-width: 0;
+  max-width: 85%;
+  border: var(--rule);
+  border-radius: 12px;
+  background: var(--card); /* no overflow clip: the 44 px "translated" button pokes out of the header on purpose */
+}
+.msg-meta {
+  margin: 0;
+  padding: 8px 12px 0;
+  color: var(--muted);
+  font: 400 12px/1.4 var(--mono);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
 .msg-meta strong { color: var(--ink); }
+.msg-text {
+  padding: 4px 12px 12px;
+  font-size: var(--fs-3);
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.msg-actions { display: flex; flex-wrap: wrap; gap: 10px; padding: 0 12px 14px; }
+/* Loop: a white system card, a lime title bar, mono text, full width. */
+.msg-loop .msg-body { flex: 1; max-width: none; }
+.msg-loop .msg-meta { padding: 6px 12px; margin-bottom: 8px; border-radius: 10px 10px 0 0; background: var(--lime); border-bottom: var(--rule); color: var(--ink); }
+.msg-loop .msg-text { font: 400 14px/1.55 var(--mono); }
+/* The other person: coral rule for the taker, ink for the giver. Me: a cream card. */
+.msg-theirs.is-taker .msg-body { border-color: var(--coral); }
+.msg-mine .msg-body { background: var(--cream); }
+
 .via, .tr-tag {
   display: inline-block;
   margin-left: 4px;
-  padding: 0 7px;
-  border: 1px solid var(--slate);
-  border-radius: 999px;
-  color: var(--slate);
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 18px;
+  padding: 0 6px;
+  border: var(--rule);
+  border-radius: 4px;
+  background: var(--card);
+  color: var(--ink);
+  font: 700 11px/16px var(--mono);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  rotate: -2deg;
 }
-/* "translated" toggles the original. The pill stays small; the button around it is 44 px tall (negative margins
-   keep the name line's height). */
+/* "translated" toggles the original. The sticker stays small; the button around it is 44 px tall (negative margins
+   keep the header's height). */
 .tr {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  margin: -13px 0 -13px 0;
+  margin: -13px 0;
   padding: 0 2px;
   border: 0;
   background: none;
@@ -913,107 +1037,121 @@ select.input {
 }
 .tr .tr-tag { border-style: dashed; }
 .tr:hover .tr-tag { border-style: solid; }
-.tr.is-original .tr-tag { border-color: var(--ink-2); color: var(--ink-2); }
-.msg-text {
-  width: fit-content;
-  max-width: 100%;
-  padding: 10px 14px;
-  border-radius: 16px;
-  font-size: var(--fs-4);
-  line-height: 1.45;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-/* Loop: paper with a dashed ink rule. Me: solid ink. Them: card with a rule. */
-.msg-loop .msg-text { background: var(--paper); border: 1px dashed var(--ink-2); border-bottom-left-radius: 4px; }
-.msg-theirs .msg-text { background: var(--card); border: 1px solid var(--rule-strong); border-bottom-left-radius: 4px; }
-.msg-mine .msg-text { color: var(--paper); background: var(--ink); border-bottom-right-radius: 4px; }
-.msg-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.tr.is-original .tr-tag { background: var(--cream); }
 
-/* The composer is one field: the dock carries the ink edge and the focus ring, the textarea inside is bare. */
+/* The composer: one white dock with the ink edge, a small shadow and the focus ring; the textarea inside is bare. */
 .composer.glass {
   display: flex;
   align-items: flex-end;
   gap: 8px;
   padding: 6px;
-  border-radius: 28px;
-  border-color: var(--ink-2);
-  transition: border-color 150ms var(--ease);
+  border-radius: var(--radius);
+  box-shadow: var(--focus, var(--none)), var(--lift-sm);
 }
-.composer:focus-within { border-color: var(--ink); }
-.composer:has(.composer-input:focus-visible) { outline: 3px solid var(--tangerine); outline-offset: 2px; }
+.composer:has(.composer-input:focus-visible) { outline: 3px solid var(--coral); outline-offset: 2px; --focus: 0 0 0 2px var(--ink); }
 .composer .composer-input {
   flex: 1;
   min-width: 0;
   min-height: 44px;
   max-height: 160px;
-  padding: 10px 12px;
+  padding: 10px 10px;
   border: 0;
-  border-radius: 20px;
+  border-radius: 8px;
   background: transparent;
+  box-shadow: none;
   resize: none;
   field-sizing: content; /* grows with the message where supported; one scrolling line elsewhere */
 }
-.composer .composer-input:focus-visible { outline: none; }
-.composer .btn { flex: none; min-height: 44px; padding: 10px 18px; }
-.closed-note { text-align: center; font-size: var(--fs-5); font-weight: 600; color: var(--ink-2); }
+.composer .composer-input:focus-visible { outline: none; box-shadow: none; }
+.composer .btn { flex: none; min-height: 44px; padding: 8px 16px; --lift-now: var(--none); }
+.composer .btn:hover { translate: none; }
+.closed-note { color: var(--muted); font: 700 12px/1.4 var(--mono); letter-spacing: .06em; text-align: center; text-transform: uppercase; }
 
-/* ---------- campus map (SPEC4 §F): ink lines on paper, a tangerine ring on the spot ---------- */
+/* ---------- campus map (SPEC4 §F): an ink line drawing on cream; the spot gets a lime ring with an ink edge ---------- */
 
+.map-fig { position: relative; margin-top: 16px; }
 .campus-map {
   display: block;
   width: 100%;
-  height: auto; /* 320 x 180 viewBox: about 180 px tall on a phone */
-  max-height: 220px;
+  height: auto; /* 320 x 180 viewBox; no max-height, so the sticker's % position stays on the spot */
   margin-top: 14px;
-  background: var(--paper);
-  border: 1px solid var(--rule-strong);
-  border-radius: 10px;
-  font: 500 11px/1 var(--sans);
+  background: var(--cream);
+  border: var(--rule);
+  border-radius: var(--radius-sm);
+  font: 700 10px/1 var(--mono);
+  letter-spacing: .02em;
+  text-transform: uppercase;
 }
+.map-fig > .campus-map { margin-top: 0; }
 .picks + .campus-map { margin-top: 12px; }
-.map-street { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; }
-.map-walk { fill: none; stroke: var(--ink); stroke-opacity: .3; stroke-width: 1.25; stroke-linecap: round; stroke-linejoin: round; }
-.map-route { fill: none; stroke: var(--tangerine); stroke-width: 2; stroke-dasharray: 1 5; stroke-linecap: round; }
-.spot-dot { fill: var(--card); stroke: var(--ink); stroke-width: 1.5; transition: fill 150ms var(--ease), stroke 150ms var(--ease); }
-.spot-ring { fill: none; stroke: var(--tangerine); stroke-width: 3; } /* 3.27:1 on paper */
+.map-street { fill: none; stroke: var(--ink); stroke-width: 3; stroke-linecap: round; }
+.map-walk { fill: none; stroke: var(--ink); stroke-width: 1.5; stroke-dasharray: 3 4; stroke-linecap: round; stroke-linejoin: round; }
+.map-route { fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-dasharray: 1 5; stroke-linecap: round; }
+.spot-dot { fill: var(--card); stroke: var(--ink); stroke-width: 2; transition: fill 120ms var(--ease); }
+.spot-ring { r: 11px; fill: var(--lime); stroke: var(--ink); stroke-width: 2; } /* lime is 1.04:1 on cream: the ink edge carries it */
 .spot-hit { fill: transparent; }
-/* Labels: ink-2 on paper (6.48:1) with a paper halo, so a footpath under a label never cuts through it. */
-.spot text { fill: var(--ink-2); paint-order: stroke; stroke: var(--paper); stroke-width: 3px; stroke-linejoin: round; }
+/* Labels: ink on cream with a cream halo, so a footpath under a label never cuts through it. */
+.spot text { fill: var(--ink); paint-order: stroke; stroke: var(--cream); stroke-width: 3px; stroke-linejoin: round; }
 .spot.is-on .spot-dot { fill: var(--ink); }
-.spot.is-on text { fill: var(--ink); font-weight: 650; }
 .is-picker .spot { cursor: pointer; }
-.is-picker .spot:hover .spot-dot { fill: var(--tangerine); stroke: var(--ink); }
+.is-picker .spot:hover .spot-dot { fill: var(--coral); }
+/* The coral "MEET · <time>" sticker: hangs below the spot (above it near the bottom), away from the sides. */
+.meet-sticker {
+  position: absolute;
+  z-index: 1;
+  max-width: 64%;
+  padding: 2px 6px;
+  border: var(--rule);
+  border-radius: 6px;
+  background: var(--coral);
+  color: var(--ink);
+  font: 700 10px/1.3 var(--mono);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  translate: -50% 16px;
+  rotate: -3deg;
+}
+.meet-sticker.is-start { translate: -14px 16px; }
+.meet-sticker.is-end { translate: calc(14px - 100%) 16px; }
+.meet-sticker.is-above { translate: -50% calc(-100% - 16px); }
+.meet-sticker.is-start.is-above { translate: -14px calc(-100% - 16px); }
+.meet-sticker.is-end.is-above { translate: calc(14px - 100%) calc(-100% - 16px); }
 
 /* ---------- give: one thing or a pile ---------- */
 
+/* The same ink pill as the language menu: cream for the current choice. */
 .segmented {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 4px;
-  padding: 4px;
-  border: 1px solid var(--field);
+  gap: 3px;
+  padding: 3px;
+  border: var(--rule);
   border-radius: 999px;
-  background: var(--card);
+  background: var(--ink);
 }
 .segment {
   min-height: 44px;
   padding: 8px 14px;
-  border: 1px solid transparent;
+  border: 0;
   border-radius: 999px;
   background: transparent;
-  color: var(--ink-2);
-  font: 600 var(--fs-4)/1.2 var(--sans);
+  color: var(--cream);
+  font: 700 var(--fs-4)/1.2 var(--sans);
   cursor: pointer;
-  transition: background-color 160ms var(--ease), color 160ms var(--ease);
+  transition: background-color 150ms var(--ease), color 150ms var(--ease);
 }
-.segment:hover { color: var(--ink); background: var(--paper); }
-.segment[aria-pressed="true"] { color: var(--paper); background: var(--ink); }
+.segment:hover { text-decoration: underline 2px; text-underline-offset: 4px; }
+.segment[aria-pressed="true"] { background: var(--cream); color: var(--ink); }
+.segment:focus-visible { box-shadow: none; } /* the coral ring sits on ink: 6.95:1 */
 
 /* The figure hugs the photo, so box percentages land on the right pixels at any width. */
 .photo-frame.pile-photo { aspect-ratio: auto; width: fit-content; max-width: 100%; margin-inline: auto; }
 .pile-photo img { width: auto; height: auto; max-width: 100%; max-height: 70vh; object-fit: fill; }
-/* Boxes: a card-coloured rim inside an ink outline, readable on light and dark photos. */
+/* Boxes: a white rim inside an ink outline, readable on light and dark photos. */
 .pile-box {
   position: absolute;
   border: 2px solid var(--card);
@@ -1027,26 +1165,24 @@ select.input {
   flex: none;
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
+  border: var(--rule);
   border-radius: 50%;
-  border: 1.5px solid var(--card);
-  background: var(--ink);
-  color: var(--paper);
-  font-size: var(--fs-5);
-  font-weight: 650;
-  line-height: 1;
+  background: var(--lime);
+  color: var(--ink);
+  font: 700 var(--fs-5)/1 var(--mono);
 }
 .pile-box .pile-num { position: absolute; top: 4px; left: 4px; }
-.pile-box.is-off .pile-num, .pile-item.is-off .pile-num { background: var(--ink-2); }
-.pile-intro h2 { margin-top: 8px; }
+.pile-box.is-off .pile-num, .pile-item.is-off .pile-num { background: var(--card); }
+.pile-intro h2 { margin-top: 12px; }
 .pile-intro .muted { margin-top: 6px; }
-.pile-list { min-width: 0; margin: 0; padding: 0; border: 0; display: grid; gap: 12px; }
+.pile-list { min-width: 0; margin: 0; padding: 0; border: 0; display: grid; gap: 16px; }
 .pile-item > * + * { margin-top: 16px; }
-.pile-check { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; min-height: 44px; font-weight: 600; cursor: pointer; }
+.pile-check { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; min-height: 44px; font-weight: 700; cursor: pointer; }
 .pile-check input { flex: none; width: 22px; height: 22px; margin: 0; accent-color: var(--ink); cursor: pointer; }
-.pile-label { min-width: 0; font: 600 19px/1.2 var(--display); overflow-wrap: anywhere; }
-.pile-skip { font-weight: 500; }
+.pile-label { min-width: 0; font: 700 19px/1.2 var(--sans); letter-spacing: -.02em; overflow-wrap: anywhere; }
+.pile-skip { font: 400 var(--fs-5) var(--mono); text-transform: uppercase; }
 .is-listed .pile-check { cursor: default; }
 .pile-match .note { margin: 0 0 10px; }
 
@@ -1058,13 +1194,15 @@ select.input {
   width: max-content;
   max-width: calc(100vw - 32px);
   margin: 0;
-  padding: 12px 20px;
-  border-radius: 999px;
+  padding: 12px 18px;
+  border: var(--rule);
+  border-radius: var(--radius-sm);
   background: var(--ink);
-  color: var(--paper);
-  font-size: var(--fs-4);
-  font-weight: 600;
+  color: var(--cream);
+  box-shadow: 4px 4px 0 var(--coral);
+  font: 700 var(--fs-5)/1.3 var(--mono);
   text-align: center;
+  text-transform: uppercase;
   transform: translateX(-50%);
   animation: toast-in 220ms var(--ease) both;
 }
@@ -1077,21 +1215,12 @@ select.input {
 ::view-transition-old(root), ::view-transition-new(root) { animation-duration: 200ms; animation-timing-function: var(--ease); }
 ::view-transition-group(*) { animation-duration: 240ms; animation-timing-function: var(--ease); }
 
-/* Half-width laptop window and up: wider gutters, roomier cards, the ear on one line. */
+/* Half-width laptop window and up: wider gutters, roomier cards. */
 @media (min-width: 640px) {
   .wrap { padding: 32px 32px 88px; }
   .topbar-inner { padding: 8px 32px; }
-  .hero.ruled::before { inset: -32px -32px -16px; }
   .card { padding: 24px; }
   .need { padding: 18px 22px; }
-  .ear { flex-direction: row; align-items: center; gap: 0; padding-left: 12px; font-size: var(--fs-5); }
-  .ear-label { color: var(--ink); font-weight: 500; letter-spacing: 0; text-transform: none; }
-  .ear-dot { display: inline; white-space: pre; }
-}
-
-/* Narrow phones: the ear takes its own row under the wordmark and the language button. */
-@media (max-width: 379px) {
-  .ear { order: 3; flex-basis: 100%; flex-direction: row; justify-content: flex-end; align-items: center; gap: 6px; border-left: 0; padding-left: 0; }
 }
 
 @media (max-width: 340px) {
@@ -1105,7 +1234,8 @@ select.input {
     transition-duration: .01ms !important;
     scroll-behavior: auto !important;
   }
-  /* Fully static, not a .01 ms snap: the stamp and the ticket just sit there, the scan line goes away. */
+  /* No lift on hover (the shadow still grows), and the stamp, ticket and badges just sit there. */
+  .btn:hover, .btn:active, .item-card:hover, .foryou:hover { translate: none; }
   .stamp, .ticket, .check-badge, .photo-frame.is-busy::after, .skeleton span { animation: none !important; }
   .photo-frame.is-busy::after { display: none; }
   ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }

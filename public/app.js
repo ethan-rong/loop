@@ -548,20 +548,20 @@ function boardView() {
   const kept = items.filter((i) => i.status === 'collected').length;
   return html`<div class="stack">
     <section class="hero glass ruled">
-      <h1>Post what you don't need.</h1>
+      <h1>Post what you don't <span class="hl">need.</span></h1>
       <p class="lead">Someone nearby takes it. No names, no accounts.</p>
       <div class="actions hero-actions">
         <a class="btn btn-primary" href="#/give">${icon('camera')} Post something</a>
         <a class="btn btn-secondary" href="#/ask">${icon('ask')} Ask for something</a>
       </div>
     </section>
-    ${forYou.length ? html`<section class="stack-sm" aria-labelledby="h-you"><h2 id="h-you" class="section-title">For you</h2><ul class="list">${forYou.map(forYouCard)}</ul></section>` : ''}
+    ${forYou.length ? html`<section class="stack-sm" aria-labelledby="h-you"><h2 id="h-you" class="section-title">For you <span class="count" aria-hidden="true">${forYou.length}</span></h2><ul class="list">${forYou.map(forYouCard)}</ul></section>` : ''}
     <section class="stack-sm" aria-labelledby="h-grabs">
-      <h2 id="h-grabs" class="section-title">Up for grabs</h2>
+      <h2 id="h-grabs" class="section-title">Up for grabs <span class="count" aria-hidden="true">${grabs.length}</span></h2>
       ${grabs.length ? html`<ul class="grid">${grabs.map(itemCard)}</ul>` : html`<p class="empty glass">Nothing up for grabs yet. Got something you don't use? Post it.</p>`}
     </section>
     <section class="stack-sm" aria-labelledby="h-needs">
-      <h2 id="h-needs" class="section-title">People need</h2>
+      <h2 id="h-needs" class="section-title">People need <span class="count" aria-hidden="true">${needs.length}</span></h2>
       ${needs.length ? html`<ul class="list">${needs.map(needCard)}</ul>` : html`<p class="empty glass">No open requests right now.</p>`}
     </section>
     <footer class="foot">
@@ -715,7 +715,7 @@ function placeTimeFields(scope, place, time) {
   const id = (field) => (scope === 'reserve' ? `${field}-input` : `${scope}-${field}`);
   return html`<fieldset class="field">
       <legend class="label">Meet at</legend>
-      <div class="picks">${PLACES.map((v, i) => pickButton(scope, 'place', v, i, place))}</div>
+      <div class="picks">${MEET_PLACES.map((v, i) => pickButton(scope, 'place', v, i, place))}</div>
       ${campusMap({ highlight: place, pick: scope })}
       <label class="sr-only" for="${id('place')}">Or type a place</label>
       <input id="${id('place')}" class="input" name="place" data-scope="${scope}" maxlength="60" autocomplete="off" placeholder="Or type a place" value="${place}">
@@ -745,6 +745,10 @@ const spotFor = (place) => {
 };
 console.assert(spotFor('Davis Library lobby')?.[0] === 'Davis Library' && !spotFor('Dorm front desk') && !spotFor(''), 'map: prefix match');
 const spotValue = (name) => PLACES.find((p) => p.startsWith(name)) ?? name; // a quick pick's own wording wins
+// "Meet at" chips: one list, no repeats. The quick picks keep their wording ("Davis Library lobby"), then every other
+// map spot, so each chip and its spot on the map are the same choice.
+const MEET_PLACES = [...PLACES, ...SPOTS.map(([name]) => name).filter((name) => !PLACES.some((p) => spotFor(p)?.[0] === name))];
+console.assert(MEET_PLACES.length === new Set(MEET_PLACES.map((p) => spotFor(p)?.[0] ?? p)).size && MEET_PLACES.every((p) => spotValue(spotFor(p)?.[0] ?? p) === p), 'meet places: one chip per spot, map taps match chips');
 
 function campusMap({ highlight, from, to, pick } = {}) {
   const on = spotFor(highlight);
@@ -756,6 +760,16 @@ function campusMap({ highlight, from, to, pick } = {}) {
     <path class="map-street" d="M8 16H${MAP_W - 8}"/><path class="map-walk" d="${MAP_WALKS}"/>${route}
     ${SPOTS.map((spot) => spotMark(spot, spot === on, pick))}
   </svg>`;
+}
+
+/* The coral "Meet · <time>" sticker over the agreed spot, in HTML so any time text sizes itself. Decorative: the
+   Where / When grid says the same. It hangs below the spot, or above it near the bottom edge, and away from the sides. */
+function meetSticker(place, time) {
+  const [x, y] = spotXY(spotFor(place));
+  let side = 'mid';
+  if (x < MAP_W * 0.3) side = 'start';
+  else if (x > MAP_W * 0.7) side = 'end';
+  return html`<span class="meet-sticker is-${side} ${y > MAP_H * 0.6 ? 'is-above' : ''}" style="left:${(x / MAP_W) * 100}%;top:${(y / MAP_H) * 100}%" aria-hidden="true">Meet${time ? ` · ${time}` : ''}</span>`;
 }
 
 function spotMark(spot, on, pick) {
@@ -865,7 +879,7 @@ function planCard(t) {
   return html`<div class="glass card plan">
     <div class="plan-head"><h2 id="thread-title">Pickup plan</h2><span class="chip dot chip-${chip}">${label}</span></div>
     ${meetGrid(place, time)}
-    ${spotFor(place) ? campusMap({ highlight: place }) : ''}
+    ${spotFor(place) ? html`<div class="map-fig">${campusMap({ highlight: place })}${meetSticker(place, time)}</div>` : ''}
     ${isOpenThread(t) && (place || time) ? html`<ul class="agree" aria-label="Who agreed to this plan">${people.map((id) => {
       const yes = (t.plan.confirmedBy ?? []).includes(id);
       return html`<li class="${yes ? 'yes' : ''}"><span class="agree-dot" aria-hidden="true">${yes ? icon('check') : ''}</span><span><strong>${whoIn(t, id)}</strong> ${yes ? 'agreed' : 'not yet'}</span></li>`;
@@ -903,8 +917,8 @@ function actionsFor(t, m) {
   });
 }
 
-// Loop's voice: one hand-drawn ink stroke (same path as the top bar and favicon.svg).
-const LOOP_MARK = raw('<svg class="loop-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2 18.6c3.1.2 6.9-.9 9.7-3.6 3.9-3.7 5.3-10 1.3-11.4-3.6-1.3-6.1 2.6-5.2 7.1.9 4.6 5.6 8.6 14.2 7.3"/></svg>');
+// Loop's mark: the knot (brand/knot.svg, viewBox cropped to its ink box), the same as the top bar.
+const LOOP_MARK = raw('<svg class="loop-mark knot" viewBox="2 4.02 60 55.96" aria-hidden="true" focusable="false"><path d="M25.66 44.93C24.38 43.2 23.26 41.35 22.31 39.42C21.37 37.49 20.61 35.48 20.05 33.45C19.49 31.42 19.13 29.38 18.98 27.38C18.83 25.37 18.89 23.41 19.14 21.55C19.4 19.7 19.85 17.94 20.47 16.35C21.09 14.75 21.88 13.31 22.8 12.07C23.73 10.84 24.79 9.8 25.94 9C27.09 8.2 28.32 7.63 29.59 7.31C30.86 7 32.17 6.94 33.45 7.13C34.74 7.32 36 7.76 37.19 8.44C38.38 9.13 39.49 10.05 40.48 11.19C41.47 12.32 42.34 13.67 43.04 15.19C43.74 16.7 44.28 18.39 44.63 20.19C44.98 21.99 45.14 23.91 45.09 25.89C45.04 27.87 44.79 29.9 44.33 31.94C43.87 33.97 43.21 36 42.36 37.97C41.5 39.93 40.46 41.83 39.26 43.62C38.06 45.4 36.7 47.06 35.23 48.56C33.75 50.06 32.16 51.39 30.5 52.52C28.84 53.66 27.11 54.59 25.38 55.3C23.64 56.01 21.9 56.49 20.2 56.75C18.51 57.02 16.87 57.05 15.33 56.87C13.8 56.68 12.37 56.28 11.1 55.69C9.84 55.09 8.73 54.31 7.82 53.37C6.91 52.42 6.2 51.33 5.73 50.12C5.25 48.91 5 47.59 5 46.22C5 44.85 5.24 43.43 5.73 42C6.22 40.58 6.95 39.15 7.91 37.79C8.87 36.42 10.06 35.11 11.45 33.91C12.84 32.7 14.42 31.61 16.16 30.66C17.89 29.71 19.78 28.91 21.77 28.29C23.76 27.67 25.85 27.23 27.98 26.99C30.11 26.74 32.28 26.69 34.42 26.84C36.57 26.99 38.69 27.33 40.72 27.86C42.76 28.39 44.71 29.11 46.52 29.98C48.33 30.85 50 31.88 51.48 33.03C52.96 34.18 54.26 35.44 55.33 36.78C56.4 38.11 57.25 39.52 57.86 40.94C58.47 42.36 58.84 43.8 58.96 45.19C59.08 46.59 58.95 47.94 58.59 49.2C58.23 50.46 57.63 51.62 56.82 52.63C56.01 53.65 55 54.52 53.81 55.21C52.63 55.9 51.27 56.4 49.79 56.69C48.31 56.98 46.71 57.06 45.05 56.91C43.38 56.76 41.65 56.38 39.92 55.78C38.18 55.18 36.44 54.36 34.75 53.33C33.06 52.3 31.43 51.06 29.9 49.65C28.36 48.24 26.94 46.65 25.66 44.93Z" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-dasharray="65.17 18.81"/></svg>');
 
 /* SPEC4 §D: a message in another language shows my language's translation with a "translated" tag; the tag
    toggles the original. Loop's messages follow the same rule. */
@@ -926,8 +940,8 @@ function messageItem(t, m, actions) {
   else if (mine) side = 'mine';
   const who = loop ? 'Loop' : whoIn(t, m.from);
   const shown = shownText(m);
-  return html`<li class="msg msg-${side}">
-    ${loop ? LOOP_MARK : html`<span class="role" aria-hidden="true">${who.charAt(0)}</span>`}
+  return html`<li class="msg msg-${side} ${loop ? '' : `is-${roleIn(t, m.from)}`}">
+    ${loop ? html`<span class="disc-loop" aria-hidden="true">${LOOP_MARK}</span>` : html`<span class="role" aria-hidden="true">${who.charAt(0)}</span>`}
     <div class="msg-body">
       <p class="msg-meta"><strong>${who}</strong>${toWhom(t, m)} · <time datetime="${m.at}">${formatTime(clockFormat, m.at)}</time>${m.via === 'imessage' ? html` <span class="via">iMessage</span>` : ''}${shown.translated ? trTag(m) : ''}</p>
       <p class="msg-text">${shown.text}</p>
@@ -1066,7 +1080,7 @@ function draftForm(g, manual) {
       <select id="f-cat" class="input" name="category" data-scope="give">${CATEGORIES.map((c) => html`<option value="${c}" ${f.category === c ? raw('selected') : ''}>${cap(c)}</option>`)}</select>
     </div>
     ${manual
-      ? html`${noticeBlock()}<div class="actions"><button class="btn btn-primary btn-block" type="submit" id="publish-board">${busyText('publish:board', 'Post to board', 'Posting…')}</button></div>`
+      ? html`${noticeBlock()}<div class="actions"><button class="btn btn-primary btn-moment btn-block" type="submit" id="publish-board">${busyText('publish:board', 'Post to board', 'Posting…')}</button></div>`
       : html`<div class="actions"><button type="button" class="btn btn-secondary approve" id="approve" data-action="approve">${icon('check')} Looks right</button></div>`}
   </form>`;
 }
@@ -1076,7 +1090,7 @@ function matchCard(g) {
   const req = m?.requestId ? requestOf(m.requestId) : null;
   const lock = g.checked ? '' : raw('disabled');
   const hint = g.checked ? '' : html`<p class="hint" id="check-hint">Check the details above first: fix anything that's off, or tap <strong>Looks right</strong>.</p>`;
-  const board = (label) => html`<button class="btn ${label === 'Post to board' ? 'btn-primary' : 'btn-secondary'}" id="publish-board" data-action="publish" data-offer="" data-needs-check ${lock}>${busyText('publish:board', label, 'Posting…')}</button>`;
+  const board = (label) => html`<button class="btn ${label === 'Post to board' ? 'btn-primary btn-moment' : 'btn-secondary'}" id="publish-board" data-action="publish" data-offer="" data-needs-check ${lock}>${busyText('publish:board', label, 'Posting…')}</button>`;
   if (!req || req.status !== 'open' || req.personId === state.me) {
     return html`<section class="glass card match" aria-labelledby="match-title">
       <h2 id="match-title">No open request fits yet.</h2>
@@ -1157,7 +1171,7 @@ function pileReview(p) {
     </fieldset>
     ${noticeBlock()}
     <div class="actions">
-      <button class="btn btn-primary btn-block" id="pile-list" data-action="pile-list" ${todo && !busy ? '' : raw('disabled')}>${label}</button>
+      <button class="btn btn-primary btn-moment btn-block" id="pile-list" data-action="pile-list" ${todo && !busy ? '' : raw('disabled')}>${label}</button>
       ${listed && !busy ? html`<button class="btn btn-secondary" id="pile-finish" data-action="pile-finish">Done, go to the board</button>` : ''}
       ${busy ? '' : newPhotoButton('btn-ghost')}
     </div>`;
@@ -1237,7 +1251,7 @@ function askView() {
         <textarea id="a-details" class="input" name="details" data-scope="ask" maxlength="240" rows="3" placeholder="Size, color, anything that helps">${details}</textarea>
       </div>
       ${state.ui.notice ? html`<div class="field">${noticeBlock()}</div>` : ''}
-      <div class="actions"><button class="btn btn-primary btn-block" type="submit" id="ask-submit">${busyText('ask', 'Post', 'Posting…')}</button></div>
+      <div class="actions"><button class="btn btn-primary btn-moment btn-block" type="submit" id="ask-submit">${busyText('ask', 'Post', 'Posting…')}</button></div>
     </form>
   </div>`;
 }
