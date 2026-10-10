@@ -1,15 +1,14 @@
 // Side-effect module: loads KEY=VALUE lines into process.env (existing env vars win).
-// Reads <repo>/.env.local if present, else the shared key file. Only this Node process
-// reads the file. Never log, print, or send the values anywhere.
-import { existsSync, readFileSync } from 'node:fs';
+// Reads <repo>/.env.local (see .env.example). Only this Node process reads the file.
+// Never log, print, or send the values anywhere.
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const LOCAL = fileURLToPath(new URL('../.env.local', import.meta.url));
-const SHARED = '/Users/ethan/Documents/Codex/2026-10-10/go-into-hacknc-look-through-everything/.env.local';
 
 let text = '';
 try {
-  text = readFileSync(existsSync(LOCAL) ? LOCAL : SHARED, 'utf8');
+  text = readFileSync(LOCAL, 'utf8');
 } catch {
   // No env file: GEMINI_MOCK=1 still works; real calls return aiError "unavailable".
 }

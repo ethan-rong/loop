@@ -62,7 +62,19 @@ Design notes and references are in [DESIGN.md](DESIGN.md). The build contract is
 
 ## Verification
 
-[Fill from the hand-back: Gemini request variant that worked; two real-photo results (latency, tokens, match/no-match); three consecutive e2e runs; bad-input checks.]
+Measured on Oct 10 2026 on the development laptop (Node 22.23, Express 5.3, macOS). Details in [SPIKE.md](SPIKE.md).
+
+| Check | Result |
+|---|---|
+| Gemini request shape | `generateContent` with an `inline_data` image part and an OpenAPI-style `responseSchema` was accepted on the first try; no thinking tokens returned |
+| Real photo: desk lamp (seed photo) vs. requests {lamp, coat, fridge} | HTTP 200 in 1.9 s, about 1,470 prompt tokens (1,107 for the image) and 112 output tokens; matched the lamp request |
+| Real photo: desk fan vs. the same requests | HTTP 200 in 2.3 s; `match.requestId: null`, "None of the open requests ask for a desk fan." |
+| Condition honesty after the prompt tightening | the dusty fan came back `fair` with "The fan blades and center are dusty." |
+| Need → suggestion (text-only call) | "Desk fan for a hot room" suggested the seed fan in 0.8 s |
+| `npm run e2e` (mock Gemini, no quota used) | 3 of 3 consecutive runs PASS: reset → need → draft → offer → accept → wrong code 403 → right code → collected + fulfilled → re-reserve 409; also decline, release, withdraw, close |
+| Bad input | malformed JSON, missing fields, a 7 MB image, a non-image file and a bad mimeType all return 400 and the server keeps answering |
+
+Not measured: behaviour under a real 429 (would burn quota), image accuracy beyond these photos, any real user.
 
 ## Limits, stated plainly
 
