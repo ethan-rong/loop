@@ -11,7 +11,7 @@ Built solo at **HackNC 2026** (UNC–Chapel Hill, Oct 10–11). Tracks: Beginner
 3. The owner checks and edits the draft, then **offers it** to that person or posts it to the board. The draft is marked "Drafted by Gemini — check it" until a person approves it.
 4. The recipient accepts. A **handoff thread** opens between the two people and Loop, the coordinator: Loop asks the giver when and where works, turns typed replies ("I can do 6 at the Union") into proposals with Gemini, asks the other person to confirm, reminds both before the pickup, and tells the giver when the recipient says "I'm here".
 5. At pickup the recipient shows a **4-digit code**; the giver types or texts it. Only then does the item become **Collected** and the request **Fulfilled**.
-6. **iMessage, no app needed** (Photon Spectrum): the same thread reaches people's phones; a giver can text a photo to Loop's number, get the draft back, reply YES to offer it, settle the pickup by text and send the code by text.
+6. **iMessage, no app needed** (Photon Spectrum): one-tap answers too: Loop ends each two-way question with "👍 Works for me · 👎 Suggest another time" (or 👍 YES · 👎 BOARD) and a tapback counts as the answer; the same thread reaches people's phones; a giver can text a photo to Loop's number, get the draft back, reply YES to offer it, settle the pickup by text and send the code by text.
 
 **Free by default, a price if you want.** A giver can ask for a few dollars (shown as a sticker and in Loop's opening line); payment happens in person at the same handshake. Loop never processes money.
 
