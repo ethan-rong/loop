@@ -253,7 +253,7 @@ export async function receive(space, message, onInbound) {
 // resolves true when sent.
 function deliver(personId, text, choice = null) {
   const run = (queues.get(personId) ?? Promise.resolve()).then(async () => {
-    const poll = choice?.kind === 'thread';
+    const poll = process.env.LOOP_POLLS === '1' && choice?.kind === 'thread'; // polls off by default: the shared line echoed a poll with an empty title, which the SDK rejects
     const body = choice && !poll ? `${text}\n${tapHint(choice)}` : text;
     let error;
     for (let attempt = 1; attempt <= 2; attempt++) {
