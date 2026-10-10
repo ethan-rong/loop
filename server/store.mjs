@@ -206,6 +206,23 @@ export function withdrawItem(db, id, personId) {
   return { db: next(db, { items: putItem(db, withdrawn), requests }), item: withdrawn };
 }
 
+// "Pass it on again": the taker of a collected item lists it anew, same photo and words, one lap further round.
+// Items from before laps have no `lap`: read it as 1 everywhere. Once per item, so a retry can't list it twice.
+export function repostItem(db, id, personId) {
+  const item = find(db.items, id, 'item');
+  getPerson(db, personId);
+  if (item.status !== 'collected') throw new ApiError(409, 'not_collected', 'Only something already handed over can be passed on again.');
+  if (item.reservation?.personId !== personId) throw new ApiError(403, 'not_taker', 'Only the person who collected this can pass it on.');
+  if (db.items.some((i) => i.fromItemId === id)) throw new ApiError(409, 'already_passed_on', 'You already passed this on.');
+  const { photo, title, description, condition, category } = item;
+  const passed = {
+    id: newId('i'), ownerId: personId, photo, title, description, condition, category, aiDraft: null,
+    status: 'available', offeredToRequestId: null, reservation: null, collectedAt: null, createdAt: now(),
+    lap: (item.lap ?? 1) + 1, fromItemId: item.id,
+  };
+  return { db: next(db, { items: [...db.items, passed] }), item: passed };
+}
+
 // ---- Handoff threads (SPEC2 §1): owner + recipient + Loop, one per reservation ----
 // Same rules as above: pure, version + 1 per mutation, ApiError on violations. `say` (optional) replaces
 // Loop's template line with the coordinator's reply; the buttons stay the transition's own.

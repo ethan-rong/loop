@@ -470,6 +470,8 @@ function currentView() {
 
 const condChip = (c) => html`<span class="chip">${COND_LABEL[c] ?? 'Condition not set'}</span>`;
 const statusChip = (item) => html`<span class="chip dot chip-${item.status}">${STATUS_LABEL[item.status] ?? item.status}</span>`;
+// "Pass it on again": LAP 2 from the second time round (items without `lap` are lap 1, no sticker).
+const lapChip = (item) => ((item.lap ?? 1) >= 2 ? html`<span class="chip chip-lap">Lap ${item.lap}</span>` : '');
 const requestChip = (r) => html`<span class="chip dot chip-${r.status}">${REQUEST_LABEL[r.status] ?? r.status}</span>`;
 const yoursChip = (mine) => (mine ? html`<span class="chip chip-yours">yours</span>` : ''); // SPEC5: the only sign of "mine"
 const noticeBlock = (where = 'action') => {
@@ -550,7 +552,7 @@ const mineDot = (mine) => (mine ? html`<span class="mine-dot"><span class="sr-on
 
 const itemCard = (item) => html`<li><a class="item-card glass" href="#/item/${item.id}">
   <img class="thumb" src="${item.photo}" alt="" loading="lazy" style="view-transition-name:${vtName(item.id)}">
-  <div class="item-body"><h3 class="item-title">${mineDot(item.ownerId === state.me)}${item.title}</h3><div class="chips">${statusChip(item)}</div></div>
+  <div class="item-body"><h3 class="item-title">${mineDot(item.ownerId === state.me)}${item.title}</h3><div class="chips">${statusChip(item)}${lapChip(item)}</div></div>
 </a></li>`;
 
 /* Title and "Asked … ago"; a chip only once it's matched. Details and Remove open inline on a tap (no request page). */
@@ -586,7 +588,7 @@ function itemView(id) {
     ${backLink()}
     <figure class="photo-frame glass detail-photo"><img src="${item.photo}" alt="Photo of ${item.title}" style="view-transition-name:${vtName(item.id)}"></figure>
     <section class="glass card detail-head">
-      <div class="chips">${condChip(item.condition)}${statusChip(item)}${yoursChip(mine)}</div>
+      <div class="chips">${condChip(item.condition)}${statusChip(item)}${lapChip(item)}${yoursChip(mine)}</div>
       <h1>${item.title}</h1>
       <p class="from">Posted <time datetime="${item.createdAt}">${timeAgo(item.createdAt)}</time></p>
       ${item.description ? html`<p class="desc">${item.description}</p>` : ''}
@@ -796,7 +798,10 @@ function collectedBlock(item) {
       <span class="stamp" aria-hidden="true">Kept in use</span>
       <h2 id="action-title">${label}</h2><p class="muted">${formatTime(stampFormat, item.collectedAt)}</p>
     </div>
-    <p class="muted thanks">Handed over and kept in use.</p>`;
+    <p class="muted thanks">Handed over and kept in use.</p>
+    ${item.reservation?.personId === state.me && !state.db.items.some((i) => i.fromItemId === item.id)
+    ? html`${noticeBlock()}<div class="actions"><button class="btn btn-primary btn-moment btn-block" id="repost" data-action="repost">${busyText('repost', 'Pass it on again', 'Posting…')}</button></div>`
+    : ''}`;
 }
 
 /* ---------- views: handoff thread (owner, recipient and Loop) ---------- */
@@ -1831,6 +1836,11 @@ const actions = {
   decline: () => itemAction('decline'),
   release: () => itemAction('release'),
   withdraw: () => itemAction('withdraw'),
+  repost: () => mutate('repost', () => api('POST', itemPath('repost'), { personId: state.me }), (item) => {
+    announce('Passed on. It is back on the board.');
+    location.hash = `#/item/${item.id}`;
+    return false;
+  }),
   approve: () => {
     markChecked();
     $('[data-needs-check]')?.focus();

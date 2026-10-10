@@ -197,6 +197,11 @@ app.post('/api/items/:id/withdraw', (req, res) => {
   res.json(commit(store.withdrawItem(db, req.params.id, text(body(req), 'personId', ID_MAX))).item);
 });
 
+// "Pass it on again": the taker relists a collected item without a new photo. Answers with the new item.
+app.post('/api/items/:id/repost', (req, res) => {
+  res.json(commit(store.repostItem(db, req.params.id, text(body(req), 'personId', ID_MAX))).item);
+});
+
 app.post('/api/reset', (req, res) => {
   db = resetToSeed(DATA_DIR, db.version); // SPEC5: also drops every person POST /api/people added
   res.json(publicDb(db));

@@ -89,6 +89,16 @@ async function mainLoop() {
   // Reserving a collected item conflicts.
   const late = await expect(call('POST', `/api/items/${item.id}/reserve`, { personId: 'jack', ...meet }), 409, 'already_claimed');
   assert.equal(late.message, 'Someone got there first.');
+
+  // Pass it on again: only the taker, only once collected, only once; the new item keeps the photo and is lap 2.
+  await expect(call('POST', `/api/items/${item.id}/repost`, { personId: 'ethan' }), 403, 'not_taker');
+  await expect(call('POST', '/api/items/i_fan/repost', { personId: 'jerry' }), 409, 'not_collected');
+  const again = await ok(call('POST', `/api/items/${item.id}/repost`, { personId: 'jerry' }));
+  assert.notEqual(again.id, item.id);
+  assert.deepEqual([again.status, again.lap, again.photo, again.ownerId, again.fromItemId, again.aiDraft],
+    ['available', 2, item.photo, 'jerry', item.id, null]);
+  assert.equal((await state()).items.find((i) => i.id === again.id)?.status, 'available', 'the new item is on the board');
+  await expect(call('POST', `/api/items/${item.id}/repost`, { personId: 'jerry' }), 409, 'already_passed_on');
 }
 
 async function sideFlows() {
