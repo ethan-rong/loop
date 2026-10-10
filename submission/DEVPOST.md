@@ -30,7 +30,8 @@ Loop is a small web app plus an iMessage agent for passing usable belongings to 
 3. The owner checks and edits the draft (it stays marked "Drafted by Gemini — check it" until a person approves it), then offers it to that person or posts it to the board.
 4. The recipient accepts, and a handoff thread opens between the two people and Loop, the coordinator. Loop asks the giver when and where works (the giver's availability comes first), turns typed replies like "I can do 6 at the Union" into proposals with Gemini, asks the other person to confirm, reminds both before the pickup, and tells the giver when the recipient taps "I'm here".
 5. At pickup the recipient shows a 4-digit code; the giver types it in the app or texts it to Loop. Only then does the item become "Collected" and the request "Fulfilled".
-6. No app needed: through Photon's Spectrum, the same thread reaches people's phones as iMessages, and a giver can text a photo to Loop's number, get the draft back, reply YES to offer it, settle the pickup by text and send the code by text.
+6. Bilingual by default: each person picks a language; in a mixed-language handoff every message, including Loop's, is translated once by Gemini and shown in the reader's language, original one tap away, pickup code never translated.
+7. No app needed: through Photon's Spectrum, the same thread reaches people's phones as iMessages, and a giver can text a photo to Loop's number, get the draft back, reply YES to offer it, settle the pickup by text and send the code by text.
 
 Gemini never publishes, reserves, contacts anyone or marks anything collected; a person taps or texts every state change. If Gemini cannot identify the object, is rate-limited, or times out, the owner gets a plain explanation and fills in the form by hand. If iMessage is unavailable, everything works in the browser.
 
