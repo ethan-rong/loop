@@ -43,12 +43,12 @@ No identities at all: no accounts, names, nicknames, avatars or dorms. A tab or 
 - Visual language: a "poster, light" system — cream and ink, acid lime and coral only as fills, Space Grotesk + JetBrains Mono, hard offset shadows, sticker chips, a ticket-stub pickup code, a rubber-stamp "Kept in use", a schematic campus map with the agreed spot, and the Knot mark (one continuous over-under line). No names, avatars or dorms anywhere.
 
 ### Challenges we ran into
-- The Gemini docs now lead with a newer Interactions API, so the first job was proving the classic `generateContent` request shape (image part + `responseSchema`) on gemini-3.5-flash-lite before writing any UI. It worked first try, about 2 seconds per photo.
-- Honest condition drafts: the first prompt rated a visibly dusty fan "good". Telling the model to look for dust, scratches, dents, stains and frayed cords, and to only say "good" when nothing is visible, fixed it ("fair", "The fan blades and center are dusty").
-- Two people, no accounts: each browser tab is one person (sessionStorage), the server owns the state machine, and both tabs poll a version counter so an offer or reservation shows up on the other screen within about 1.5 seconds without a refresh.
-- Keeping the AI draft visually separate from human-checked facts without making the UI preachy: a dashed card and "Drafted by Gemini — check it" until the owner edits or taps "Looks right", then a solid card and "Checked by Ethan".
-- Contrast: the glossy Frutiger Aero palette had to be darkened in places (button gradient, links, focus ring) to keep every text at 4.5:1 or better.
-- Free-tier rate limits (15 requests/min, 500/day): all automated tests run against a mock path, and the UI shows a clear "Demo mode" banner whenever the mock is on, so canned output can never pass as a live model result.
+- Proving the riskiest call first: the Gemini docs now lead with a newer Interactions API, so the first job was confirming the classic `generateContent` request shape (image part + JSON schema) on gemini-3.5-flash-lite. It worked first try, about 2 seconds per photo.
+- Honest drafts: the first prompt rated a visibly dusty fan "good"; telling the model to look for dust, scratches and dents, and to write its reason before it picks a request id, fixed both that and a false "coat" match in the pile photo.
+- An agent that never oversteps: the coordinator may only propose, ask, remind and relay. Clear agreements take a deterministic path (no model call), the model handles the messy sentences, and the server rejects anything the rules forbid (accepting for someone else, "I'm here" before a plan exists, revealing the code).
+- iMessage on a shared line: Photon's Free plan only reaches people on the project's Users page who have texted the line once, and the first send after connecting can fail, so sends retry and queue. Translations are held back for 0.6 s so a phone gets the message in its own language, with the original as the fallback.
+- Three looks in one day: pale "Frutiger Aero" glass, then a modern blue, then a warm paper zine, before settling on a bold poster on a light canvas. Each pass re-measured every text and edge for contrast (the last one: 20 pairs, none below target).
+- No identities, late: removing names, avatars and dorms touched every sentence the server writes. People became opaque session ids and the two sides of a handoff became "the giver" and "the taker"; the 4-digit code carries all the trust.
 
 ### Accomplishments that we're proud of
 - A complete two-person loop that ends in a confirmed handoff, not a listing.
@@ -56,9 +56,10 @@ No identities at all: no accounts, names, nicknames, avatars or dorms. A tab or 
 - [Three consecutive end-to-end runs passed on the judging laptop; see README "Verification".]
 
 ### What we learned
-- Prove the riskiest call first with a ten-minute script, then build. Everything downstream of the Gemini photo call would have changed if it had failed.
-- Design every state before styling anything: uploading, drafting, no match, AI failed, offered, reserved, already claimed, collected, withdrawn, network down. The polish came last and went faster because the states already existed.
-- Scope to one loop. One owner, one recipient, one item, one need, one confirmed handoff, and nothing else, was the only way a solo first-timer could finish and verify it.
+- Prove the riskiest call with a ten-minute script before building anything on it.
+- Design every state before styling anything: uploading, drafting, no match, AI failed, offered, reserved, already claimed, collected, withdrawn, network down. The polish passes were fast because the states already existed.
+- An AI coordinator earns trust by what it refuses to do. The demo is strongest when Loop says "nothing to agree to yet" or "I can't share the code".
+- Anonymity simplifies the product: once nobody has a name, the code at the handoff is the only identity that matters, and the whole board becomes just things people have and things people need.
 
 ### What's next for Loop
 Real accounts and campus email verification, photos of the handoff spot, notifications when a new need matches an existing item, and a trial with one residence hall at move-out. Nothing here has been tested with real users yet.

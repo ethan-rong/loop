@@ -20,19 +20,21 @@ cd ~/loop && (lsof -ti :3000 | xargs kill 2>/dev/null; true) && npm run seed && 
 |---|---|---|---|
 | 0:00 | board (taker tab) | "Every move-out, working lamps and chargers go in the dumpster while someone down the hall is about to buy one. Listings don't finish the job. Loop does, and you don't even need the app. Nobody here has a name." | Show the board. Tap Ask for something → "Reading lamp for my desk" → Post. (Post the need live: the seed holds no lamp request on purpose, so the match goes to this tab.) |
 | 0:12 | phone (giver) | "The giver texts a photo of the lamp he's about to toss to Loop's number." | Send the lamp photo to Loop. |
-| 0:20 | phone | "Four seconds later Loop replies with a draft and a match: the taker across campus asked for exactly this." | Show the reply: title, condition, "Someone nearby asked for a reading lamp — it fits. Reply YES…". |
-| 0:32 | phone | "The giver corrects the condition himself — Loop only drafts — then says YES." | Text "condition fair, dent on base", show the updated draft, text YES. |
-| 0:45 | board (taker tab) | "The taker gets the offer on the web, accepts, and leaves the pickup blank." | Open the offer → Accept & reserve with blank place/time. |
-| 0:58 | phone + web | "Now Loop coordinates. It asks the giver first — the giver is giving, so their availability wins." | Show the giver's phone: "You're the one handing it over, so you pick…". Text "6 pm at Davis Library?". |
+| 0:20 | phone | "Four seconds later Loop replies with a draft and a match: the taker across campus asked for exactly this." | Show the reply: "Got it — looking at your photo…" then the draft line and "Someone nearby asked for \"Reading lamp for my desk\" 1 min ago — it fits. Reply YES to offer it, BOARD to post it for anyone, or type a correction." |
+| 0:32 | phone | "The giver corrects the condition himself — Loop only drafts — then says YES." | Text "condition fair, dent on base" → updated draft → text YES → "Offered. I'll tell you when they accept and we'll sort out the pickup here." |
+| 0:45 | board (taker tab) | "The taker gets the offer on the web, accepts, and leaves the pickup blank. No name on either side." | Open the offer → Accept & reserve with blank place/time. |
+| 0:58 | phone + web | "Now Loop coordinates. It asks the giver first — the giver is giving, so their availability wins." | Show the giver's phone: "Someone reserved your … You're the one handing it over, so you pick…". Text "6 pm at Davis Library?". |
 | 1:10 | web (taker) | "Gemini turns that into a proposal; the taker confirms with one tap. Both get the plan and a reminder." | The taker taps "Works for me". Show the plan card "Set". |
 | 1:25 | web → phone | "At the library the taker taps I'm here; the giver gets the code prompt and texts the four digits." | The taker taps "I'm here" → show Ethan's phone prompt → text the code from the taker's screen. |
-| 1:40 | both | "Collected. Fulfilled. One item kept in use, and the whole handoff happened in a text thread." | Show Collected on the web and the closing text on the phone. |
+| 1:40 | both | "Collected. Fulfilled. One item kept in use, and the whole handoff happened in a text thread." | Show COLLECTED and the KEPT IN USE stamp on the web, and "Loop: Handed over. Thanks, both — the … stays in use." on the phone. |
 | 1:50 | code | "Plain JavaScript on Node, Gemini 3.5 Flash-Lite behind JSON schemas for drafts, piles and the coordinator's actions, Photon Spectrum for iMessage. The server validates every suggestion; a person approves every step." | 5 s on gemini.mjs / coordinator.mjs / textflow.mjs. |
 | 1:58 | — | "Loop." | End. |
 
 Optional 10-second inserts if time allows (replace the code shot):
 - "One photo, a whole pile": Give → A pile → the yard-sale photo → six items, one matched.
 - "Loop speaks both languages": switch the web tab to **the Chinese-speaking tab** (language 中文 in the person menu), reserve the taker's fan, type 我六点在图书馆可以吗 — the taker's tab shows "Is 6 o'clock at the library okay with you?" with a "translated" tag, and Loop's reply reaches the Chinese-speaking tab in Chinese. Costs one Gemini call per message; keep it to three messages.
+
+Button labels as built: Post something · Ask for something · Looks right · Offer to them · Post to board instead · Accept & reserve · Suggest a time and place → Suggest to the taker · Works for me · I'm here · Confirm handoff · Release · Reset demo. Phone replies as built: welcome "Hi — this is Loop. Text me a photo…"; after YES "Offered. I'll tell you when they accept…"; after BOARD "Posted to the board. I'll text you when someone reserves it."; at the meeting "Loop: The taker is at {place}. Ask for the 4-digit code and text it to me."
 
 Rehearse with a timer three times. Cut words, not steps. Record phone and screen together (QuickTime: screen recording + iPhone mirrored via USB, or film the phone with a second device).
 
