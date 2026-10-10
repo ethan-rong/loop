@@ -23,7 +23,7 @@ export function resetToSeed(dataDir, prevVersion = 0) {
   const db = {
     version: prevVersion + 1,
     // SPEC5: no names, nicknames or areas. A person is an opaque id (internal, never shown) and a thread language.
-    // Demo mapping (operator only): ethan = the phone (PHONE_ETHAN), jerry = the web taker, tom reads Chinese.
+    // Demo mapping (operator only): ethan = the phone (PHONE_ETHAN), jerry = the web taker.
     people: [
       { id: 'ethan', lang: 'en' },
       { id: 'jerry', lang: 'en' },
