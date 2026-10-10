@@ -43,11 +43,22 @@ function find(list, id, what) {
 export const getPerson = (db, id) => find(db.people, id, 'person');
 const firstName = (db, id) => db.people.find((p) => p.id === id)?.name.split(' ')[0] ?? 'Someone';
 
+// Bilingual threads (SPEC4 §C): a person may carry `lang` (absent = English).
+export const LANGUAGES = { en: 'English', zh: 'Simplified Chinese', es: 'Spanish' };
+export const langOf = (db, id) => db.people.find((p) => p.id === id)?.lang ?? 'en';
+
+export function setPersonLang(db, id, lang) {
+  const person = getPerson(db, id);
+  if (!Object.hasOwn(LANGUAGES, lang)) throw new ApiError(400, 'invalid_field', `lang must be one of: ${Object.keys(LANGUAGES).join(', ')}.`);
+  const updated = { ...person, lang };
+  return { db: next(db, { people: db.people.map((p) => (p.id === id ? updated : p)) }), person: updated };
+}
+
 const putItem = (db, item) => db.items.map((x) => (x.id === item.id ? item : x));
 const patchRequest = (requests, id, patch) => (id ? requests.map((r) => (r.id === id ? { ...r, ...patch } : r)) : requests);
 const threadsOf = (db) => db.threads ?? []; // older db.json files have no threads key
-const next = (db, { items = db.items, requests = db.requests, threads = threadsOf(db) }) =>
-  ({ ...db, items, requests, threads, version: db.version + 1 });
+const next = (db, { items = db.items, requests = db.requests, threads = threadsOf(db), people = db.people }) =>
+  ({ ...db, people, items, requests, threads, version: db.version + 1 });
 const reopen = { status: 'open', matchedItemId: null };
 
 function claimedError(db, item) {
@@ -202,8 +213,9 @@ const putThread = (db, thread) => threadsOf(db).map((t) => (t.id === thread.id ?
 const otherOf = (thread, personId) => (personId === thread.ownerId ? thread.recipientId : thread.ownerId);
 const closed = () => new ApiError(409, 'thread_closed', 'This pickup is already closed.');
 
+// translations: {lang: text}, filled in a moment later by the translation hook (index.mjs, SPEC4 §C).
 function message(from, text, { via = 'system', actions = [], forPersonId = null } = {}) {
-  return { id: newId('m'), from, text, at: now(), via, actions, forPersonId };
+  return { id: newId('m'), from, text, at: now(), via, actions, forPersonId, translations: {} };
 }
 
 // Append a message (patching the thread first). A Loop message with buttons, or a closed thread, retires
@@ -313,6 +325,15 @@ export function postLoopMessage(db, id, text) {
   const thread = getThread(db, id);
   if (!isOpenThread(thread)) throw closed();
   return saved(db, withMessage(thread, message('loop', text)));
+}
+
+// One message's translation (SPEC4 §C). Additive: the original text never changes. Closed threads too (their
+// closing line arrives with the close). A thread or message that is gone (reset meanwhile) is a no-op: same db.
+export function setTranslation(db, threadId, messageId, lang, text) {
+  const thread = threadsOf(db).find((t) => t.id === threadId);
+  if (!thread?.messages.some((m) => m.id === messageId)) return { db, thread: thread ?? null };
+  const messages = thread.messages.map((m) => (m.id === messageId ? { ...m, translations: { ...m.translations, [lang]: text } } : m));
+  return saved(db, { ...thread, messages });
 }
 
 // Posts once per agreed plan; anything else is a no-op (same db, no version bump).

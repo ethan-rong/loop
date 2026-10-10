@@ -72,6 +72,7 @@ ${history}
 >>>
 
 ${speaker} wrote the last message. Decide what ${speaker} wants and write what Loop says next.
+People may write in any language; understand it and act; reply in English.
 Rules for action.type:
 - "propose" when ${speaker} suggests a time or a place. Fill both place and time: keep the current one for whichever they did not change. Use a known spot name when one fits. If there is no current plan and they give only a time or only a place, use "chat" and ask for the missing one.
 - "accept" only when ${speaker} clearly agrees to the current plan ("sounds good", "works", "yes", "works for me"). When ${speaker} agrees, use "accept"; do not ask the other person again, the store records the agreement.

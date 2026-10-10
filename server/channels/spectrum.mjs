@@ -249,13 +249,15 @@ export function sendToPerson(personId, text) {
 /**
  * What each participant's phone gets for the thread messages added between two states. A message addressed to one
  * person (forPersonId) goes only to them; the rest go to both participants except the author, prefixed with the
- * sender. Buttons meant for that person become one trailing hint line; when the recipient arrives, the owner is
+ * sender, in that person's language when the translation is already there (SPEC4 §C). Buttons meant for that person
+ * become one trailing hint line; when the recipient arrives, the owner is
  * asked to text the code instead of typing it on the item page (SPEC3 §2). Pure, so tests can check it.
  * @returns {{personId: string, text: string}[]}
  */
 export function threadTexts(before, after) {
   const seen = new Map((before?.threads ?? []).map((t) => [t.id, t.messages.length]));
   const firstName = (id) => after.people.find((p) => p.id === id)?.name.split(' ')[0] ?? 'Someone';
+  const langOf = (id) => after.people.find((p) => p.id === id)?.lang ?? 'en';
   const texts = [];
   for (const thread of after.threads ?? []) {
     for (const m of thread.messages.slice(seen.get(thread.id) ?? 0)) {
@@ -268,7 +270,8 @@ export function threadTexts(before, after) {
           continue;
         }
         const replyable = m.actions.some((a) => a.action !== 'enter_code' && (a.forPersonId ?? m.forPersonId ?? personId) === personId);
-        texts.push({ personId, text: `${sender}: ${m.text}${replyable ? `\n${HINT}` : ''}` });
+        const shown = m.translations?.[langOf(personId)] ?? m.text; // SPEC4 §C: their language, when it's there already
+        texts.push({ personId, text: `${sender}: ${shown}${replyable ? `\n${HINT}` : ''}` });
       }
     }
   }

@@ -11,7 +11,8 @@
     "e2e": "GEMINI_MOCK=1 PORT=3100 DATA_DIR=.tmp-e2e node scripts/e2e.mjs",
     "photo-test": "node scripts/photo-test.mjs",
     "e2e-textflow": "node scripts/e2e-textflow.mjs",
-    "e2e-threads": "PORT=3100 DATA_DIR=.tmp-e2e node scripts/e2e-threads.mjs"
+    "e2e-threads": "PORT=3100 DATA_DIR=.tmp-e2e node scripts/e2e-threads.mjs",
+    "e2e-translate": "PORT=3100 node scripts/e2e-translate.mjs"
   },
   "engines": {
     "node": ">=22"

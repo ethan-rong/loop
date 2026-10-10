@@ -11,6 +11,7 @@ import { pileRouter } from './pile.mjs';
 import { resetToSeed } from './seed.mjs';
 import * as store from './store.mjs';
 import { handleInbound, itemPosted, startTextflow } from './textflow.mjs';
+import { pendingTranslations, translate, translateOn } from './translate.mjs';
 
 const { ApiError, DATA_DIR } = store;
 const PORT = Number(process.env.PORT) || 3000;
@@ -29,12 +30,21 @@ mkdirSync(PHOTOS_DIR, { recursive: true });
 let db = store.loadDb(DATA_DIR) ?? resetToSeed(DATA_DIR);
 
 // Persist a transition's new state, then swap it in. Sync on purpose: no interleaved writes.
-// New thread messages go out to linked phones (no-op unless the iMessage channel is connected).
+// New thread messages go out to linked phones (no-op unless the iMessage channel is connected), then get translated
+// for a reader of another language (SPEC4 §C): async, each lands later as its own commit (version + 1). Forwards don't
+// wait for it, so a phone gets the original of a new message. A translation commit adds no messages: no re-trigger.
 function commit(result) {
   store.saveDb(DATA_DIR, result.db);
   const before = db;
   db = result.db;
   forwardNewMessages(before, db);
+  if (translateOn()) {
+    for (const { threadId, messageId, text: said, lang } of pendingTranslations(before, db)) {
+      translate(said, lang)
+        .then((translated) => translated && commit(store.setTranslation(db, threadId, messageId, lang, translated)))
+        .catch((err) => console.error(err)); // a failed save must not become an unhandled rejection
+    }
+  }
   return result;
 }
 
@@ -91,9 +101,15 @@ app.get('/api/health', (req, res) => {
     ok: true, mock: isMock(), model: modelName(), imessage, lastSendOk, lineNumber,
     linkedPhones: linkedPhones.filter((id) => db.people.some((p) => p.id === id)),
     textSessions: Object.keys(db.textSessions ?? {}).length,
+    translate: translateOn(),
   });
 });
 app.get('/api/state', (req, res) => res.json(db));
+
+// SPEC4 §C, demo only (no auth): a person's thread language, en | zh | es.
+app.post('/api/people/:id/lang', (req, res) => {
+  res.json(commit(store.setPersonLang(db, req.params.id, body(req).lang)).person);
+});
 
 app.post('/api/requests', async (req, res) => {
   const b = body(req);
