@@ -30,7 +30,9 @@ cd ~/loop && (lsof -ti :3000 | xargs kill 2>/dev/null; true) && npm run seed && 
 | 1:50 | code | "Plain JavaScript on Node, Gemini 3.5 Flash-Lite behind JSON schemas for drafts, piles and the coordinator's actions, Photon Spectrum for iMessage. The server validates every suggestion; a person approves every step." | 5 s on gemini.mjs / coordinator.mjs / textflow.mjs. |
 | 1:58 | — | "Loop." | End. |
 
-Optional 10-second insert if time allows (replace the code shot): "One photo, a whole pile": Give → A pile → the yard-sale photo → six items, one matched.
+Optional 10-second inserts if time allows (replace the code shot):
+- "One photo, a whole pile": Give → A pile → the yard-sale photo → six items, one matched.
+- "Loop speaks both languages": switch the web tab to **Tom** (language 中文 in the person menu), reserve Jerry's fan, type 我六点在图书馆可以吗 — Jerry's tab shows "Is 6 o'clock at the library okay with you?" with a "translated" tag, and Loop's reply reaches Tom in Chinese. Costs one Gemini call per message; keep it to three messages.
 
 Rehearse with a timer three times. Cut words, not steps. Record phone and screen together (QuickTime: screen recording + iPhone mirrored via USB, or film the phone with a second device).
 
