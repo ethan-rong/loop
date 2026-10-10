@@ -11,8 +11,7 @@ Built solo at **HackNC 2026** (UNC–Chapel Hill, Oct 10–11). Tracks: Beginner
 3. The owner checks and edits the draft, then **offers it** to that person or posts it to the board. The draft is marked "Drafted by Gemini — check it" until a person approves it.
 4. The recipient accepts. A **handoff thread** opens between the two people and Loop, the coordinator: Loop asks the giver when and where works, turns typed replies ("I can do 6 at the Union") into proposals with Gemini, asks the other person to confirm, reminds both before the pickup, and tells the giver when the recipient says "I'm here".
 5. At pickup the recipient shows a **4-digit code**; the giver types or texts it. Only then does the item become **Collected** and the request **Fulfilled**.
-6. **Bilingual threads**: each person has a language (English, 中文, Español). When the two people in a handoff differ, every message, including Loop's, is translated once by Gemini and shown in the reader's language with a "translated" tag; the original stays one tap away, names, places, times and digits are kept, and the pickup code is never translated.
-7. **iMessage, no app needed** (Photon Spectrum): the same thread reaches people's phones; a giver can text a photo to Loop's number, get the draft back, reply YES to offer it, settle the pickup by text and send the code by text.
+6. **iMessage, no app needed** (Photon Spectrum): the same thread reaches people's phones; a giver can text a photo to Loop's number, get the draft back, reply YES to offer it, settle the pickup by text and send the code by text.
 
 **No identities at all.** Loop is a place to post what you have and what you need. There are no accounts, names, nicknames, avatars or dorms; a browser tab or a phone is just an anonymous session, and in a handoff the two sides are simply "the giver" and "the taker". Nobody needs to know who you are: the 4-digit pickup code proves identity at the handoff, and Loop refuses to share numbers or the code in a thread.
 
@@ -48,7 +47,6 @@ npm run seed                    # reset data/ to the seed state
 npm run e2e                     # scripted full loop ×3 with GEMINI_MOCK=1 (no quota used)
 npm run e2e-threads             # handoff threads ×3 (needs a mock server on :3100, see scripts)
 npm run e2e-textflow            # iMessage text flow ×3 (no server, no SDK)
-npm run e2e-translate           # bilingual threads ×3 (needs a mock server on :3100)
 npm run photo-test -- path.jpg  # one real Gemini call with a real photo; prints latency, tokens, draft
 GEMINI_MOCK=1 npm start         # canned drafts, no network; the UI shows a "Demo mode" banner
 ```
@@ -71,7 +69,6 @@ iMessage: Spectrum forwards thread messages to linked phones and routes replies 
 - `server/gemini.mjs` — describe a photo, suggest items for a need; timeouts, retries, hallucination guard, mock path.
 - `server/pile.mjs` — one photo → up to six items with normalised boxes, each cleaned like a single draft.
 - `server/coordinator.mjs` — the thread agent: prompt with the giver-first rule, JSON action schema, validation, mock rules.
-- `server/translate.mjs` — per-message translations for mixed-language threads (asynchronous, additive, never blocks a reply).
 - `server/channels/spectrum.mjs` + `server/textflow.mjs` — the iMessage channel and the text-a-photo conversation.
 - `public/` — plain HTML/CSS/JS, no framework, no build step: hash routes, one `render()` from state, polling for live updates, View Transitions, `prefers-reduced-motion` respected.
 
@@ -90,13 +87,10 @@ Measured on Oct 10 2026 on the development laptop (Node 22.23, Express 5.3, macO
 | Need → suggestion (text-only call) | "Desk fan for a hot room" suggested the seed fan in 0.8 s |
 | `npm run e2e` (mock Gemini, no quota used) | 3 of 3 consecutive runs PASS: reset → need → draft → offer → accept → wrong code 403 → right code → collected + fulfilled → re-reserve 409; also decline, release, withdraw, close |
 | `npm run e2e-threads` (mock) | 3 of 3 PASS: both thread openings (with and without a suggested place/time), button and typed paths, reminder within 3 s, cancel releases the item, non-participant 403, code → done |
-| `npm run e2e-translate` (mock) | 3 of 3 PASS: mixed-language thread gets translations on both people's and Loop's messages, same-language thread gets none, code-bearing texts are skipped, language switch route |
-| Real translation check | 我六点在图书馆可以吗 → "Is 6 o'clock at the library okay with you?" (0.6 s); "Pickup set: Davis Library lobby, Today 6 pm." → 取货已安排：Davis Library lobby，Today 6 pm。 (0.5 s) |
 | `npm run e2e-textflow` (mock, no SDK) | 3 of 3 PASS: photo → draft → correction → YES → offered; BOARD; wrong then right code by text; proactive suggestion YES → reserved; HEIC, not-a-photo, no-match, STOP, strangers |
 | Pile photo (real call, yard-sale photo with 6 objects) | 6 items with valid boxes in about 3 s; the lamp matched the lamp request, the other five returned honest "no match" reasons after the schema change (reason before id); the same flow then listed all six from the browser with crops |
 | iMessage (real, Photon shared line) | channel connects; thread messages reached the linked phone; a dropped connection reconnects on restart; first send right after connect can fail once, so sends retry |
 | Live no-identities loop (browser, real Gemini, final look) | anonymous taker posts a need → anonymous giver's lamp photo matched it → offer → accept → giver's proposal via the spot chips → "works for me" → "I'm here" → wrong code rejected → right code → Collected, stamp, closing line |
-| Live bilingual thread (API, real Gemini) | Chinese taker line translated for the English giver in ~0.6 s; Loop's replies reached the Chinese reader in Chinese; names kept in Latin script |
 | Proactive connector (live) | a web post matching an open request texted the linked phone "…Reply YES to reserve it" (`sent to ethan` in the log) |
 | Judging-path runs (`npm start` on :3000) | 2 of 2 complete API loops with Reset between; reset clears text sessions |
 | Cold start | fresh data directory + `npm start`: server up, seed written, page served |

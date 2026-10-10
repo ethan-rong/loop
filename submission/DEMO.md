@@ -30,9 +30,8 @@ cd ~/loop && (lsof -ti :3000 | xargs kill 2>/dev/null; true) && npm run seed && 
 | 1:50 | code | "Plain JavaScript on Node, Gemini 3.5 Flash-Lite behind JSON schemas for drafts, piles and the coordinator's actions, Photon Spectrum for iMessage. The server validates every suggestion; a person approves every step." | 5 s on gemini.mjs / coordinator.mjs / textflow.mjs. |
 | 1:58 | — | "Loop." | End. |
 
-Optional 10-second inserts if time allows (replace the code shot):
+Optional 10-second insert if time allows (replace the code shot):
 - "One photo, a whole pile": Give → A pile → the yard-sale photo → six items, one matched.
-- "Loop speaks both languages": switch the web tab to **the Chinese-speaking tab** (language 中文 in the person menu), reserve the taker's fan, type 我六点在图书馆可以吗 — the taker's tab shows "Is 6 o'clock at the library okay with you?" with a "translated" tag, and Loop's reply reaches the Chinese-speaking tab in Chinese. Costs one Gemini call per message; keep it to three messages.
 
 Button labels as built: Post something · Ask for something · Looks right · Offer to them · Post to board instead · Accept & reserve · Suggest a time and place → Suggest to the taker · Works for me · I'm here · Confirm handoff · Release · Reset demo. Phone replies as built: welcome "Hi — this is Loop. Text me a photo…"; after YES "Offered. I'll tell you when they accept…"; after BOARD "Posted to the board. I'll text you when someone reserves it."; at the meeting "Loop: The taker is at {place}. Ask for the 4-digit code and text it to me."
 
