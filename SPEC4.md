@@ -41,3 +41,11 @@ Deliver: screenshots at 390 and ~700 px of board, draft+match, thread, ticket, c
 - Board request cards: if a request was posted in another language, show the original (no translation needed for v1).
 
 ## E. Out of scope: voice, maps, accounts, naming the iMessage sender (shared line stays unnamed on Free/Pro), any new npm dependency.
+
+## F. Campus map (added 16:45 EDT; user: "shall we include a map" → yes, schematic)
+
+No tile maps, no geodata, no dependency. One inline SVG "campus map" component drawn once in app.js (`campusMap({highlight, from, to})`), styled per the chosen direction:
+- 8 labelled spots with fixed schematic coordinates (0–100 units): Davis Library, Student Union, Franklin St, Lenoir, Hinton James, Ehringhaus, Granville Towers, Craige, Carmichael. South Campus = cluster of Hinton James / Ehringhaus / Craige at the bottom; Franklin St at the top; Union and Davis in the middle.
+- Where it appears: (1) the pickup-plan card in a thread (highlight = the agreed or proposed spot; `from` = giver's dorm, `to` = taker's dorm, with a dotted path between them); (2) the reserve/propose form: tapping a spot on the map fills the place field (same as the quick-pick chips); (3) the board header, small, with pins for where current items are (giver's spot) — optional, only if cheap.
+- People's `spot` strings map to the nearest schematic spot by name match; unknown spots show no pin. Spot names in the plan ("Davis Library lobby") match by prefix.
+- Accessibility: the SVG has a title and the spot list is also real text (the chips), so the map is decorative-plus, never the only control.
