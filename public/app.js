@@ -511,7 +511,6 @@ function boardView() {
   const live = items.filter((i) => i.status !== 'withdrawn' && i.status !== 'collected').sort(newest);
   const forYou = live.filter((i) => bannerFor(i));
   const grabs = live.filter((i) => !bannerFor(i));
-  const kept = items.filter((i) => i.status === 'collected').length;
   const allNeeds = state.ui.needsAll;
   return html`<div class="stack">
     <section class="hero">
