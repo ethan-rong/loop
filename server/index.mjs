@@ -4,7 +4,7 @@ import express from 'express';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { allowUser, channelStatus, forwardNewMessages, forwardTranslation, sendToPerson, startChannel, welcomeLinked } from './channels/spectrum.mjs';
+import { allowUser, channelStatus, forwardNewMessages, forwardTranslation, ownerOfPhone, sendToPerson, startChannel, textNumber, welcomeLinked } from './channels/spectrum.mjs';
 import { coordinate } from './coordinator.mjs';
 import { CATEGORIES, CONDITIONS, clamp, describeItem, isMock, modelName, suggestItems } from './gemini.mjs';
 import { pileRouter } from './pile.mjs';
@@ -125,15 +125,20 @@ app.post('/api/people', (req, res) => {
 // Loop's texts for this tab: linked = a phone is on file (env or a texted code); code = what to text to link one.
 // ponytail: codes live in memory with no expiry; a restart clears them and the page asks for a fresh one.
 const linkCodes = new Map(); // code -> personId
+const pendingPhones = new Map(); // personId -> {phone, code, at}: a typed number waiting for the code Loop texted it
+const adoptions = new Map(); // tab personId -> the person that phone already belongs to; the tab switches to them
+const VERIFY_MS = 15 * 60_000;
+const fourDigits = () => String(1000 + Math.floor(Math.random() * 9000));
 app.get('/api/people/:id/texts', (req, res) => {
   const { id } = store.getPerson(db, req.params.id);
   let code = [...linkCodes].find(([, personId]) => personId === id)?.[0];
   if (!code) {
-    do code = String(1000 + Math.floor(Math.random() * 9000)); while (linkCodes.has(code));
+    do code = fourDigits(); while (linkCodes.has(code));
     linkCodes.set(code, id);
   }
   const { lineNumber, linkedPhones } = channelStatus();
-  res.json({ linked: linkedPhones.includes(id), code, lineNumber });
+  const personId = adoptions.get(id) ?? null;
+  res.json({ linked: Boolean(personId) || linkedPhones.includes(id), code, lineNumber, pending: pendingPhones.has(id), personId });
 });
 // The other way to link: a number typed on the item page. Loop lists it with Photon, keeps it (never shown) and
 // texts a hello. US numbers may be typed without +1.
@@ -145,26 +150,54 @@ function normalizePhone(raw) {
   if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`;
   return null;
 }
+// Step 1: Loop texts a code to the number (which proves it can reach it). Step 2: the code typed on the page links
+// it. A number that already belongs to someone (the phone persona from .env.local, or another tab) is not moved:
+// the tab becomes that person instead, so one phone is always one person.
 app.post('/api/people/:id/phone', async (req, res) => {
   const { id } = store.getPerson(db, req.params.id);
   const phone = normalizePhone(body(req).phone);
   if (!phone) throw new ApiError(400, 'invalid_field', 'Enter a mobile number, like 919 555 0123.');
   if (!(await allowUser(phone))) throw new ApiError(502, 'texts_unavailable', "Loop couldn't register that number with its texting line just now. Try texting the code instead.");
-  commit(store.setPersonPhone(db, id, phone));
-  res.json({ linked: true, sent: await welcomeLinked(id) });
+  const code = fourDigits();
+  const sent = await textNumber(phone, `Loop: your code is ${code}. Type it on the Loop page and I'll text you here from now on.`);
+  if (!sent) throw new ApiError(502, 'texts_unavailable', "Loop couldn't text that number just now. Check it, or text the code on this page instead.");
+  pendingPhones.set(id, { phone, code, at: Date.now() });
+  res.json({ pending: true });
+});
+app.post('/api/people/:id/phone/verify', (req, res) => {
+  const { id } = store.getPerson(db, req.params.id);
+  const pending = pendingPhones.get(id);
+  const typed = String(body(req).code ?? '').replace(/\D/g, '');
+  if (!pending || Date.now() - pending.at > VERIFY_MS) throw new ApiError(400, 'no_pending', 'Ask for a new code first.');
+  if (typed !== pending.code) throw new ApiError(400, 'bad_verify', "That code doesn't match the text. Try again.");
+  pendingPhones.delete(id);
+  const existing = ownerOfPhone(pending.phone);
+  if (existing && existing !== id) {
+    adoptions.set(id, existing);
+    return res.json({ linked: true, personId: existing });
+  }
+  commit(store.setPersonPhone(db, id, pending.phone));
+  res.json({ linked: true, personId: id });
 });
 
 // A stranger texted the 4-digit code from the web page: their phone now belongs to that tab's person, once Photon
 // has listed the number (allow(phone) -> boolean, the channel's job). null leaves them a stranger.
-async function linkPhone(code, phone, allow = async () => true) {
+async function linkPhone(code, phone, allow = async () => true, currentPersonId = null) {
   const personId = linkCodes.get(code);
   if (!personId || !db.people.some((p) => p.id === personId)) return null;
+  // A phone already linked that is mid-pickup is texting the 4-digit pickup code, not a link code.
+  if (currentPersonId && store.newestOpenThread(db, currentPersonId)?.status === 'meeting') return null;
+  if (currentPersonId) { // a phone that already belongs to someone: the tab becomes that person
+    linkCodes.delete(code);
+    adoptions.set(personId, currentPersonId);
+    return currentPersonId;
+  }
   if (!(await allow(phone))) return null;
   linkCodes.delete(code);
   commit(store.setPersonPhone(db, personId, phone));
   return personId;
 }
-const phoneLinks = () => new Map(db.people.filter((p) => p.phone).map((p) => [p.id, p.phone]));
+const phoneLinks = () => new Map(db.people.filter((p) => p.phone).sort((a, b) => (a.phoneAt < b.phoneAt ? 1 : -1)).map((p) => [p.id, p.phone]));
 
 app.post('/api/people/:id/lang', (req, res) => {
   res.json(publicPerson(commit(store.setPersonLang(db, req.params.id, body(req).lang)).person));

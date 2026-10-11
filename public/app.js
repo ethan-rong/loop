@@ -87,7 +87,7 @@ const freshUi = () => ({
   notice: null, // { text, tone, where } for the current view; where = 'thread' puts it in the conversation
   reserveOpen: false,
   reserve: { place: '', date: '', hour: '', time: '' }, // all optional: people can settle it in the thread
-  phone: { phone: '' }, // the texts card's number field
+  phone: { phone: '', code: '' }, // the texts card: the number, then the code Loop texted
   propose: null, // { threadId, place, time } while "Suggest another time" is open
   composer: {}, // thread id -> unsent message
   code: '',
@@ -311,10 +311,23 @@ async function refreshTexts() {
   const me = state.me;
   const texts = await api('GET', `/api/people/${encodeURIComponent(me)}/texts`).catch(() => null);
   if (!texts || state.me !== me) return;
-  const changed = texts.linked !== state.texts?.linked || texts.code !== state.texts?.code;
+  if (texts.personId && texts.personId !== me) return becomePerson(texts.personId); // this phone already has a person
+  const changed = texts.linked !== state.texts?.linked || texts.code !== state.texts?.code || texts.pending !== state.texts?.pending;
   state.texts = texts;
   textsFor = me;
   if (changed) requestRender();
+}
+
+/* The phone this tab linked already belongs to someone (the phone persona, or another tab): this tab is now them. */
+async function becomePerson(id) {
+  state.me = id;
+  saveMe(id);
+  state.texts = { ...(state.texts ?? {}), linked: true, pending: false, personId: null };
+  textsFor = id;
+  await refresh();
+  render();
+  showToast('Linked. This tab is now your phone.');
+  announce('Linked. This tab is now your phone.');
 }
 
 /* SPEC5: a tab with no id (first visit, after a reset, or a server with a fresh db) becomes a new anonymous person.
@@ -685,19 +698,28 @@ function textsCard(item) {
     <p class="muted">${mine
       ? "Loop will message you here when someone wants it. If you'd rather not keep this tab open, give Loop your number and it texts you instead."
       : "The pickup plan and the giver's replies can reach you by text."}</p>
-    <form class="stack-sm" data-form="phone" novalidate>
+    ${t.pending ? html`<form class="stack-sm" data-form="verify" novalidate>
+      <p>Loop just texted a 4-digit code to that number. Type it here.</p>
+      <label class="sr-only" for="verify-input">The code from the text</label>
+      <div class="phone-row">
+        <input id="verify-input" class="input" name="code" data-scope="phone" inputmode="numeric" autocomplete="one-time-code" maxlength="4" placeholder="4 digits" value="${state.ui.phone.code}">
+        <button class="btn btn-primary" type="submit" id="verify-submit">${busyText('verify', 'Link', 'Linking…')}</button>
+      </div>
+      ${noticeBlock('texts')}
+      <button class="btn btn-ghost btn-small" type="button" data-action="phone-again">Didn't get it? Send again</button>
+    </form>` : html`<form class="stack-sm" data-form="phone" novalidate>
       <label class="sr-only" for="phone-input">Your mobile number</label>
       <div class="phone-row">
         <input id="phone-input" class="input" type="tel" name="phone" data-scope="phone" inputmode="tel" autocomplete="tel" placeholder="Your mobile number" value="${state.ui.phone.phone}">
-        <button class="btn btn-primary" type="submit" id="phone-submit">${busyText('phone', 'Text me', 'Linking…')}</button>
+        <button class="btn btn-primary" type="submit" id="phone-submit">${busyText('phone', 'Text me', 'Texting…')}</button>
       </div>
       ${noticeBlock('texts')}
-    </form>
+    </form>`}
     <p class="small muted">Or text <b class="link-code">${t.code}</b> to <a class="line-link" href="${smsHref(t.code)}">${lineLabel(state.health.lineNumber)}</a>. Your number stays private. Reply STOP to unlink.</p>
   </section>`;
 }
 
-/* The texts card's number: Loop lists it with Photon and texts a hello; the card then goes away. */
+/* The texts card: a typed number gets a code by text (step 1); the typed code links it (step 2). */
 async function submitPhone() {
   const phone = state.ui.phone.phone.trim();
   if (!phone) {
@@ -706,11 +728,27 @@ async function submitPhone() {
     announce(state.ui.notice.text);
     return;
   }
-  await mutate('phone', () => api('POST', `/api/people/${encodeURIComponent(state.me)}/phone`, { phone }), (res) => {
-    state.texts = { ...(state.texts ?? {}), linked: true };
+  await mutate('phone', () => api('POST', `/api/people/${encodeURIComponent(state.me)}/phone`, { phone }), () => {
+    state.texts = { ...(state.texts ?? {}), pending: true };
+    state.ui.phone.code = '';
+    state.focusTarget = '#verify-input';
+    announce('Loop texted you a code. Type it here.');
+  });
+}
+async function submitVerify() {
+  const code = state.ui.phone.code.trim();
+  if (code.length !== 4) {
+    state.ui.notice = { text: 'Type the 4 digits from the text.', tone: 'error', where: 'texts' };
+    render();
+    announce(state.ui.notice.text);
+    return;
+  }
+  await mutate('verify', () => api('POST', `/api/people/${encodeURIComponent(state.me)}/phone/verify`, { code }), (res) => {
+    state.ui.phone = { phone: '', code: '' };
+    if (res.personId && res.personId !== state.me) { becomePerson(res.personId); return false; }
+    state.texts = { ...(state.texts ?? {}), linked: true, pending: false };
     textsFor = state.me;
-    state.ui.phone.phone = '';
-    showToast(res.sent ? 'Linked. Loop just texted you.' : 'Linked.');
+    showToast('Linked. Loop texts you from now on.');
     announce('Linked.');
   });
 }
@@ -1348,7 +1386,7 @@ async function mutate(kind, request, onDone) {
 }
 
 function showError(err) {
-  const where = state.busy.startsWith('thread') ? 'thread' : state.busy === 'phone' ? 'texts' : 'action'; // thread errors show in the conversation
+  const where = state.busy.startsWith('thread') ? 'thread' : state.busy === 'phone' || state.busy === 'verify' ? 'texts' : 'action'; // thread errors show in the conversation
   if (err.code === 'wrong_code') {
     state.ui.codeError = err.message;
     state.ui.codeAlert = true;
@@ -1936,6 +1974,7 @@ const actions = {
     state.focusTarget = '#open-reserve';
     render();
   },
+  'phone-again': () => { state.texts = { ...(state.texts ?? {}), pending: false }; state.ui.notice = null; render(); },
   'thread-action': (el) => threadAction(el.dataset.thread, el.dataset.kind),
   'close-propose': () => {
     state.ui.propose = null;
@@ -1994,6 +2033,7 @@ const actions = {
 
 const forms = {
   phone: () => submitPhone(),
+  verify: () => submitVerify(),
   reserve: (form) => reserveItem(form.dataset.request || null),
   confirm: confirmHandoff,
   ask: postAsk,

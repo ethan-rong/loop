@@ -89,7 +89,7 @@ function phones() {
     .sort(([a], [b]) => (b === 'ethan') - (a === 'ethan'));
   const linked = new Map();
   const taken = new Set();
-  for (const [id, phone] of [...entries, ...getLinks()]) { // env links first, then phones linked by code
+  for (const [id, phone] of [...getLinks(), ...entries]) { // the newest link from the web first, then env links
     if (taken.has(phone)) continue;
     taken.add(phone);
     if (!stopped.has(id)) linked.set(id, phone);
@@ -236,9 +236,9 @@ async function download(photo) {
 
 // A stranger's text may be the 4-digit code from the web page: their phone becomes that tab's person and Loop
 // confirms. Linking is done by texting, so no phone number is ever typed into the site. false for anything else.
-async function linkFromCode(from, text, space) {
+async function linkFromCode(from, text, space, currentPersonId = null) {
   const code = text?.match(LINK_CODE)?.[1];
-  const personId = code && E164.test(from) ? await linkCode(code, from, allowUser) : null;
+  const personId = code && E164.test(from) ? await linkCode(code, from, allowUser, currentPersonId) : null;
   if (!personId) return false;
   spaces.set(personId, space);
   toldUnknown.delete(from);
@@ -257,8 +257,8 @@ export async function receive(space, message, onInbound) {
   const { from, text, photo, otherFile } = readMessage(message);
   if (!answer && !text && !photo && !otherFile) return; // other tapbacks, read receipts, typing
   const personId = answer?.personId ?? personFor(from);
+  if (!answer && !photo && (await linkFromCode(from, text, space, personId))) return; // a code from any phone: link, or move the link to that tab
   if (!personId) {
-    if (!answer && !photo && (await linkFromCode(from, text, space))) return;
     if (toldUnknown.has(from)) return;
     toldUnknown.add(from);
     return space.send(NOT_LINKED).catch((err) => fail('send', err));
@@ -349,6 +349,23 @@ async function offer(personId, space, sent, choice, poll) {
 // for the person's next text).
 // The DM a person last texted from counts too (in production that only happens once connected; tests use it).
 export const welcomeLinked = (personId) => sendToPerson(personId, LINKED); // after a number typed on the web
+export const ownerOfPhone = (phone) => personFor(phone) ?? null; // the person this number already belongs to (env or web)
+
+// One text to a number that is not linked to anyone yet (the verification code for a number typed on the web).
+// Never rejects: false when the channel is down or Photon refuses the target.
+export async function textNumber(phone, text) {
+  if (!im || !E164.test(phone)) return false;
+  try {
+    const space = await im.space.create(phone);
+    await space.send(text);
+    lastSendOk = true;
+    return true;
+  } catch (err) {
+    lastSendOk = false;
+    fail('send', err);
+    return false;
+  }
+}
 
 export function sendToPerson(personId, text, choice = null) {
   if (!(im || spaces.has(personId)) || !phones().has(personId)) return Promise.resolve(false);

@@ -64,7 +64,7 @@ export function setPersonLang(db, id, lang) {
 
 // The phone Loop texts this person on (E.164), linked by texting the page's 4-digit code to the line; null unlinks.
 export function setPersonPhone(db, id, phone) {
-  const updated = { ...getPerson(db, id), phone };
+  const updated = { ...getPerson(db, id), phone, phoneAt: new Date().toISOString() }; // newest link to a number wins
   return { db: next(db, { people: db.people.map((p) => (p.id === id ? updated : p)) }), person: updated };
 }
 
