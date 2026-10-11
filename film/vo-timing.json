@@ -1,0 +1,19 @@
+{
+  "total": 118,
+  "speechEnd": 115,
+  "wpm": 155,
+  "beats": [
+    {"id": 1, "shot": "1 · watercolor lamp → dumpster", "start": 0.0, "end": 14.7, "text": "We all have stuff we don’t use anymore. Maybe you got a new lamp, and the old one’s just sitting there. For you, it’s taking up space. For someone else, it could be exactly what they need."},
+    {"id": 2, "shot": "2 · LISTINGS STOP AT “POSTED”", "start": 14.7, "end": 24.7, "text": "Giving it away should be simple. Less waste. One less thing to buy. But posting is only the beginning. There’s still a pickup to arrange."},
+    {"id": 3, "shot": "3 · the knot (3D) → Loop", "start": 24.7, "end": 26.6, "text": "That’s why I built Loop."},
+    {"id": 4, "shot": "4 · the board (desktop)", "start": 26.6, "end": 30.8, "text": "Post what you’re giving away. Or ask for what you need."},
+    {"id": 5, "shot": "5 · taker posts a need", "start": 30.8, "end": 34.3, "text": "Say someone needs a lamp, and you have one."},
+    {"id": 6, "shot": "6 · photo → Gemini draft → match", "start": 34.3, "end": 46.3, "text": "With just a photo, Gemini drafts the listing and finds their request. You check the details, correct the condition, and approve it. Gemini does the drafting. You make the decision."},
+    {"id": 7, "shot": "7 · the ticket", "start": 46.3, "end": 49.4, "text": "They accept and get a four-digit pickup code."},
+    {"id": 8, "shot": "8 · Loop in the thread", "start": 49.4, "end": 62.5, "text": "Then Loop joins the conversation. It asks you first, because you’re the one giving. Just tell Loop when and where: “Tomorrow at noon, Davis Library.” The other person confirms. Loop reminds you both."},
+    {"id": 9, "shot": "9 · the code → KEPT IN USE", "start": 62.5, "end": 72.9, "text": "At pickup, they show you the code. You enter it. Done. No personal details to exchange. Even when you meet. All you need is the code."},
+    {"id": 10, "shot": "10 · iPhone: Messages (Photon)", "start": 72.9, "end": 89.9, "text": "And the whole thing works in Messages. Through Photon’s Spectrum, Loop has its own iMessage number. Text it a photo. Give the draft a thumbs-up. Text a time. Enter the code at pickup. No app needed. And your phone number stays private."},
+    {"id": 11, "shot": "11 · a pile → six drafts", "start": 89.9, "end": 101.1, "text": "Have a whole pile of stuff? Gemini can turn a single photo into separate listings and see who might need them. You review the drafts, just like before."},
+    {"id": 12, "shot": "13–14 · code cards → end card", "start": 101.1, "end": 115.0, "text": "From one lamp to a whole pile, the idea stays the same: make the process simpler, so we waste less and make it easier for people in the community to help each other out."}
+  ]
+}

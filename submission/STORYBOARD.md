@@ -1,4 +1,6 @@
-# Loop — storyboard v1 (director: Fable; Sat Oct 10, 20:50 EDT)
+# Loop — storyboard v1.1 (director: Fable; Sat Oct 10, 21:40 EDT)
+
+**Voice-over is Ethan's own script (below), 288 words, 150 wpm; timings in `film/vo-timing.json`; the pacer is at `/film/pacer.html` on the running app.** The VO column in the table is superseded by the beat text in the timing file; the shot column stays.
 
 Length target 1:55. 1920×1080, 30 fps. Voice: Ethan, recorded last, over the locked picture. Sound: none under the voice (one soft "thock" on the stamp is allowed).
 Tooling per shot: **P** = real product, recorded by Fable with Playwright at 2× on the desktop layout (or Ethan's own screen recording if he prefers); **PH** = Ethan's iPhone screen recording of Messages; **3D** = three.js scene (HTML, rendered inside HyperFrames); **WC** = p5.js hand-drawn watercolor animation (HTML, seeded, deterministic per frame); **RM** = Remotion composition rendered to MP4, then placed as a clip; **HF** = HyperFrames composition (puppeteer + FFmpeg) that assembles everything.
