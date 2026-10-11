@@ -72,3 +72,21 @@ Rehearse with a timer three times. Cut words, not steps. Record phone and screen
 - If the laptop can't reach the internet: the whole app runs locally; only the Gemini call fails. The UI explains and falls back to the manual form. Say so.
 - If something crashes: `npm run seed && npm start`. Data resets in under 5 seconds.
 - Video is the primary record; the live demo is the bonus. Upload the video Saturday night.
+
+## Table checklist (Sun Oct 11, 12:00–1:30, Fetzer Gym)
+Venue Wi-Fi is UNC's network: the app, Gemini and iMessage work on it (they ran on it all Saturday), but it sinkholes the tunnel service by DNS. Use the phone hotspot for the tunnel, or skip the tunnel.
+1. Laptop on the hotspot (Settings → Wi-Fi → your iPhone). Keep the Mac awake for the whole fair: in a terminal tab, `caffeinate -dims` (leave it running).
+2. Start Loop: `cd ~/loop && (lsof -ti :3000 | xargs kill 2>/dev/null; true) && npm run seed && npm start`. Check http://localhost:3000/api/health shows `"imessage":true`.
+3. Optional public link for judges' phones, in a second tab: `cloudflared tunnel --edge-ip-version 4 --protocol http2 --url http://localhost:3000`. Copy the printed https address and show a QR to scan: `qrencode -t ANSIUTF8 "https://PASTE-THE-ADDRESS"`. Only the people at the table get the link; the reset endpoint has no password.
+4. Open two browser windows side by side: a normal one (giver) and a private one (taker). Phone unlocked with the Loop thread open in Messages.
+5. Between judges: `curl -s -X POST localhost:3000/api/reset`, reload both windows.
+
+## 60-second pitch (then let them click)
+"Every May the dorm dumpsters fill with lamps and fans that still work while someone two buildings over buys the same thing. Loop closes the whole loop, not just the listing. You photograph the thing; Gemini drafts the listing and matches it to a real request, and it only writes what it can see. The taker reserves it and gets a four-digit code. Loop joins the chat as a third voice, asks the giver first, turns 'six at Davis' into a plan, reminds both, and when the taker taps I'm here the giver asks for the code. The code is the only identity there is: no accounts, no names, no phone numbers shown. And it all works in Messages through Photon: text Loop a photo, it drafts; when someone reserves, it texts you; a thumbs-up sets the plan." Then: "Reserve this fan on my laptop and watch my phone."
+
+## Five questions they will ask, with the honest answers
+- How is Gemini used? Three structured calls through generateContent with JSON schemas: draft one item from a photo (title, description, visible condition, at most one matching request with a reason written before the id), find up to six items in a pile photo with boxes, and read free-text pickup messages into propose / accept / arrived / cancel. The server validates every field; Gemini never changes state by itself.
+- What did you write yourself? AI coding agents wrote the code under my direction; I set the product, every flow and rule, and tested each step on the real services. I can walk through any module: `server/store.mjs` is the state machine (pure transitions), `gemini.mjs` the schemas, `coordinator.mjs` the thread agent, `channels/spectrum.mjs` the iMessage line, `public/app.js` the whole front end with no framework.
+- How does the phone side work? Photon Spectrum gives Loop a real iMessage number. A person types their number on the item page, Loop texts a code, they enter it, done; or they text the page's code to Loop. The number is registered on Photon's user list through its API and stored on the server only.
+- What happens when Gemini is wrong or down? The draft is marked "drafted by Gemini, check it" until a person edits or approves it; no match is a normal answer; on rate limit or timeout the person fills the form by hand. The handoff never depends on the model.
+- What would you do next? Campus email verification, notifications when a new need matches an existing item, and a move-out trial with one residence hall. Nothing has real users yet, and I will not claim impact I have not measured.
