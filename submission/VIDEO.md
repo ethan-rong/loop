@@ -45,3 +45,9 @@ Post (one photo or a pile) → Gemini drafts and matches → offer or post → s
 - [ ] Captions legible on a phone.
 - [ ] GitHub link on the end card matches the Devpost link.
 - [ ] Uploaded unlisted to YouTube; link pasted into the Devpost draft; draft saved.
+
+## As shot (Oct 10, 19:50 EDT) — what the rendered film actually shows
+- Files: `film/out/loop-demo-narrated.mp4` (1:56.7, Eric via vidIQ/ElevenLabs) and `film/out/loop-demo-silent.mp4` (same picture, silent track for your own voice). Stills in `film/out/stills/`.
+- Footage: one live take on localhost:3000 with the real model (lamp draft ~1.3 s, code 7079, "Tomorrow noon" at Davis Library with the reminder line, pile "Gemini found 6 things", refusal "I cannot share phone numbers or personal data.").
+- Differences from the script: no "Looks right" tap is shown (the app hides it once the condition is edited); the pile beat shows six drafts and no match (the lamp request had already been fulfilled in the take), and the narration does not claim a match; typed proposals are mentioned in the voice-over but only the tap path is shown; the iMessage beat is a typeset card of Loop's real reply strings with Gemini's real draft of the coat photo, labelled on screen as typeset, not a phone recording.
+- To re-cut: edit `film/scripts/build.mjs`, run `node scripts/build.mjs`, then from `film/comp`: `npx hyperframes render -o ../out/loop-demo-narrated.mp4 --quality high --video-frame-format png`.
