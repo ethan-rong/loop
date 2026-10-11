@@ -1,53 +1,61 @@
-# Loop — the two-minute film (script v2, Sat Oct 10, ~19:40 EDT)
+# Loop — the film, v3 (your voice, real phone, fast cuts)
 
-Target: under 2:00, judged on Application/Impact, Functionality, Creativity, Technical Complexity, Presentation. The film tells one object's story and lets the product's restraint be the point. No invented numbers, no names, real timestamps on screen.
+Director's notes, Sat Oct 10, 20:30 EDT. Rules: your voice, not a synthetic one. Footage is the real product in a real desktop browser (new desktop layout) and your real iPhone screen recording of Messages. Cuts every 1–3 seconds, push-ins on the moment that matters, kinetic captions, no cursor wandering: every mouse move lands on something within half a second or gets cut. Under 2:00.
 
-## Setup for the take (30 min before recording)
-- Laptop: `cd ~/loop && npm run seed && npm start`. Two Chrome windows side by side, each half the screen, zoom 100 %, both at `http://localhost:3000` (LEFT = the giver, RIGHT = the taker; they become separate anonymous sessions by themselves).
-- Phone: Messages thread with Loop (773) 912-3997, mirrored to the Mac with QuickTime (File → New Movie Recording → camera = iPhone), shown only for the 1:28 beat. Record the whole screen with Cmd+Shift+5 at 1080p.
-- Photos: the lamp photo for the web beat is `~/loop/public/seed/lamp.jpg` (or your own); the pile is `public/seed/pile.jpg`; the phone beat uses a photo you take of any object on the desk.
-- Voice-over: record separately afterwards in Voice Memos or QuickTime audio, calm and unhurried, then lay it over the cut. Captions carry every key line so it also works muted.
-- Cut in iMovie/CapCut. Hard cuts only. Each shot ≥ 2 s. Mono captions in ink on cream, lime highlight on the one phrase per shot that matters.
+## 1. What I need from you (30 minutes)
 
-## Script (web first; the phone is the twist)
+**A. Voice-over (record on your phone, Voice Memos, quiet room, phone 20 cm from your mouth).** Read this like you're telling a friend, quickly, not reading an ad. Natural pauses are fine; I'll cut to your pace. Send me the file (.m4a). If a line feels fake, change the words and keep the meaning.
 
-Stage: two Chrome windows side by side at half width each. LEFT = **the giver**, RIGHT = **the taker**. Both are anonymous tabs; nothing to pick. The phone appears only in the 1:30 beat.
+> Last May I watched a guy on my floor throw out a desk lamp that worked. Two doors down, someone was about to buy one.
+>
+> That's the real problem with campus "free stuff" boards: they stop at "posted". Nobody matches the thing to the person, nobody sorts out the pickup, and nothing proves it ever happened.
+>
+> So I built Loop. You post what you don't need, or what you need. Gemini looks at the photo, drafts the listing, and tells you who already asked for it. It only drafts. You fix the condition. You say yes.
+>
+> The other person accepts and gets a four-digit ticket. Then Loop joins the chat as the third voice. It asks the giver first, because the giver is doing the favour. It turns "tomorrow at noon at Davis" into a plan, gets the other side to confirm, and reminds both of them.
+>
+> At the pickup, the taker shows the code, the giver types it, and the item flips to collected. That's the handshake. No names, no accounts, no ratings. The code is the only identity that matters.
+>
+> And you don't even need the app. Text a photo to Loop's number. Tap thumbs-up. Done. Everything in the thread reaches your phone.
+>
+> One photo of a pile becomes six listings. Gemini says "no match" when nothing fits, and Loop refuses to share your number.
+>
+> Plain JavaScript on Node. Gemini 3.5 Flash-Lite behind JSON schemas. Photon for iMessage. Built in a day at HackNC.
+>
+> Loop.
 
-| Time | Picture | Voice-over | Caption (lime phrase in **bold**) |
-|---|---|---|---|
-| 0:00–0:07 | Cream card, ink type, no UI yet. | "Every move-out, working lamps and chargers go into the dumpster. Someone down the hall is about to buy the same thing. Listings don't fix that; most of them stop at 'posted'." | Listings stop at **posted**. |
-| 0:07–0:11 | Knot draws in, "Loop", one line. | "Loop finishes the loop." | **A place to post what you have.** No names, no accounts. |
-| 0:11–0:19 | RIGHT: Ask for something → "Reading lamp for my desk" → Post. The board shows it under PEOPLE NEED. | "It starts with a need, not a sale. Someone on campus asks for a reading lamp. That is all Loop knows about them." | **Asked just now** · Reading lamp for my desk |
-| 0:19–0:38 | LEFT: Post something → choose the lamp photo → the draft card fills in ("Drafted by Gemini — check it") → the match card: "Fits someone's request: Reading lamp for my desk" with the reason. | "The giver posts a photo. Gemini drafts the listing and notices who asked for exactly this. It only drafts: the giver fixes the condition, taps Looks right, and offers it." | Gemini **drafts**. A person **decides**. |
-| 0:38–0:42 | LEFT: tap Fair → Looks right → Offer to them. | — | **Offer to them** |
-| 0:42–0:52 | RIGHT: the For you row → Accept & reserve, left blank → the ticket with the four digits. | "The taker accepts and leaves the pickup blank on purpose. The two of them have never met and will never know each other's names." | The ticket is the **only identity** that matters. |
-| 0:52–1:12 | LEFT: Loop's card "Someone reserved your… you pick" → Suggest a time and place → Davis Library lobby, Tomorrow noon → Suggest to the taker. RIGHT: "The giver suggested Davis Library lobby at noon tomorrow. Does that work for you?" → Works for me → plan card SET, "I'll remind you both 30 minutes before." | "Now Loop is the third voice in the chat. It asks the giver first, because the giver is doing the favour. A tap or a typed sentence becomes a proposal; the other side confirms; Loop reminds both later. It proposes. It never decides for anyone." | Loop **proposes**. People **confirm**. |
-| 1:12–1:28 | RIGHT: I'm here. LEFT: "The taker is at Davis Library lobby. Ask for the 4-digit code…" → types the four digits → Confirm handoff → COLLECTED, the KEPT IN USE stamp. | "At the library the taker shows four digits; the giver types them. That is the whole handshake, and it is the only moment that proves anything." | **KEPT IN USE** |
-| 1:28–1:46 | Phone mirrored on screen: a photo of a second object texted to Loop → the draft reply with "Someone nearby asked for…" or "No open request fits yet. Reply BOARD…" → tap 👎 on Loop's reply (its last line reads "👍 YES · 👎 BOARD"; a tapback is the answer) → "Posted to the board." LEFT window: the item appears under INVENTORY. | "And if you never open the app: text a photo to Loop. Same draft, same honesty, same handoff. Every question Loop asks ends with a thumbs-up or thumbs-down you can tap, and the four digits can be texted too." | **No app needed.** Text a photo. |
-| 1:46–1:55 | LEFT: Post something → A pile → the yard-sale photo → six outlined items, one matched, five "No open request fits". Then a thread line "I can't share phone numbers or the pickup code." | "The honest parts are the point: one photo becomes six listings, Gemini says when nothing fits, and Loop says no when it should. Node and plain JavaScript, Gemini 3.5 Flash-Lite behind JSON schemas, Photon Spectrum for iMessage." | Gemini says **no match** when there is none. |
-| 1:55–2:00 | End card: Knot, "Loop", "Post what you don't need.", GitHub URL, the number. | "Loop." | **Post what you don't need.** |
+(~230 words. At a normal talking pace that is about 1:35.)
 
-About 250 words of voice-over at a calm pace = 1:50. Leave air; cut words, not steps.
+**B. Phone screen recording (iPhone: Control Center → Screen Recording; Do Not Disturb on; Messages open on the Loop thread).** I'll drive the web side and tell you when to text. Record ONE take of:
+1. Text **hi** → wait for the reply.
+2. Take a photo of the lamp in Messages (camera button) and send it → wait for the draft reply (ends with "👍 YES · 👎 BOARD").
+3. Tap **👍** on that message → "Offered. I'll tell you when they accept…"
+4. Wait: I accept on the web → you get "Someone reserved your … you pick: when and where works for you?"
+5. Text **tomorrow noon at Davis** → wait → I confirm on the web → you get "Pickup set…"
+6. Wait: I tap "I'm here" on the web → you get "The taker is at … text it to me."
+7. Text the four digits I give you → "Handed over…"
+Stop recording. AirDrop me the .mov (or send it in chat). Keep the phone upright; don't scroll while a message is arriving.
 
-### How the web is used, in one breath (for judges who ask)
-Post (one photo or a pile) → Gemini drafts and matches → offer or post → someone reserves and gets a ticket → the thread with Loop settles when and where → the giver types the four digits → collected. Ask for something is the other entrance. iMessage is the same loop without the app.
+## 2. Shot plan (what the picture does while you talk)
 
-## Rules for the take
-- Say a time that is still in the future when you record; a past time gets no reminder sentence ("I'll remind you both 30 minutes before" only appears when the time is ahead).
-- Real time in the UI is fine; don't fake timestamps.
-- If Gemini takes longer than 5 s on the photo, keep rolling; cut the wait in the edit.
-- If a text doesn't arrive within 10 s, re-send once; otherwise cut around it and say so in the README's limits.
-- Do not show the phone number of the giver or any notification from other apps: Do Not Disturb on, Messages only.
-- No music, or a single quiet pulse under the VO. Silence reads as confidence here.
+| VO beat | Picture (all real) | Motion |
+|---|---|---|
+| "Last May…" | Black. Kinetic type: "A WORKING LAMP." then "IN THE DUMPSTER." slam in, one word at a time. | Hard cuts on syllables. |
+| "That's the real problem…" | Desktop browser, a generic-looking "free stuff" board (our own board, blurred, with the word POSTED stamped over it), then the stamp cracks. | Push-in 1.1× over 1.5 s. |
+| "So I built Loop." | Knot mark draws itself, wordmark lands, cut to the real desktop site: hero "Post what you don't need." | Draw-on, snap. |
+| "You post what you don't need…" | Desktop: Post something → photo lands → the draft card types itself in (real Gemini) → push-in on "DRAFTED BY GEMINI — CHECK IT" → the match card: "Fits someone's request: Reading lamp for my desk". | Zoom 1.3× on the match card; caption pops. |
+| "It only drafts. You fix the condition. You say yes." | Click Fair (ring), click Looks right, click Offer to them: three quick cuts, each on the click. | 0.8 s per cut. |
+| "The other person accepts…" | Second browser (taker): For you row → Accept & reserve → the ticket fills the frame. | Push-in 1.4× on the four digits. |
+| "Then Loop joins the chat…" | Split screen: giver left, taker right. Loop's green card slides in; "Suggest a time and place" → chips → "New suggestion from the giver…" on the right → Works for me → SET. | Alternate left/right push-ins; each message slides in. |
+| "At the pickup…" | I'm here → code prompt → typing 4 digits (one per frame burst) → Confirm → COLLECTED → the KEPT IN USE stamp slams. | Stamp lands with a 2-frame shake. |
+| "No names, no accounts…" | Fast montage: three board cards, no names anywhere; the ticket; the "Nothing identifies you" line. | 0.7 s cuts. |
+| "And you don't even need the app." | YOUR PHONE recording in a device frame, full height: hi → photo → draft → 👍 → "Offered." | Phone frame slides in from the right; captions call out each reply. |
+| "Everything in the thread reaches your phone." | Phone: "Someone reserved your…" → your typed time → "Pickup set…" | Quick cuts. |
+| "One photo of a pile…" | Desktop: A pile → outlines pop one by one (1..6) → "Gemini found 6 things". | Each outline pops with a tick sound-free bounce. |
+| "Gemini says no match… refuses to share your number." | Two cards: "No open request fits this one." and the thread line "I cannot share phone numbers…" | Two cuts. |
+| "Plain JavaScript…" | Three code snippets, 1 s each: the draft schema, the coordinator actions, the Spectrum send. | Type-on. |
+| "Loop." | End card: knot, "Post what you don't need.", github.com/rongtnt/loop, the number. | Snap, hold 3 s. |
 
-## Checklist before upload
-- [ ] Under 2:00 (check the exported file, not the timeline).
-- [ ] Captions legible on a phone.
-- [ ] GitHub link on the end card matches the Devpost link.
-- [ ] Uploaded unlisted to YouTube; link pasted into the Devpost draft; draft saved.
-
-## As shot (Oct 10, 19:50 EDT) — what the rendered film actually shows
-- Files: `film/out/loop-demo-narrated.mp4` (1:56.7, Eric via vidIQ/ElevenLabs) and `film/out/loop-demo-silent.mp4` (same picture, silent track for your own voice). Stills in `film/out/stills/`.
-- Footage: one live take on localhost:3000 with the real model (lamp draft ~1.3 s, code 7079, "Tomorrow noon" at Davis Library with the reminder line, pile "Gemini found 6 things", refusal "I cannot share phone numbers or personal data.").
-- Differences from the script: no "Looks right" tap is shown (the app hides it once the condition is edited); the pile beat shows six drafts and no match (the lamp request had already been fulfilled in the take), and the narration does not claim a match; typed proposals are mentioned in the voice-over but only the tap path is shown; the iMessage beat is a typeset card of Loop's real reply strings with Gemini's real draft of the coat photo, labelled on screen as typeset, not a phone recording.
-- To re-cut: edit `film/scripts/build.mjs`, run `node scripts/build.mjs`, then from `film/comp`: `npx hyperframes render -o ../out/loop-demo-narrated.mp4 --quality high --video-frame-format png`.
+## 3. How it gets made
+- You send the two files. I lock the picture to your voice (your pace sets the cuts), composite the phone recording in a device frame, add the motion (GSAP in HyperFrames: push-ins, slides, kinetic type), and render 1080p under 2:00.
+- No synthetic voice anywhere. No music, or a single quiet pulse if you want one (say so).
