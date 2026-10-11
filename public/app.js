@@ -666,10 +666,15 @@ function itemView(id) {
       ${item.aiDraft ? html`<p class="provenance">${icon('sparkle')} Gemini drafted this listing. ${mine ? 'You' : 'The giver'} checked it.</p>` : ''}
     </section>
     ${item.status === 'withdrawn' ? '' : timeline(item)}
-    <section class="glass card action" aria-labelledby="action-title">${actionArea(item)}</section>
+    <section class="glass card action" aria-labelledby="action-title">${actionArea(item)}${textsHint(item)}</section>
     ${threadSection(item)}
   </div>`;
 }
+
+/* At the foot of the action card: how the giver or the taker of this item gets Loop's texts, until they are linked. */
+const textsHint = (item) => (state.texts && !state.texts.linked && state.health.lineNumber && (item.ownerId === state.me || item.reservation?.personId === state.me)
+  ? html`<p class="texts-hint">${textsLine()}</p>`
+  : '');
 
 function timeline(item) {
   const current = STEP_INDEX[item.status] ?? 0;
