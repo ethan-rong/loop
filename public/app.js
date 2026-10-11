@@ -734,7 +734,6 @@ function placeTimeFields(scope, place, time) {
   return html`<fieldset class="field">
       <legend class="label">Meet at</legend>
       <div class="picks">${MEET_PLACES.map((v, i) => pickButton(scope, 'place', v, i, place))}</div>
-      ${campusMap({ highlight: place, pick: scope })}
       <label class="sr-only" for="${id('place')}">Or type a place</label>
       <input id="${id('place')}" class="input" name="place" data-scope="${scope}" maxlength="60" autocomplete="off" placeholder="Or type a place" value="${place}">
     </fieldset>
@@ -747,59 +746,20 @@ function placeTimeFields(scope, place, time) {
 }
 const meetGrid = (place, time) => html`<dl class="meet"><div><dt>Where</dt><dd>${place || NOT_SET}</dd></div><div><dt>When</dt><dd>${time || NOT_SET}</dd></div></dl>`;
 
-/* SPEC4 §F: a schematic campus map, ink on paper, in a 320 x 180 box (a phone's width, so 11 px labels stay 11 px).
-   A place matches a spot by prefix ("Davis Library lobby" -> Davis Library). With `pick` (a form scope) a tap on a
-   spot fills the place field, the same as a quick pick; the chips and the text field stay the real controls.
-   `from`/`to` draw a dotted route, but under SPEC5 people have no home spot, so nothing passes them today. */
-const MAP_W = 320;
-const MAP_H = 180;
-const LABEL_AT = { right: [12, 4, 'start'], left: [-12, 4, 'end'], up: [12, -6, 'start'], below: [0, 20, 'middle'] }; // clear of the ring
-// Footpaths between the spots above (in map px), drawn once under them.
-const MAP_WALKS = 'M38 40V16M160 16L192 56L198 90M109 85L198 90L272 115M198 90L157 151M109 85L80 139L157 151L230 167';
-const spotXY = ([, x, y]) => [Math.round((x * MAP_W) / 100), Math.round((y * MAP_H) / 100)];
+/* Meeting spots: the quick picks plus the known campus spots, as one de-duplicated chip list. */
 const spotFor = (place) => {
   const p = String(place ?? '').trim().toLowerCase();
   return p ? SPOTS.find(([name]) => p.startsWith(name.toLowerCase())) : undefined;
 };
-console.assert(spotFor('Davis Library lobby')?.[0] === 'Davis Library' && !spotFor('Dorm front desk') && !spotFor(''), 'map: prefix match');
+console.assert(spotFor('Davis Library lobby')?.[0] === 'Davis Library' && !spotFor('Dorm front desk') && !spotFor(''), 'spots: prefix match');
 const spotValue = (name) => PLACES.find((p) => p.startsWith(name)) ?? name; // a quick pick's own wording wins
 // "Meet at" chips: one list, no repeats. The quick picks keep their wording ("Davis Library lobby"), then every other
 // map spot, so each chip and its spot on the map are the same choice.
 const MEET_PLACES = [...PLACES, ...SPOTS.map(([name]) => name).filter((name) => !PLACES.some((p) => spotFor(p)?.[0] === name))];
 console.assert(MEET_PLACES.length === new Set(MEET_PLACES.map((p) => spotFor(p)?.[0] ?? p)).size && MEET_PLACES.every((p) => spotValue(spotFor(p)?.[0] ?? p) === p), 'meet places: one chip per spot, map taps match chips');
 
-function campusMap({ highlight, from, to, pick } = {}) {
-  const on = spotFor(highlight);
-  const [a, b] = [spotFor(from), spotFor(to)];
-  const route = a && b && a !== b ? raw(`<path class="map-route" d="M${spotXY(a)}L${spotXY(b)}"/>`) : '';
-  let title = on ? `Campus map: ${on[0]}` : 'Campus map';
-  if (pick) title += '. Tap a spot to meet there.';
-  return html`<svg class="campus-map ${pick ? 'is-picker' : ''}" viewBox="0 0 ${MAP_W} ${MAP_H}" role="img"><title>${title}</title>
-    <path class="map-street" d="M8 16H${MAP_W - 8}"/><path class="map-walk" d="${MAP_WALKS}"/>${route}
-    ${SPOTS.map((spot) => spotMark(spot, spot === on, pick))}
-  </svg>`;
-}
 
-/* The coral "Meet · <time>" sticker over the agreed spot, in HTML so any time text sizes itself. Decorative: the
-   Where / When grid says the same. It hangs below the spot, or above it near the bottom edge, and away from the sides. */
-function meetSticker(place, time) {
-  const [x, y] = spotXY(spotFor(place));
-  let side = 'mid';
-  if (x < MAP_W * 0.3) side = 'start';
-  else if (x > MAP_W * 0.7) side = 'end';
-  return html`<span class="meet-sticker is-${side} ${y > MAP_H * 0.6 ? 'is-above' : ''}" style="left:${(x / MAP_W) * 100}%;top:${(y / MAP_H) * 100}%" aria-hidden="true">Meet${time ? ` · ${time}` : ''}</span>`;
-}
 
-function spotMark(spot, on, pick) {
-  const [name, , , side = 'right'] = spot;
-  const [x, y] = spotXY(spot);
-  const [dx, dy, anchor] = LABEL_AT[side];
-  const tap = pick ? html` data-action="pick" data-scope="${pick}" data-field="place" data-value="${spotValue(name)}"` : '';
-  return html`<g class="spot ${on ? 'is-on' : ''}"${tap}>
-    ${pick ? html`<circle class="spot-hit" cx="${x}" cy="${y}" r="16"/>` : ''}${on ? html`<circle class="spot-ring" cx="${x}" cy="${y}" r="8"/>` : ''}
-    <circle class="spot-dot" cx="${x}" cy="${y}" r="4"/><text x="${x + dx}" y="${y + dy}" text-anchor="${anchor}">${name}</text>
-  </g>`;
-}
 
 function recipientBlock(item) {
   const res = item.reservation;
@@ -900,7 +860,6 @@ function planCard(t) {
   return html`<div class="glass card plan">
     <div class="plan-head"><h2 id="thread-title">Pickup plan</h2><span class="chip dot chip-${chip}">${label}</span></div>
     ${meetGrid(place, time)}
-    ${spotFor(place) ? html`<div class="map-fig">${campusMap({ highlight: place })}${meetSticker(place, time)}</div><p class="map-caption">Public spots only. Nobody's room is on the map.</p>` : ''}
     ${isOpenThread(t) && (place || time) ? html`<ul class="agree" aria-label="Who agreed to this plan">${people.map((id) => {
       const yes = (t.plan.confirmedBy ?? []).includes(id);
       return html`<li class="${yes ? 'yes' : ''}"><span class="agree-dot" aria-hidden="true">${yes ? icon('check') : ''}</span><span><strong>${whoIn(t, id)}</strong> ${yes ? 'agreed' : 'not yet'}</span></li>`;
@@ -1964,8 +1923,6 @@ function bind(el) {
   if (scope === 'give') markChecked();
   if (scope === 'reserve' || scope === 'propose') {
     document.querySelectorAll(`.pick[data-scope="${scope}"][data-field="${el.name}"]`).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.value === el.value)));
-    const map = el.name === 'place' && el.closest('fieldset')?.querySelector('.campus-map');
-    if (map) map.outerHTML = String(campusMap({ highlight: el.value, pick: scope }));
   }
 }
 
