@@ -16,7 +16,7 @@ Director's notes, Sat Oct 10, 20:30 EDT. Rules: your voice, not a synthetic one.
 >
 > At the pickup, the taker shows the code, the giver types it, and the item flips to collected. That's the handshake. No names, no accounts, no ratings. The code is the only identity that matters.
 >
-> And you don't even need the app. Text a photo to Loop's number. Tap thumbs-up. Done. Everything in the thread reaches your phone.
+> And you don't even need the app. Loop has a real iMessage number, through Photon's Spectrum. Text it a photo, and the same Gemini draft comes back as a text. Tap thumbs-up to offer it. When someone reserves it, Loop texts you, you text back a time, and at the pickup you text the four digits. The whole handoff can happen in Messages.
 >
 > One photo of a pile becomes six listings. Gemini says "no match" when nothing fits, and Loop refuses to share your number.
 >
@@ -24,7 +24,7 @@ Director's notes, Sat Oct 10, 20:30 EDT. Rules: your voice, not a synthetic one.
 >
 > Loop.
 
-(~230 words. At a normal talking pace that is about 1:35.)
+(~260 words. At a normal talking pace that is about 1:45. If you need to cut, cut the pile line first.)
 
 **B. Phone screen recording (iPhone: Control Center → Screen Recording; Do Not Disturb on; Messages open on the Loop thread).** I'll drive the web side and tell you when to text. Record ONE take of:
 1. Text **hi** → wait for the reply.
@@ -49,8 +49,9 @@ Stop recording. AirDrop me the .mov (or send it in chat). Keep the phone upright
 | "Then Loop joins the chat…" | Split screen: giver left, taker right. Loop's green card slides in; "Suggest a time and place" → chips → "New suggestion from the giver…" on the right → Works for me → SET. | Alternate left/right push-ins; each message slides in. |
 | "At the pickup…" | I'm here → code prompt → typing 4 digits (one per frame burst) → Confirm → COLLECTED → the KEPT IN USE stamp slams. | Stamp lands with a 2-frame shake. |
 | "No names, no accounts…" | Fast montage: three board cards, no names anywhere; the ticket; the "Nothing identifies you" line. | 0.7 s cuts. |
-| "And you don't even need the app." | YOUR PHONE recording in a device frame, full height: hi → photo → draft → 👍 → "Offered." | Phone frame slides in from the right; captions call out each reply. |
-| "Everything in the thread reaches your phone." | Phone: "Someone reserved your…" → your typed time → "Pickup set…" | Quick cuts. |
+| "And you don't even need the app. Loop has a real iMessage number, through Photon's Spectrum." | YOUR PHONE recording in a device frame, full height: the thread header "(773) 912-3997", hi → welcome. Caption: "Photon Spectrum = Loop's iMessage line". | Phone frame slides in from the right. |
+| "Text it a photo… Tap thumbs-up to offer it." | Phone: photo sent → draft reply → the 👍 tapback lands → "Offered." | Push-in on the 👍. |
+| "When someone reserves it, Loop texts you… text the four digits." | Phone: "Someone reserved your…" → your typed time → "Pickup set…" → "The taker is at…" → you text the code → "Handed over." Caption: "Server ⇄ Photon ⇄ Messages: same thread, same state machine." | Quick cuts. |
 | "One photo of a pile…" | Desktop: A pile → outlines pop one by one (1..6) → "Gemini found 6 things". | Each outline pops with a tick sound-free bounce. |
 | "Gemini says no match… refuses to share your number." | Two cards: "No open request fits this one." and the thread line "I cannot share phone numbers…" | Two cuts. |
 | "Plain JavaScript…" | Three code snippets, 1 s each: the draft schema, the coordinator actions, the Spectrum send. | Type-on. |
