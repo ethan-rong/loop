@@ -666,15 +666,29 @@ function itemView(id) {
       ${item.aiDraft ? html`<p class="provenance">${icon('sparkle')} Gemini drafted this listing. ${mine ? 'You' : 'The giver'} checked it.</p>` : ''}
     </section>
     ${item.status === 'withdrawn' ? '' : timeline(item)}
-    <section class="glass card action" aria-labelledby="action-title">${actionArea(item)}${textsHint(item)}</section>
+    <section class="glass card action" aria-labelledby="action-title">${actionArea(item)}</section>
+    ${textsCard(item)}
     ${threadSection(item)}
   </div>`;
 }
 
-/* At the foot of the action card: how the giver or the taker of this item gets Loop's texts, until they are linked. */
-const textsHint = (item) => (state.texts && !state.texts.linked && state.health.lineNumber && (item.ownerId === state.me || item.reservation?.personId === state.me)
-  ? html`<p class="texts-hint">${textsLine()}</p>`
-  : '');
+/* Right after posting (the giver) or reserving (the taker): a card on how Loop reaches them by text, until linked.
+   Linking is one text of the tab's code; the "Open Messages" button pre-fills it on a phone or a Mac. */
+function textsCard(item) {
+  const t = state.texts;
+  const mine = item.ownerId === state.me;
+  const taker = item.reservation?.personId === state.me;
+  if (!t || t.linked || !state.health.lineNumber || !(mine || taker)) return '';
+  return html`<section class="glass card texts-card" aria-labelledby="texts-title">
+    <h2 id="texts-title">${mine ? 'Get a text when someone reserves this' : "Get Loop's messages on your phone"}</h2>
+    <p class="muted">${mine
+      ? "Loop will message you here when someone wants it. If you'd rather not keep this tab open, text this code to Loop once and it texts you instead."
+      : "The pickup plan and the giver's replies can reach you by text. Text this code to Loop once."}</p>
+    <p class="texts-code"><b class="link-code big">${t.code}</b><span class="muted">to ${lineLabel(state.health.lineNumber)}</span></p>
+    <div class="actions"><a class="btn btn-primary" href="${smsHref(t.code)}">Open Messages</a></div>
+    <p class="small muted">Your number stays private. Reply STOP to unlink.</p>
+  </section>`;
+}
 
 function timeline(item) {
   const current = STEP_INDEX[item.status] ?? 0;
