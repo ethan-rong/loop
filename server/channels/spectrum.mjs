@@ -22,7 +22,9 @@ import { setTimeout as sleep } from 'node:timers/promises';
 
 const E164 = /^\+[1-9]\d{6,14}$/;
 const HINT = "Reply 'works', 'here', or suggest a time.";
-const NOT_LINKED = "This number isn't linked to a Loop handoff.";
+const NOT_LINKED = 'This is Loop. To get texts here, open Loop on the web and text me the 4-digit code at the bottom of the page.';
+const LINKED = 'Linked. Loop will text you here about your posts and pickups. Reply STOP to unlink.';
+const LINK_CODE = /^\D*(\d{4})\D*$/; // exactly one 4-digit number: "4821", "code 4821"
 const STOPPED = "Unlinked. Loop won't text you here again.";
 const PHOTOS_ONLY = 'I can only read photos. Send a photo of the thing you want to give away.';
 const NO_DOWNLOAD = "I couldn't download that photo. Send it again when you're ready.";
@@ -48,6 +50,8 @@ const toldUnknown = new Set(); // unknown senders already answered once
 const sentTo = new Set(); // people whose first successful send was logged
 const logged = new Set();
 const offers = new Map(); // personId -> {id, choice}: the last text Loop sent them with two choices, until answered
+let getLinks = () => new Map(); // personId -> phone linked by a texted code (index.mjs reads them from the db)
+let linkCode = () => null; // (code, phone) -> personId when the code belongs to a web tab, else null
 
 const credentials = () => ({
   projectId: process.env.SPECTRUM_PROJECT_ID || process.env.PHOTON_PROJECT_ID,
@@ -63,7 +67,7 @@ function phones() {
     .sort(([a], [b]) => (b === 'ethan') - (a === 'ethan'));
   const linked = new Map();
   const taken = new Set();
-  for (const [id, phone] of entries) {
+  for (const [id, phone] of [...entries, ...getLinks()]) { // env links first, then phones linked by code
     if (taken.has(phone)) continue;
     taken.add(phone);
     if (!stopped.has(id)) linked.set(id, phone);
@@ -87,7 +91,9 @@ function fail(what, err) {
 export const channelStatus = () => ({ imessage: connected, lastSendOk, lineNumber, linkedPhones: [...phones().keys()] });
 
 // Fire and forget: the server starts listening while this connects.
-export function startChannel({ onInbound }) {
+export function startChannel({ onInbound, links, onLink }) {
+  if (links) getLinks = links;
+  if (onLink) linkCode = onLink;
   const { projectId, projectSecret } = credentials();
   if (!projectId || !projectSecret) return;
   // Every automated test runs with GEMINI_MOCK=1 and reserves items for Jerry: never text real phones from them.
@@ -200,6 +206,19 @@ async function download(photo) {
   }
 }
 
+// A stranger's text may be the 4-digit code from the web page: their phone becomes that tab's person and Loop
+// confirms. Linking is done by texting, so no phone number is ever typed into the site. false for anything else.
+async function linkFromCode(from, text, space) {
+  const code = text?.match(LINK_CODE)?.[1];
+  const personId = code && E164.test(from) ? linkCode(code, from) : null;
+  if (!personId) return false;
+  spaces.set(personId, space);
+  toldUnknown.delete(from);
+  await space.send(LINKED).catch((err) => fail('send', err));
+  console.log(`imessage: a phone linked itself to ${personId}`);
+  return true;
+}
+
 /**
  * One inbound message (exported so scripts/e2e-textflow.mjs can feed it fake SDK messages). Texts that failed to
  * send earlier go out first; then onInbound({personId, text, photoBuffer}) decides Loop's reply.
@@ -211,6 +230,7 @@ export async function receive(space, message, onInbound) {
   if (!answer && !text && !photo && !otherFile) return; // other tapbacks, read receipts, typing
   const personId = answer?.personId ?? personFor(from);
   if (!personId) {
+    if (!answer && !photo && (await linkFromCode(from, text, space))) return;
     if (toldUnknown.has(from)) return;
     toldUnknown.add(from);
     return space.send(NOT_LINKED).catch((err) => fail('send', err));

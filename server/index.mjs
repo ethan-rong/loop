@@ -122,6 +122,29 @@ app.post('/api/people', (req, res) => {
 });
 
 // SPEC4 §C, demo only (no auth): a person's thread language, en | zh | es.
+// Loop's texts for this tab: linked = a phone is on file (env or a texted code); code = what to text to link one.
+// ponytail: codes live in memory with no expiry; a restart clears them and the page asks for a fresh one.
+const linkCodes = new Map(); // code -> personId
+app.get('/api/people/:id/texts', (req, res) => {
+  const { id } = store.getPerson(db, req.params.id);
+  let code = [...linkCodes].find(([, personId]) => personId === id)?.[0];
+  if (!code) {
+    do code = String(1000 + Math.floor(Math.random() * 9000)); while (linkCodes.has(code));
+    linkCodes.set(code, id);
+  }
+  const { lineNumber, linkedPhones } = channelStatus();
+  res.json({ linked: linkedPhones.includes(id), code, lineNumber });
+});
+// A stranger texted the 4-digit code from the web page: their phone now belongs to that tab's person.
+function linkPhone(code, phone) {
+  const personId = linkCodes.get(code);
+  if (!personId || !db.people.some((p) => p.id === personId)) return null;
+  linkCodes.delete(code);
+  commit(store.setPersonPhone(db, personId, phone));
+  return personId;
+}
+const phoneLinks = () => new Map(db.people.filter((p) => p.phone).map((p) => [p.id, p.phone]));
+
 app.post('/api/people/:id/lang', (req, res) => {
   res.json(publicPerson(commit(store.setPersonLang(db, req.params.id, body(req).lang)).person));
 });
@@ -317,4 +340,4 @@ app.listen(PORT, () => {
 // Loop in iMessage (SPEC3): texts from linked phones go through textflow (photos, YES/BOARD, codes, suggestions),
 // which hands pickup-thread messages back to threadReply.
 startTextflow({ getDb: () => db, commit, send: sendToPerson, toThread: threadReply, linked: (id) => channelStatus().linkedPhones.includes(id) });
-startChannel({ onInbound: handleInbound }); // env-gated; does nothing without Spectrum credentials
+startChannel({ onInbound: handleInbound, links: phoneLinks, onLink: linkPhone }); // env-gated; does nothing without Spectrum credentials

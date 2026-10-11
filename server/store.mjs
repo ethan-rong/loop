@@ -62,6 +62,12 @@ export function setPersonLang(db, id, lang) {
   return { db: next(db, { people: db.people.map((p) => (p.id === id ? updated : p)) }), person: updated };
 }
 
+// The phone Loop texts this person on (E.164), linked by texting the page's 4-digit code to the line; null unlinks.
+export function setPersonPhone(db, id, phone) {
+  const updated = { ...getPerson(db, id), phone };
+  return { db: next(db, { people: db.people.map((p) => (p.id === id ? updated : p)) }), person: updated };
+}
+
 // SPEC5: an anonymous person (a new browser tab) is an opaque id and a thread language, nothing else.
 // ponytail: a flat cap instead of a rate limit; reset clears the extras.
 const MAX_PEOPLE = 50;

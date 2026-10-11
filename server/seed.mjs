@@ -40,9 +40,9 @@ export function resetToSeed(dataDir, prevVersion = 0) {
     ],
     threads: [],
     items: [
-      item('i_book', 'jack', 'Intro to Psychology textbook (8th ed.)', 'Hardcover. Some highlighting in the first few chapters.', 'fair', 'textbooks', 60),
-      item('i_fan', 'jerry', 'Small desk fan', 'Blue metal fan on a stand. A little dusty.', 'fair', 'electronics', 30),
-      item('i_coat', 'thomas', 'Winter coat, men\'s M', 'Warm, zip works, one small stain on the cuff.', 'fair', 'clothing', 20),
+      item('i_book', 'ethan', 'Intro to Psychology textbook (8th ed.)', 'Hardcover. Some highlighting in the first few chapters.', 'fair', 'textbooks', 60),
+      item('i_fan', 'ethan', 'Small desk fan', 'Blue metal fan on a stand. A little dusty.', 'fair', 'electronics', 30),
+      item('i_coat', 'ethan', 'Winter coat, men\'s M', 'Warm, zip works, one small stain on the cuff.', 'fair', 'clothing', 20),
     ],
   };
   saveDb(dataDir, db);

@@ -307,6 +307,7 @@ img { max-width: 100%; }
 .empty { padding: 20px; color: var(--muted); text-align: center; font-size: var(--fs-4); }
 .empty.glass { border-style: dashed; }
 .give-center { max-width: 560px; margin-inline: auto; } /* the failure card alone, centred */
+.link-code { padding: 1px 7px; border: 1.5px solid var(--ink); background: var(--lime); color: var(--ink); font-weight: 700; letter-spacing: .08em; }
 
 /* Hairline figures (vendored in /vendor/): ink lines on the surface they sit on. The library draws at the box's width
    and a 5:4 ratio, so a width caps the height, and the box holds the space before the module loads. */

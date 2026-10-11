@@ -132,6 +132,7 @@ const state = {
   online: true,
   mock: false,
   health: { imessage: false, linkedPhones: [], lineNumber: null },
+  texts: null, // this tab's {linked, code, lineNumber} from /api/people/:id/texts (the footer line)
   me: loadMe(),
   route: parseRoute(),
   busy: '',
@@ -294,9 +295,25 @@ async function refresh() {
   }
 }
 async function pollLoop() {
-  if (await refresh()) requestRender();
+  const changed = await refresh();
+  if (changed) requestRender();
   ensureMe();
+  if (changed || !state.texts) refreshTexts();
   setTimeout(pollLoop, POLL_MS);
+}
+
+/* Loop's texts for this tab: the code to text, or "linked". Asked once the tab has an id, then again on every state
+   change until it is linked (the link itself bumps the state version). */
+let textsFor = null; // the person id state.texts belongs to
+async function refreshTexts() {
+  if (!hasMe() || !state.health.lineNumber || (state.texts?.linked && textsFor === state.me)) return;
+  const me = state.me;
+  const texts = await api('GET', `/api/people/${encodeURIComponent(me)}/texts`).catch(() => null);
+  if (!texts || state.me !== me) return;
+  const changed = texts.linked !== state.texts?.linked || texts.code !== state.texts?.code;
+  state.texts = texts;
+  textsFor = me;
+  if (changed) requestRender();
 }
 
 /* SPEC5: a tab with no id (first visit, after a reset, or a server with a fresh db) becomes a new anonymous person.
@@ -526,7 +543,16 @@ const backLink = () => html`<a class="back" href="#/">${icon('back')} Board</a>`
 /* Loop's shared iMessage line (SPEC4 §A) from /api/health: one mono line in the board footer and one small line on
    the Post page (v4.1); hidden while unknown. */
 const lineLabel = (e164) => e164.replace(/^\+1(\d{3})(\d{3})(\d{4})$/, '($1) $2-$3');
-const smsHref = () => `sms:${state.health.lineNumber}`;
+const smsHref = (body = '') => `sms:${state.health.lineNumber}${body ? `&body=${encodeURIComponent(body)}` : ''}`; // &body: Messages on Apple devices
+/* The board footer: how to get Loop's texts on your phone. Linking is done by texting the tab's 4-digit code to the
+   line, so no phone number is ever typed into the site; the server keeps the number and never shows it. */
+function textsLine() {
+  const t = state.texts;
+  const line = (body) => html`<a class="line-link" href="${smsHref(body)}">${lineLabel(state.health.lineNumber)}</a>`;
+  if (!t) return html`Text Loop · ${line('')}`;
+  if (t.linked) return html`Loop texts you on your phone · reply STOP to unlink`;
+  return html`Get Loop's texts: text <b class="link-code">${t.code}</b> to ${line(t.code)} · your number stays private`;
+}
 const textIn = () => (state.health.lineNumber
   ? html`<div class="text-in-row"><div class="fig fig-phone" data-fig="phone"></div><p class="text-in">No app? Text a photo to Loop at <a href="${smsHref()}">${lineLabel(state.health.lineNumber)}</a></p></div>`
   : '');
@@ -579,7 +605,7 @@ function boardView() {
       ${needs.length > NEED_LIMIT ? html`<button class="btn btn-ghost btn-small more" id="needs-all" data-action="toggle-needs" aria-expanded="${String(allNeeds)}" aria-controls="needs">${allNeeds ? 'Show fewer' : `Show all (${needs.length})`}</button>` : ''}
     </section>
     <footer class="foot">
-      ${state.health.lineNumber ? html`<span class="foot-line"><a class="line-link" href="${smsHref()}">Text Loop · ${lineLabel(state.health.lineNumber)}</a></span>` : ''}
+      ${state.health.lineNumber ? html`<span class="foot-line">${textsLine()}</span>` : ''}
     </footer>
   </div>`;
 }

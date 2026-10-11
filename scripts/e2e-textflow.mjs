@@ -284,7 +284,7 @@ async function channelChecks(run) {
   const stranger = `+1555019000${run}`;
   await receive(space, msg(stranger, text('hello')), onInbound);
   await receive(space, msg(stranger, text('hello?')), onInbound);
-  assert.equal(out.filter((t) => t === "This number isn't linked to a Loop handoff.").length, 1, 'a stranger is answered once');
+  assert.equal(out.filter((t) => t.startsWith('This is Loop. To get texts here')).length, 1, 'a stranger is answered once');
   assert.equal(calls.length, 2, 'strangers never reach Loop');
 
   const temp = `temp${run}`; // STOP unlinks that person until the server restarts
@@ -295,7 +295,7 @@ async function channelChecks(run) {
   assert.equal(out.at(-1), "Unlinked. Loop won't text you here again.");
   assert.ok(!channelStatus().linkedPhones.includes(temp));
   await receive(space, msg(tempPhone, text('hi')), onInbound);
-  assert.equal(out.at(-1), "This number isn't linked to a Loop handoff.");
+  assert.ok(out.at(-1).startsWith('This is Loop. To get texts here'));
   assert.equal(calls.length, 2);
 
   process.env.PHONE_JERRY = PHONES.ethan; // one number, one person: ethan wins it
