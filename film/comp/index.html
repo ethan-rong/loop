@@ -15,19 +15,26 @@ html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--
 #root { position: relative; width: 1920px; height: 1080px; background: var(--cream); overflow: hidden; }
 .clip { position: absolute; }
 .scene { left: 0; top: 0; width: 1920px; height: 1080px; background: var(--cream); }
-.shot-box { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: hidden; }
-.shot-box video.fill { position: absolute; left: 0; width: 1920px; height: 1200px; }
+.win-box { position: absolute; overflow: hidden; border-radius: 12px; z-index: 2; }
+.win-box video { position: absolute; }
+.win-frame { border: 1.5px solid var(--ink); border-radius: 12px; box-shadow: 0 20px 40px rgba(11, 13, 23, .12); z-index: 3; }
+.bleed { width: 440px; height: 260px; border-radius: 50%; background: radial-gradient(closest-side, rgba(11, 13, 23, .10), rgba(11, 13, 23, 0)); z-index: 4; }
+.surface { left: 0; top: 0; width: 1920px; height: 1080px; z-index: 30; pointer-events: none;
+  background-image: radial-gradient(ellipse at center, rgba(11, 13, 23, 0) 58%, rgba(11, 13, 23, .06) 100%), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.95' numOctaves='1' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.04 0 0 0 0 0.05 0 0 0 0 0.09 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)' opacity='0.028'/%3E%3C/svg%3E"); }
+.kword.cascade { opacity: 1; }
+.kl { display: inline-block; opacity: 0; }
 .scene canvas { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
-.hl { background: var(--lime); padding: 0 .2em; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.hl { background: linear-gradient(var(--lime), var(--lime)) no-repeat 0 0 / 0% 100%; padding: 0 .2em; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.ktag .hl, .end .hl { background-size: 100% 100%; }
 .cap { left: 0; top: 948px; width: 1920px; height: 104px; display: flex; align-items: center; justify-content: center; z-index: 20; }
 .cap p { font: 400 48px/1.2 "JBM", monospace; letter-spacing: -.01em; background: var(--cream); border: 3px solid var(--ink); border-radius: 12px; padding: 12px 26px; box-shadow: 6px 6px 0 var(--ink); white-space: nowrap; }
-.phone-shell { background: #0d0d10; border-radius: 74px 74px 0 0; box-shadow: 10px 10px 0 var(--ink); z-index: 2;
+.phone-shell { background: #0d0d10; border-radius: 74px 74px 0 0; box-shadow: 0 20px 40px rgba(11, 13, 23, .12); z-index: 2;
   -webkit-mask-image: linear-gradient(to bottom, #000 94%, transparent); mask-image: linear-gradient(to bottom, #000 94%, transparent); }
 .phone-box { position: absolute; overflow: hidden; border-radius: 60px 60px 0 0; z-index: 3; }
 .phone-box img, .phone-box video { position: absolute; left: 0; top: 0; }
-.pane-box { position: absolute; overflow: hidden; border-radius: 14px; z-index: 2; }
+.pane-box { position: absolute; overflow: hidden; border-radius: 12px; z-index: 2; }
 .pane-box video { position: absolute; }
-.pane-edge { border: 3px solid var(--ink); border-radius: 14px; box-shadow: 8px 8px 0 var(--ink); z-index: 3; }
+.pane-edge { border: 1.5px solid var(--ink); border-radius: 12px; box-shadow: 0 20px 40px rgba(11, 13, 23, .12); z-index: 3; }
 .pane-edge.veil { background: rgba(246, 241, 227, .55); }
 .who { position: absolute; top: -18px; left: 22px; font: 700 22px/1 "JBM", monospace; text-transform: uppercase; letter-spacing: .06em; padding: 8px 14px; border: 2px solid var(--ink); border-radius: 6px; transform: rotate(-2deg); }
 .who.giver { background: var(--ink); color: var(--cream); }
@@ -50,57 +57,78 @@ html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--
 </head>
 <body>
 <div id="root" data-composition-id="main" data-start="0" data-duration="99.99" data-width="1920" data-height="1080">
+<div class="clip surface" data-start="0" data-duration="10.86"></div>
 <div id="wc" class="clip scene" data-start="0" data-duration="10.86" data-cue-scale="1" data-cue-offset="0"></div>
+<div class="clip surface" data-start="10.86" data-duration="7.92"></div>
 <video id="e1" class="clip scene" data-start="10.86" data-duration="7.92" src="assets/clips/slam-238-c712.mp4" muted playsinline data-media-start="0"></video>
-<div id="e2" class="clip scene knot-scene" data-start="18.78" data-duration="2.43" data-knot='{"turns":0.6,"spinEnd":0.9631578947368412,"spinEase":"out","flatAt":0.9631578947368412,"flatDur":0.4045263157894733,"from":[610,165,700],"to":[452,370,340]}'><canvas width="1920" height="1080"></canvas>
+<div class="clip surface" data-start="18.78" data-duration="2.43"></div>
+<div id="e2" class="clip scene knot-scene" data-start="18.78" data-duration="2.43" data-knot='{"drawEnd":0.43342105263157854,"turns":0.6,"spinEnd":0.9631578947368412,"spinEase":"out","flatAt":0.9631578947368412,"flatDur":0.4045263157894733,"from":[610,165,700],"to":[452,370,340]}'><canvas width="1920" height="1080"></canvas>
 <svg class="knot2d" viewBox="0 0 64 64" style="left:452px;top:370px;width:340px;height:340px" aria-hidden="true"><path d="M25.66 44.93C24.38 43.2 23.26 41.35 22.31 39.42C21.37 37.49 20.61 35.48 20.05 33.45C19.49 31.42 19.13 29.38 18.98 27.38C18.83 25.37 18.89 23.41 19.14 21.55C19.4 19.7 19.85 17.94 20.47 16.35C21.09 14.75 21.88 13.31 22.8 12.07C23.73 10.84 24.79 9.8 25.94 9C27.09 8.2 28.32 7.63 29.59 7.31C30.86 7 32.17 6.94 33.45 7.13C34.74 7.32 36 7.76 37.19 8.44C38.38 9.13 39.49 10.05 40.48 11.19C41.47 12.32 42.34 13.67 43.04 15.19C43.74 16.7 44.28 18.39 44.63 20.19C44.98 21.99 45.14 23.91 45.09 25.89C45.04 27.87 44.79 29.9 44.33 31.94C43.87 33.97 43.21 36 42.36 37.97C41.5 39.93 40.46 41.83 39.26 43.62C38.06 45.4 36.7 47.06 35.23 48.56C33.75 50.06 32.16 51.39 30.5 52.52C28.84 53.66 27.11 54.59 25.38 55.3C23.64 56.01 21.9 56.49 20.2 56.75C18.51 57.02 16.87 57.05 15.33 56.87C13.8 56.68 12.37 56.28 11.1 55.69C9.84 55.09 8.73 54.31 7.82 53.37C6.91 52.42 6.2 51.33 5.73 50.12C5.25 48.91 5 47.59 5 46.22C5 44.85 5.24 43.43 5.73 42C6.22 40.58 6.95 39.15 7.91 37.79C8.87 36.42 10.06 35.11 11.45 33.91C12.84 32.7 14.42 31.61 16.16 30.66C17.89 29.71 19.78 28.91 21.77 28.29C23.76 27.67 25.85 27.23 27.98 26.99C30.11 26.74 32.28 26.69 34.42 26.84C36.57 26.99 38.69 27.33 40.72 27.86C42.76 28.39 44.71 29.11 46.52 29.98C48.33 30.85 50 31.88 51.48 33.03C52.96 34.18 54.26 35.44 55.33 36.78C56.4 38.11 57.25 39.52 57.86 40.94C58.47 42.36 58.84 43.8 58.96 45.19C59.08 46.59 58.95 47.94 58.59 49.2C58.23 50.46 57.63 51.62 56.82 52.63C56.01 53.65 55 54.52 53.81 55.21C52.63 55.9 51.27 56.4 49.79 56.69C48.31 56.98 46.71 57.06 45.05 56.91C43.38 56.76 41.65 56.38 39.92 55.78C38.18 55.18 36.44 54.36 34.75 53.33C33.06 52.3 31.43 51.06 29.9 49.65C28.36 48.24 26.94 46.65 25.66 44.93Z" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-dasharray="65.17 18.81"/></svg>
 <p class="kword" data-in="1.397" style="left:842px;top:392px;font-size:250px">Loop</p></div>
-<div class="shot-box"><video id="v3" class="clip" src="assets/clips/main-L.mp4" muted playsinline data-start="21.21" data-duration="3.86" data-media-start="3.151" style="left:-2.567px;top:0px;width:1925.134px;height:1203.209px;transform-origin:962.567px 521.39px"></video></div>
-<div class="shot-box"><video id="v4" class="clip" src="assets/clips/main-R.mp4" muted playsinline data-start="25.07" data-duration="1.7" data-media-start="11.967" style="left:-356px;top:-169.333px;width:2688px;height:1680px;transform-origin:1316px 709.333px"></video></div>
-<div class="shot-box"><video id="v5" class="clip" src="assets/clips/main-R.mp4" muted playsinline data-start="26.52" data-duration="2.41" data-media-start="20.94" style="left:-1152px;top:-571px;width:3072px;height:1920px;transform-origin:2378.667px 1056px"></video></div>
-<div id="e6" class="clip cap" data-start="26.77" data-duration="2.16"><p><span class="hl">ASKED JUST NOW</span></p></div>
-<div class="shot-box"><video id="v7" class="clip" src="assets/clips/main-L.mp4" muted playsinline data-start="28.93" data-duration="3.89" data-media-start="29.492" style="left:-900px;top:-355px;width:2880px;height:1800px;transform-origin:1860px 840px"></video></div>
-<div class="shot-box"><video id="v8" class="clip" src="assets/clips/main-L.mp4" muted playsinline data-start="32.57" data-duration="3.45" data-media-start="33.744" style="left:-960px;top:-720px;width:2880px;height:1800px;transform-origin:2060px 1340px"></video></div>
-<div class="shot-box"><video id="v9" class="clip" src="assets/clips/main-L.mp4" muted playsinline data-start="35.77" data-duration="2.05" data-media-start="37.828" style="left:-960px;top:-175px;width:2880px;height:1800px;transform-origin:2010px 660px"></video></div>
-<div class="shot-box"><video id="v10" class="clip" src="assets/clips/main-L.mp4" muted playsinline data-start="37.57" data-duration="1.96" data-media-start="40.092" style="left:-960px;top:-720px;width:2880px;height:1800px;transform-origin:1950px 1390px"></video></div>
-<div id="e11" class="clip cap" data-start="28.93" data-duration="10.6"><p>Gemini <span class="hl">drafts</span>. A person <span class="hl">decides</span>.</p></div>
-<div class="shot-box"><video id="v12" class="clip" src="assets/clips/main-R.mp4" muted playsinline data-start="39.53" data-duration="1" data-media-start="50.628" style="left:-960px;top:-720px;width:2880px;height:1800px;transform-origin:2240px 1360px"></video></div>
-<div class="shot-box"><video id="v13" class="clip" src="assets/clips/main-R.mp4" muted playsinline data-start="40.28" data-duration="3.24" data-media-start="54.947" style="left:0px;top:-411px;width:3072px;height:1920px;transform-origin:874.667px 896px"></video></div>
-<div id="e14" class="clip cap" data-start="39.53" data-duration="3.99"><p>The ticket is the <span class="hl">only identity</span>.</p></div>
-<div id="p15" class="pane-box" style="left:170px;top:40px;width:760px;height:880px"><video id="m17" class="clip" src="assets/clips/main-L.mp4" muted playsinline data-start="43.52" data-duration="2.501" data-media-start="59.389" style="left:-1171.376px;top:-89.908px;width:2008.073px;height:1255.046px"></video></div>
-<div id="p16" class="clip pane-edge active" data-start="43.52" data-duration="2.501" style="left:170px;top:40px;width:760px;height:880px"><span class="who giver">Giver</span></div>
-<div id="p18" class="pane-box" style="left:990px;top:40px;width:760px;height:880px"><video id="m20" class="clip" src="assets/clips/main-R.mp4" muted playsinline data-start="43.52" data-duration="2.501" data-media-start="59.012" style="left:-1171.376px;top:-89.908px;width:2008.073px;height:1255.046px"></video></div>
-<div id="p19" class="clip pane-edge veil" data-start="43.52" data-duration="2.501" style="left:990px;top:40px;width:760px;height:880px"><span class="who taker">Taker</span></div>
-<div id="p21" class="pane-box" style="left:170px;top:40px;width:760px;height:880px"><video id="m23" class="clip" src="assets/clips/main-L.mp4" muted playsinline data-start="45.771" data-duration="4.288" data-media-start="73.83" style="left:-1171.376px;top:-313.028px;width:2008.073px;height:1255.046px"></video></div>
-<div id="p22" class="clip pane-edge active" data-start="45.771" data-duration="4.288" style="left:170px;top:40px;width:760px;height:880px"><span class="who giver">Giver</span></div>
-<div id="p24" class="pane-box" style="left:990px;top:40px;width:760px;height:880px"><video id="m26" class="clip" src="assets/clips/main-R.mp4" muted playsinline data-start="45.771" data-duration="4.288" data-media-start="73.453" style="left:-1171.376px;top:-313.028px;width:2008.073px;height:1255.046px"></video></div>
-<div id="p25" class="clip pane-edge veil" data-start="45.771" data-duration="4.288" style="left:990px;top:40px;width:760px;height:880px"><span class="who taker">Taker</span></div>
-<div id="p27" class="pane-box" style="left:990px;top:40px;width:760px;height:880px"><video id="m29" class="clip" src="assets/clips/main-R.mp4" muted playsinline data-start="49.809" data-duration="1.751" data-media-start="82.59" style="left:-1171.376px;top:-375.046px;width:2008.073px;height:1255.046px"></video></div>
-<div id="p28" class="clip pane-edge active" data-start="49.809" data-duration="1.751" style="left:990px;top:40px;width:760px;height:880px"><span class="who taker">Taker</span></div>
-<div id="p30" class="pane-box" style="left:170px;top:40px;width:760px;height:880px"><video id="m32" class="clip" src="assets/clips/main-L.mp4" muted playsinline data-start="49.809" data-duration="1.751" data-media-start="82.967" style="left:-1171.376px;top:-375.046px;width:2008.073px;height:1255.046px"></video></div>
-<div id="p31" class="clip pane-edge veil" data-start="49.809" data-duration="1.751" style="left:170px;top:40px;width:760px;height:880px"><span class="who giver">Giver</span></div>
-<div id="p33" class="pane-box" style="left:990px;top:40px;width:760px;height:880px"><video id="m35" class="clip" src="assets/clips/main-R.mp4" muted playsinline data-start="51.309" data-duration="2.511" data-media-start="84.793" style="left:-1171.376px;top:-187.523px;width:2008.073px;height:1255.046px"></video></div>
-<div id="p34" class="clip pane-edge active" data-start="51.309" data-duration="2.511" style="left:990px;top:40px;width:760px;height:880px"><span class="who taker">Taker</span></div>
-<div id="p36" class="pane-box" style="left:170px;top:40px;width:760px;height:880px"><video id="m38" class="clip" src="assets/clips/main-L.mp4" muted playsinline data-start="51.309" data-duration="2.511" data-media-start="85.17" style="left:-1171.376px;top:-187.523px;width:2008.073px;height:1255.046px"></video></div>
-<div id="p37" class="clip pane-edge veil" data-start="51.309" data-duration="2.511" style="left:170px;top:40px;width:760px;height:880px"><span class="who giver">Giver</span></div>
-<div id="e39" class="clip cap" data-start="43.52" data-duration="10.3"><p>Loop <span class="hl">proposes</span>. People <span class="hl">confirm</span>.</p></div>
-<div class="shot-box"><video id="v40" class="clip" src="assets/clips/main-R.mp4" muted playsinline data-start="53.82" data-duration="1.6" data-media-start="96.979" style="left:-2.567px;top:0px;width:1925.134px;height:1203.209px;transform-origin:962.567px 528.075px"></video></div>
-<div class="shot-box"><video id="v41" class="clip" src="assets/clips/main-L.mp4" muted playsinline data-start="55.17" data-duration="4.48" data-media-start="105.606" style="left:0px;top:-335px;width:2880px;height:1800px;transform-origin:870px 820px"></video></div>
-<div class="shot-box"><video id="v42" class="clip" src="assets/clips/main-R.mp4" muted playsinline data-start="59.4" data-duration="4.12" data-media-start="111.173" style="left:0px;top:-335px;width:2880px;height:1800px;transform-origin:870px 820px"></video></div>
-<div id="e43" class="clip cap" data-start="56.9" data-duration="6.62"><p><span class="hl">KEPT IN USE</span></p></div>
-<div id="ph44" class="clip phone-shell" data-start="63.52" data-duration="11.48" style="left:583px;top:20px;width:754.0000000000001px;height:904.0000000000001px"></div>
-<div id="ph45" class="phone-box" style="left:597px;top:34px;width:726.0000000000001px;height:880.0000000000001px"><img class="clip" src="assets/phone-first.png" alt="" data-start="63.52" data-duration="5.49" style="width:726.0000000000001px;height:880.0000000000001px"><video id="ph46" class="clip" src="assets/clips/phone.mp4" muted playsinline data-start="68.96" data-duration="0.99" data-media-start="0" style="width:726.0000000000001px;height:880.0000000000001px"></video><video id="ph47" class="clip" src="assets/clips/phone.mp4" muted playsinline data-start="69.7" data-duration="2.3" data-media-start="3.9" style="width:726.0000000000001px;height:880.0000000000001px"></video><video id="ph48" class="clip" src="assets/clips/phone.mp4" muted playsinline data-start="71.75" data-duration="2.45" data-media-start="13.57" style="width:726.0000000000001px;height:880.0000000000001px"></video><video id="ph49" class="clip" src="assets/clips/phone.mp4" muted playsinline data-start="73.95" data-duration="1.05" data-media-start="18.78" style="width:726.0000000000001px;height:880.0000000000001px"></video></div>
-<div id="e50" class="clip cap" data-start="63.52" data-duration="11.48"><p><span class="hl">Photon Spectrum</span> = Loop's real iMessage number</p></div>
-<div class="shot-box"><video id="v51" class="clip" src="assets/clips/main-R.mp4" muted playsinline data-start="75" data-duration="0.95" data-media-start="83.54" style="left:-1920px;top:0px;width:3840px;height:2400px;transform-origin:2966.667px 506.667px"></video></div>
-<div id="p52" class="pane-box" style="left:504px;top:40px;width:912px;height:880px"><video id="m54" class="clip" src="assets/clips/main-R.mp4" muted playsinline data-start="75.95" data-duration="1.88" data-media-start="92.116" style="left:-1405.651px;top:-564.037px;width:2409.688px;height:1506.055px"></video></div>
-<div id="p53" class="clip pane-edge active" data-start="75.95" data-duration="1.88" style="left:504px;top:40px;width:912px;height:880px"><span class="who taker">Taker</span></div>
-<div class="shot-box"><video id="v55" class="clip" src="assets/clips/main-L.mp4" muted playsinline data-start="77.83" data-duration="3.3" data-media-start="123.807" style="left:-7.742px;top:-141.186px;width:2049.336px;height:1280.835px;transform-origin:967.742px 626.186px"></video></div>
-<div class="shot-box"><video id="v56" class="clip" src="assets/clips/main-L.mp4" muted playsinline data-start="80.88" data-duration="3.75" data-media-start="127.248" style="left:0px;top:-114.461px;width:1939.829px;height:1212.393px;transform-origin:936.237px 599.461px"></video></div>
-<div class="shot-box"><video id="v57" class="clip" src="assets/clips/main-L.mp4" muted playsinline data-start="84.38" data-duration="3.79" data-media-start="131.162" style="left:-1152px;top:-453.667px;width:3072px;height:1920px;transform-origin:2154.667px 938.667px"></video></div>
-<div id="e58" class="clip cap" data-start="77.83" data-duration="10.34"><p>One photo, <span class="hl">six listings</span>.</p></div>
-<div id="e59" class="clip scene knot-scene" data-start="88.17" data-duration="11.82" data-knot='{"turns":1,"spinEnd":2.3,"spinEase":"inout","flatAt":2.3,"flatDur":0.6,"from":[700,60,520],"to":[612,168,230]}'><canvas width="1920" height="1080"></canvas>
+<div id="w4" class="win-box" style="left:32px;top:24px;width:1856px;height:1036px"><video id="v3" class="clip" src="assets/clips/main-L.mp4" muted playsinline data-start="21.21" data-duration="3.86" data-media-start="3.151" style="left:-33.497px;top:-2.811px;width:1922.995px;height:1201.872px;transform-origin:961.497px 520.811px"></video></div>
+<div id="w5" class="clip win-frame" data-start="21.21" data-duration="3.86" style="left:32px;top:24px;width:1856px;height:1036px"></div>
+<div id="w7" class="win-box" style="left:32px;top:24px;width:1856px;height:1036px"><video id="v6" class="clip" src="assets/clips/main-R.mp4" muted playsinline data-start="25.07" data-duration="1.7" data-media-start="11.967" style="left:-344.133px;top:-167.689px;width:2598.4px;height:1624px;transform-origin:1272.133px 685.689px"></video></div>
+<div id="w8" class="clip win-frame" data-start="25.07" data-duration="1.7" style="left:32px;top:24px;width:1856px;height:1036px"></div>
+<div id="w10" class="win-box" style="left:32px;top:24px;width:1856px;height:1036px"><video id="v9" class="clip" src="assets/clips/main-R.mp4" muted playsinline data-start="26.52" data-duration="2.41" data-media-start="20.94" style="left:-1113.6px;top:-565.8px;width:2969.6px;height:1856px;transform-origin:2299.378px 1020.8px"></video></div>
+<div id="w11" class="clip win-frame" data-start="26.52" data-duration="2.41" style="left:32px;top:24px;width:1856px;height:1036px"></div>
+<div class="clip cap" data-start="26.78" data-duration="2.15"><p id="c12"><span class="hl" id="c12h0">ASKED JUST NOW</span></p></div>
+<div id="w14" class="win-box" style="left:32px;top:24px;width:1856px;height:1036px"><video id="v13" class="clip" src="assets/clips/main-L.mp4" muted playsinline data-start="28.93" data-duration="3.89" data-media-start="29.492" style="left:-5.218px;top:-102.339px;width:1866.436px;height:1166.522px;transform-origin:933.218px 557.339px"></video></div>
+<div id="w15" class="clip win-frame" data-start="28.93" data-duration="3.89" style="left:32px;top:24px;width:1856px;height:1036px"></div>
+<div id="w17" class="win-box" style="left:32px;top:24px;width:1856px;height:1036px"><video id="v16" class="clip" src="assets/clips/main-L.mp4" muted playsinline data-start="32.57" data-duration="3.45" data-media-start="33.744" style="left:-928px;top:-704px;width:2784px;height:1740px;transform-origin:1991.333px 1295.333px"></video></div>
+<div id="w18" class="clip win-frame" data-start="32.57" data-duration="3.45" style="left:32px;top:24px;width:1856px;height:1036px"></div>
+<div id="w20" class="win-box" style="left:32px;top:24px;width:1856px;height:1036px"><video id="v19" class="clip" src="assets/clips/main-L.mp4" muted playsinline data-start="35.77" data-duration="2.05" data-media-start="37.828" style="left:-928px;top:-183px;width:2784px;height:1740px;transform-origin:1943px 638px"></video></div>
+<div id="w21" class="clip win-frame" data-start="35.77" data-duration="2.05" style="left:32px;top:24px;width:1856px;height:1036px"></div>
+<div id="w23" class="win-box" style="left:32px;top:24px;width:1856px;height:1036px"><video id="v22" class="clip" src="assets/clips/main-L.mp4" muted playsinline data-start="37.57" data-duration="1.96" data-media-start="40.092" style="left:-928px;top:-704px;width:2784px;height:1740px;transform-origin:1885px 1343.667px"></video></div>
+<div id="w24" class="clip win-frame" data-start="37.57" data-duration="1.96" style="left:32px;top:24px;width:1856px;height:1036px"></div>
+<div class="clip cap" data-start="30.38" data-duration="9.15"><p id="c25">Gemini <span class="hl" id="c25h0">drafts</span>. A person <span class="hl" id="c25h1">decides</span>.</p></div>
+<div id="w27" class="win-box" style="left:32px;top:24px;width:1856px;height:1036px"><video id="v26" class="clip" src="assets/clips/main-R.mp4" muted playsinline data-start="39.53" data-duration="1" data-media-start="50.628" style="left:-928px;top:-704px;width:2784px;height:1740px;transform-origin:2165.333px 1314.667px"></video></div>
+<div id="w28" class="clip win-frame" data-start="39.53" data-duration="1" style="left:32px;top:24px;width:1856px;height:1036px"></div>
+<div id="w30" class="win-box" style="left:32px;top:24px;width:1856px;height:1036px"><video id="v29" class="clip" src="assets/clips/main-R.mp4" muted playsinline data-start="40.53" data-duration="2.99" data-media-start="55.197" style="left:0px;top:-411.133px;width:2969.6px;height:1856px;transform-origin:845.511px 866.133px"></video></div>
+<div id="w31" class="clip win-frame" data-start="40.53" data-duration="2.99" style="left:32px;top:24px;width:1856px;height:1036px"></div>
+<div class="clip cap" data-start="42.13" data-duration="1.39"><p id="c32">The ticket is the <span class="hl" id="c32h0">only identity</span>.</p></div>
+<div id="p33" class="pane-box" style="left:170px;top:40px;width:760px;height:880px"><video id="m35" class="clip" src="assets/clips/main-L.mp4" muted playsinline data-start="43.52" data-duration="2.501" data-media-start="59.389" style="left:-1171.376px;top:-89.908px;width:2008.073px;height:1255.046px"></video></div>
+<div id="p34" class="clip pane-edge active" data-start="43.52" data-duration="2.501" style="left:170px;top:40px;width:760px;height:880px"><span class="who giver">Giver</span></div>
+<div id="p36" class="pane-box" style="left:990px;top:40px;width:760px;height:880px"><video id="m38" class="clip" src="assets/clips/main-R.mp4" muted playsinline data-start="43.52" data-duration="2.501" data-media-start="59.012" style="left:-1171.376px;top:-89.908px;width:2008.073px;height:1255.046px"></video></div>
+<div id="p37" class="clip pane-edge veil" data-start="43.52" data-duration="2.501" style="left:990px;top:40px;width:760px;height:880px"><span class="who taker">Taker</span></div>
+<div id="p39" class="pane-box" style="left:170px;top:40px;width:760px;height:880px"><video id="m41" class="clip" src="assets/clips/main-L.mp4" muted playsinline data-start="45.771" data-duration="4.288" data-media-start="73.83" style="left:-1171.376px;top:-313.028px;width:2008.073px;height:1255.046px"></video></div>
+<div id="p40" class="clip pane-edge active" data-start="45.771" data-duration="4.288" style="left:170px;top:40px;width:760px;height:880px"><span class="who giver">Giver</span></div>
+<div id="p42" class="pane-box" style="left:990px;top:40px;width:760px;height:880px"><video id="m44" class="clip" src="assets/clips/main-R.mp4" muted playsinline data-start="45.771" data-duration="4.288" data-media-start="73.453" style="left:-1171.376px;top:-313.028px;width:2008.073px;height:1255.046px"></video></div>
+<div id="p43" class="clip pane-edge veil" data-start="45.771" data-duration="4.288" style="left:990px;top:40px;width:760px;height:880px"><span class="who taker">Taker</span></div>
+<div id="p45" class="pane-box" style="left:990px;top:40px;width:760px;height:880px"><video id="m47" class="clip" src="assets/clips/main-R.mp4" muted playsinline data-start="49.809" data-duration="1.751" data-media-start="82.59" style="left:-1171.376px;top:-375.046px;width:2008.073px;height:1255.046px"></video></div>
+<div id="p46" class="clip pane-edge active" data-start="49.809" data-duration="1.751" style="left:990px;top:40px;width:760px;height:880px"><span class="who taker">Taker</span></div>
+<div id="p48" class="pane-box" style="left:170px;top:40px;width:760px;height:880px"><video id="m50" class="clip" src="assets/clips/main-L.mp4" muted playsinline data-start="49.809" data-duration="1.751" data-media-start="82.967" style="left:-1171.376px;top:-375.046px;width:2008.073px;height:1255.046px"></video></div>
+<div id="p49" class="clip pane-edge veil" data-start="49.809" data-duration="1.751" style="left:170px;top:40px;width:760px;height:880px"><span class="who giver">Giver</span></div>
+<div id="p51" class="pane-box" style="left:990px;top:40px;width:760px;height:880px"><video id="m53" class="clip" src="assets/clips/main-R.mp4" muted playsinline data-start="51.309" data-duration="2.511" data-media-start="84.793" style="left:-1171.376px;top:-187.523px;width:2008.073px;height:1255.046px"></video></div>
+<div id="p52" class="clip pane-edge active" data-start="51.309" data-duration="2.511" style="left:990px;top:40px;width:760px;height:880px"><span class="who taker">Taker</span></div>
+<div id="p54" class="pane-box" style="left:170px;top:40px;width:760px;height:880px"><video id="m56" class="clip" src="assets/clips/main-L.mp4" muted playsinline data-start="51.309" data-duration="2.511" data-media-start="85.17" style="left:-1171.376px;top:-187.523px;width:2008.073px;height:1255.046px"></video></div>
+<div id="p55" class="clip pane-edge veil" data-start="51.309" data-duration="2.511" style="left:170px;top:40px;width:760px;height:880px"><span class="who giver">Giver</span></div>
+<div class="clip cap" data-start="43.78" data-duration="10.04"><p id="c57">Loop <span class="hl" id="c57h0">proposes</span>. People <span class="hl" id="c57h1">confirm</span>.</p></div>
+<div id="w59" class="win-box" style="left:32px;top:24px;width:1856px;height:1036px"><video id="v58" class="clip" src="assets/clips/main-R.mp4" muted playsinline data-start="53.82" data-duration="1.6" data-media-start="96.979" style="left:-33.497px;top:-9.488px;width:1922.995px;height:1201.872px;transform-origin:961.497px 527.488px"></video></div>
+<div id="w60" class="clip win-frame" data-start="53.82" data-duration="1.6" style="left:32px;top:24px;width:1856px;height:1036px"></div>
+<div id="w62" class="win-box" style="left:32px;top:24px;width:1856px;height:1036px"><video id="v61" class="clip" src="assets/clips/main-L.mp4" muted playsinline data-start="55.17" data-duration="4.48" data-media-start="105.606" style="left:0px;top:-337.667px;width:2784px;height:1740px;transform-origin:841px 792.667px"></video></div>
+<div id="w63" class="clip win-frame" data-start="55.17" data-duration="4.48" style="left:32px;top:24px;width:1856px;height:1036px"></div>
+<div id="bl64" class="clip bleed" data-start="56.9" data-duration="0.7" style="left:701.333px;top:387.667px"></div>
+<div id="w66" class="win-box" style="left:32px;top:24px;width:1856px;height:1036px"><video id="v65" class="clip" src="assets/clips/main-R.mp4" muted playsinline data-start="59.4" data-duration="4.12" data-media-start="111.173" style="left:0px;top:-337.667px;width:2784px;height:1740px;transform-origin:841px 792.667px"></video></div>
+<div id="w67" class="clip win-frame" data-start="59.4" data-duration="4.12" style="left:32px;top:24px;width:1856px;height:1036px"></div>
+<div class="clip cap" data-start="56.78" data-duration="6.74"><p id="c68"><span class="hl" id="c68h0">KEPT IN USE</span></p></div>
+<div id="ph69" class="clip phone-shell" data-start="63.52" data-duration="11.48" style="left:583px;top:20px;width:754.0000000000001px;height:904.0000000000001px"></div>
+<div id="ph70" class="phone-box" style="left:597px;top:34px;width:726.0000000000001px;height:880.0000000000001px"><img class="clip" src="assets/phone-first.png" alt="" data-start="63.52" data-duration="5.49" style="width:726.0000000000001px;height:880.0000000000001px"><video id="ph71" class="clip" src="assets/clips/phone.mp4" muted playsinline data-start="68.96" data-duration="0.99" data-media-start="0" style="width:726.0000000000001px;height:880.0000000000001px"></video><video id="ph72" class="clip" src="assets/clips/phone.mp4" muted playsinline data-start="69.7" data-duration="2.3" data-media-start="3.9" style="width:726.0000000000001px;height:880.0000000000001px"></video><video id="ph73" class="clip" src="assets/clips/phone.mp4" muted playsinline data-start="71.75" data-duration="2.45" data-media-start="13.57" style="width:726.0000000000001px;height:880.0000000000001px"></video><video id="ph74" class="clip" src="assets/clips/phone.mp4" muted playsinline data-start="73.95" data-duration="1.05" data-media-start="18.78" style="width:726.0000000000001px;height:880.0000000000001px"></video></div>
+<div class="clip cap" data-start="67.38" data-duration="7.62"><p id="c75">Photon Spectrum = Loop's <span class="hl" id="c75h0">real iMessage number</span></p></div>
+<div id="w77" class="win-box" style="left:32px;top:24px;width:1856px;height:1036px"><video id="v76" class="clip" src="assets/clips/main-R.mp4" muted playsinline data-start="75" data-duration="0.95" data-media-start="83.54" style="left:-1856px;top:0px;width:3712px;height:2320px;transform-origin:2867.778px 489.778px"></video></div>
+<div id="w78" class="clip win-frame" data-start="75" data-duration="0.95" style="left:32px;top:24px;width:1856px;height:1036px"></div>
+<div id="p79" class="pane-box" style="left:504px;top:40px;width:912px;height:880px"><video id="m81" class="clip" src="assets/clips/main-R.mp4" muted playsinline data-start="75.95" data-duration="1.88" data-media-start="92.116" style="left:-1405.651px;top:-564.037px;width:2409.688px;height:1506.055px"></video></div>
+<div id="p80" class="clip pane-edge active" data-start="75.95" data-duration="1.88" style="left:504px;top:40px;width:912px;height:880px"><span class="who taker">Taker</span></div>
+<div id="w83" class="win-box" style="left:32px;top:24px;width:1856px;height:1036px"><video id="v82" class="clip" src="assets/clips/pile-P.mp4" muted playsinline data-start="77.83" data-duration="2.113" data-media-start="9.894" style="left:-38.667px;top:-107.49px;width:2047.059px;height:1279.412px;transform-origin:966.667px 625.49px"></video></div>
+<div id="w84" class="clip win-frame" data-start="77.83" data-duration="2.113" style="left:32px;top:24px;width:1856px;height:1036px"></div>
+<div id="w86" class="win-box" style="left:32px;top:24px;width:1856px;height:1036px"><video id="v85" class="clip" src="assets/clips/pile-P.mp4" muted playsinline data-start="79.693" data-duration="2.533" data-media-start="12.448" style="left:-5.218px;top:-102.339px;width:1866.436px;height:1166.522px;transform-origin:933.218px 557.339px"></video></div>
+<div id="w87" class="clip win-frame" data-start="79.693" data-duration="2.533" style="left:32px;top:24px;width:1856px;height:1036px"></div>
+<div id="w89" class="win-box" style="left:32px;top:24px;width:1856px;height:1036px"><video id="v88" class="clip" src="assets/clips/pile-P.mp4" muted playsinline data-start="81.976" data-duration="6.194" data-media-start="15.849" style="left:-30.631px;top:-143.144px;width:1886.631px;height:1179.144px;transform-origin:1336.364px 602.674px"></video></div>
+<div id="w90" class="clip win-frame" data-start="81.976" data-duration="6.194" style="left:32px;top:24px;width:1856px;height:1036px"></div>
+<div class="clip cap" data-start="81.38" data-duration="6.79"><p id="c91">One photo, <span class="hl" id="c91h0">six listings</span>.</p></div>
+<div class="clip surface" data-start="88.17" data-duration="11.82"></div>
+<div id="e92" class="clip scene knot-scene" data-start="88.17" data-duration="11.82" data-knot='{"turns":1,"spinEnd":2.3,"spinEase":"inout","flatAt":2.3,"flatDur":0.6,"from":[700,60,520],"to":[612,168,230]}'><canvas width="1920" height="1080"></canvas>
 <svg class="knot2d" viewBox="0 0 64 64" style="left:612px;top:168px;width:230px;height:230px" aria-hidden="true"><path d="M25.66 44.93C24.38 43.2 23.26 41.35 22.31 39.42C21.37 37.49 20.61 35.48 20.05 33.45C19.49 31.42 19.13 29.38 18.98 27.38C18.83 25.37 18.89 23.41 19.14 21.55C19.4 19.7 19.85 17.94 20.47 16.35C21.09 14.75 21.88 13.31 22.8 12.07C23.73 10.84 24.79 9.8 25.94 9C27.09 8.2 28.32 7.63 29.59 7.31C30.86 7 32.17 6.94 33.45 7.13C34.74 7.32 36 7.76 37.19 8.44C38.38 9.13 39.49 10.05 40.48 11.19C41.47 12.32 42.34 13.67 43.04 15.19C43.74 16.7 44.28 18.39 44.63 20.19C44.98 21.99 45.14 23.91 45.09 25.89C45.04 27.87 44.79 29.9 44.33 31.94C43.87 33.97 43.21 36 42.36 37.97C41.5 39.93 40.46 41.83 39.26 43.62C38.06 45.4 36.7 47.06 35.23 48.56C33.75 50.06 32.16 51.39 30.5 52.52C28.84 53.66 27.11 54.59 25.38 55.3C23.64 56.01 21.9 56.49 20.2 56.75C18.51 57.02 16.87 57.05 15.33 56.87C13.8 56.68 12.37 56.28 11.1 55.69C9.84 55.09 8.73 54.31 7.82 53.37C6.91 52.42 6.2 51.33 5.73 50.12C5.25 48.91 5 47.59 5 46.22C5 44.85 5.24 43.43 5.73 42C6.22 40.58 6.95 39.15 7.91 37.79C8.87 36.42 10.06 35.11 11.45 33.91C12.84 32.7 14.42 31.61 16.16 30.66C17.89 29.71 19.78 28.91 21.77 28.29C23.76 27.67 25.85 27.23 27.98 26.99C30.11 26.74 32.28 26.69 34.42 26.84C36.57 26.99 38.69 27.33 40.72 27.86C42.76 28.39 44.71 29.11 46.52 29.98C48.33 30.85 50 31.88 51.48 33.03C52.96 34.18 54.26 35.44 55.33 36.78C56.4 38.11 57.25 39.52 57.86 40.94C58.47 42.36 58.84 43.8 58.96 45.19C59.08 46.59 58.95 47.94 58.59 49.2C58.23 50.46 57.63 51.62 56.82 52.63C56.01 53.65 55 54.52 53.81 55.21C52.63 55.9 51.27 56.4 49.79 56.69C48.31 56.98 46.71 57.06 45.05 56.91C43.38 56.76 41.65 56.38 39.92 55.78C38.18 55.18 36.44 54.36 34.75 53.33C33.06 52.3 31.43 51.06 29.9 49.65C28.36 48.24 26.94 46.65 25.66 44.93Z" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-dasharray="65.17 18.81"/></svg>
-<p class="kword" data-in="2.95" style="left:860px;top:184px;font-size:176px">Loop</p>
+<p class="kword cascade" style="left:860px;top:184px;font-size:176px"><span class="kl" data-in="2.95">L</span><span class="kl" data-in="2.99">o</span><span class="kl" data-in="3.03">o</span><span class="kl" data-in="3.07">p</span></p>
 <p class="ktag" data-in="3.05"><span class="hl">Post what you don't need.</span></p>
 <p class="kmono" data-in="3.2" style="top:630px">github.com/rongtnt/loop</p>
 <p class="kbuilt" data-in="3.35">BUILT WITH</p>
@@ -112,44 +140,70 @@ html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--
 <script>
 window.__timelines = window.__timelines || {};
 const tl = gsap.timeline({ paused: true });
-tl.fromTo("#v3", {scale:1}, {scale:1.02, duration:3.86, ease:"sine.inOut"}, 21.21);
-tl.fromTo("#v4", {scale:1}, {scale:1.02, duration:1.7, ease:"sine.inOut"}, 25.07);
-tl.fromTo("#v5", {scale:1}, {scale:1.02, duration:2.41, ease:"sine.inOut"}, 26.52);
-tl.fromTo("#v5", {opacity:0}, {opacity:1, duration:0.25, ease:"sine.inOut"}, 26.52);
-tl.fromTo("#v7", {scale:1}, {scale:1.02, duration:3.89, ease:"sine.inOut"}, 28.93);
-tl.fromTo("#v8", {scale:1}, {scale:1.02, duration:3.45, ease:"sine.inOut"}, 32.57);
-tl.fromTo("#v8", {opacity:0}, {opacity:1, duration:0.25, ease:"sine.inOut"}, 32.57);
-tl.fromTo("#v9", {scale:1}, {scale:1.02, duration:2.05, ease:"sine.inOut"}, 35.77);
-tl.fromTo("#v9", {opacity:0}, {opacity:1, duration:0.25, ease:"sine.inOut"}, 35.77);
-tl.fromTo("#v10", {scale:1}, {scale:1.02, duration:1.96, ease:"sine.inOut"}, 37.57);
-tl.fromTo("#v10", {opacity:0}, {opacity:1, duration:0.25, ease:"sine.inOut"}, 37.57);
-tl.fromTo("#v13", {scale:1}, {scale:1.02, duration:3.24, ease:"sine.inOut"}, 40.28);
-tl.fromTo("#v13", {opacity:0}, {opacity:1, duration:0.25, ease:"sine.inOut"}, 40.28);
-tl.fromTo("#p15, #p16", {scale:1}, {scale:1.02, duration:2.501, ease:"sine.inOut"}, 43.52);
-tl.fromTo("#p21, #p22", {scale:1}, {scale:1.02, duration:4.288, ease:"sine.inOut"}, 45.771);
-tl.fromTo("#p21, #p22, #p24, #p25", {opacity:0}, {opacity:1, duration:0.25, ease:"sine.inOut"}, 45.771);
-tl.fromTo("#p27, #p28", {scale:1}, {scale:1.02, duration:1.751, ease:"sine.inOut"}, 49.809);
-tl.fromTo("#p27, #p28, #p30, #p31", {opacity:0}, {opacity:1, duration:0.25, ease:"sine.inOut"}, 49.809);
-tl.fromTo("#p33, #p34", {scale:1}, {scale:1.02, duration:2.511, ease:"sine.inOut"}, 51.309);
-tl.fromTo("#p33, #p34, #p36, #p37", {opacity:0}, {opacity:1, duration:0.25, ease:"sine.inOut"}, 51.309);
-tl.fromTo("#v40", {scale:1}, {scale:1.02, duration:1.6, ease:"sine.inOut"}, 53.82);
-tl.fromTo("#v41", {scale:1}, {scale:1.02, duration:4.48, ease:"sine.inOut"}, 55.17);
-tl.fromTo("#v41", {opacity:0}, {opacity:1, duration:0.25, ease:"sine.inOut"}, 55.17);
-tl.set("#v41", {x:9, y:-5}, 56.9); tl.set("#v41", {x:-7, y:4}, 56.933); tl.set("#v41", {x:0, y:0}, 56.967);
-tl.fromTo("#v42", {scale:1}, {scale:1.02, duration:4.12, ease:"sine.inOut"}, 59.4);
-tl.fromTo("#v42", {opacity:0}, {opacity:1, duration:0.25, ease:"sine.inOut"}, 59.4);
-tl.fromTo("#ph47", {opacity:0}, {opacity:1, duration:0.25, ease:"sine.inOut"}, 69.7);
-tl.fromTo("#ph48", {opacity:0}, {opacity:1, duration:0.25, ease:"sine.inOut"}, 71.75);
-tl.fromTo("#ph49", {opacity:0}, {opacity:1, duration:0.25, ease:"sine.inOut"}, 73.95);
-tl.fromTo("#ph44, #ph45", {x:1300}, {x:0, duration:0.7, ease:"power3.out"}, 63.52);
-tl.fromTo("#ph44, #ph45", {scale:1}, {scale:1.02, duration:10.53, ease:"sine.inOut"}, 64.22);
-tl.fromTo("#ph44, #ph45", {x:0}, {x:1300, duration:0.25, ease:"power2.in", immediateRender:false}, 74.75);
-tl.fromTo("#p52, #p53", {scale:1}, {scale:1.02, duration:1.88, ease:"sine.inOut"}, 75.95);
-tl.fromTo("#v55", {scale:1}, {scale:1.02, duration:3.3, ease:"sine.inOut"}, 77.83);
-tl.fromTo("#v56", {scale:1}, {scale:1.02, duration:3.75, ease:"sine.inOut"}, 80.88);
-tl.fromTo("#v56", {opacity:0}, {opacity:1, duration:0.25, ease:"sine.inOut"}, 80.88);
-tl.fromTo("#v57", {scale:1}, {scale:1.02, duration:3.79, ease:"sine.inOut"}, 84.38);
-tl.fromTo("#v57", {opacity:0}, {opacity:1, duration:0.25, ease:"sine.inOut"}, 84.38);
+tl.fromTo("#v3", {scale:1, x:9}, {scale:1.02, x:-9, duration:3.86, ease:"sine.inOut"}, 21.21);
+tl.fromTo("#w4, #w5", {rotationX:2.5, rotationY:-2, transformPerspective:1600}, {rotationX:0, rotationY:0, duration:1, ease:"power2.out"}, 21.21);
+tl.fromTo("#v6", {scale:1, x:9}, {scale:1.02, x:-9, duration:1.7, ease:"sine.inOut"}, 25.07);
+tl.fromTo("#w7, #w8", {rotationX:2.5, rotationY:-2, transformPerspective:1600}, {rotationX:0, rotationY:0, duration:1, ease:"power2.out"}, 25.07);
+tl.fromTo("#v9", {scale:1, x:9}, {scale:1.02, x:-9, duration:2.41, ease:"sine.inOut"}, 26.52);
+tl.fromTo("#w10, #w11", {x:24, opacity:0}, {x:0, opacity:1, duration:0.25, ease:"power2.out"}, 26.52);
+tl.fromTo("#c12", {opacity:0, y:6}, {opacity:1, y:0, duration:0.12, ease:"power1.out"}, 26.78);
+tl.fromTo("#c12h0", {backgroundSize:"0% 100%"}, {backgroundSize:"100% 100%", duration:0.35, ease:"power2.out"}, 26.9);
+tl.fromTo("#v13", {scale:1, x:9}, {scale:1.02, x:-9, duration:3.89, ease:"sine.inOut"}, 28.93);
+tl.fromTo("#w14, #w15", {rotationX:2.5, rotationY:-2, transformPerspective:1600}, {rotationX:0, rotationY:0, duration:1, ease:"power2.out"}, 28.93);
+tl.fromTo("#v16", {scale:1, x:9}, {scale:1.02, x:-9, duration:3.45, ease:"sine.inOut"}, 32.57);
+tl.fromTo("#w17, #w18", {x:24, opacity:0}, {x:0, opacity:1, duration:0.25, ease:"power2.out"}, 32.57);
+tl.fromTo("#v19", {scale:1, x:9}, {scale:1.02, x:-9, duration:2.05, ease:"sine.inOut"}, 35.77);
+tl.fromTo("#w20, #w21", {x:24, opacity:0}, {x:0, opacity:1, duration:0.25, ease:"power2.out"}, 35.77);
+tl.fromTo("#v22", {scale:1, x:9}, {scale:1.02, x:-9, duration:1.96, ease:"sine.inOut"}, 37.57);
+tl.fromTo("#w23, #w24", {x:24, opacity:0}, {x:0, opacity:1, duration:0.25, ease:"power2.out"}, 37.57);
+tl.fromTo("#c25", {opacity:0, y:6}, {opacity:1, y:0, duration:0.12, ease:"power1.out"}, 30.38);
+tl.fromTo("#c25h0", {backgroundSize:"0% 100%"}, {backgroundSize:"100% 100%", duration:0.35, ease:"power2.out"}, 30.5);
+tl.fromTo("#c25h1", {backgroundSize:"0% 100%"}, {backgroundSize:"100% 100%", duration:0.35, ease:"power2.out"}, 38.3);
+tl.fromTo("#v26", {scale:1, x:9}, {scale:1, x:-9, duration:1, ease:"sine.inOut"}, 39.53);
+tl.fromTo("#w27, #w28", {rotationX:2.5, rotationY:-2, transformPerspective:1600}, {rotationX:0, rotationY:0, duration:1, ease:"power2.out"}, 39.53);
+tl.fromTo("#v29", {scale:1, x:9}, {scale:1.02, x:-9, duration:2.99, ease:"sine.inOut"}, 40.53);
+tl.fromTo("#w30, #w31", {rotationY:-90, transformPerspective:800}, {rotationY:0, duration:0.5, ease:"power3.out"}, 40.53);
+tl.fromTo("#c32", {opacity:0, y:6}, {opacity:1, y:0, duration:0.12, ease:"power1.out"}, 42.13);
+tl.fromTo("#c32h0", {backgroundSize:"0% 100%"}, {backgroundSize:"100% 100%", duration:0.35, ease:"power2.out"}, 42.25);
+tl.fromTo("#p33, #p34", {scale:1}, {scale:1.02, duration:2.501, ease:"sine.inOut"}, 43.52);
+tl.fromTo("#p39, #p40", {scale:1}, {scale:1.02, duration:4.288, ease:"sine.inOut"}, 45.771);
+tl.fromTo("#p39, #p40, #p42, #p43", {opacity:0, x:24}, {opacity:1, x:0, duration:0.25, ease:"power2.out"}, 45.771);
+tl.fromTo("#p45, #p46", {scale:1}, {scale:1.02, duration:1.751, ease:"sine.inOut"}, 49.809);
+tl.fromTo("#p45, #p46, #p48, #p49", {opacity:0, x:24}, {opacity:1, x:0, duration:0.25, ease:"power2.out"}, 49.809);
+tl.fromTo("#p51, #p52", {scale:1}, {scale:1.02, duration:2.511, ease:"sine.inOut"}, 51.309);
+tl.fromTo("#p51, #p52, #p54, #p55", {opacity:0, x:24}, {opacity:1, x:0, duration:0.25, ease:"power2.out"}, 51.309);
+tl.fromTo("#c57", {opacity:0, y:6}, {opacity:1, y:0, duration:0.12, ease:"power1.out"}, 43.78);
+tl.fromTo("#c57h0", {backgroundSize:"0% 100%"}, {backgroundSize:"100% 100%", duration:0.35, ease:"power2.out"}, 43.9);
+tl.fromTo("#c57h1", {backgroundSize:"0% 100%"}, {backgroundSize:"100% 100%", duration:0.35, ease:"power2.out"}, 51);
+tl.fromTo("#v58", {scale:1, x:9}, {scale:1.02, x:-9, duration:1.6, ease:"sine.inOut"}, 53.82);
+tl.fromTo("#w59, #w60", {rotationX:2.5, rotationY:-2, transformPerspective:1600}, {rotationX:0, rotationY:0, duration:1, ease:"power2.out"}, 53.82);
+tl.fromTo("#v61", {scale:1, x:9}, {scale:1.02, x:-9, duration:4.48, ease:"sine.inOut"}, 55.17);
+tl.fromTo("#w62, #w63", {x:24, opacity:0}, {x:0, opacity:1, duration:0.25, ease:"power2.out"}, 55.17);
+tl.set("#w62, #w63", {scaleX:1.02, scaleY:0.97}, 56.9); tl.set("#w62, #w63", {scaleX:1, scaleY:1}, 56.967);
+tl.fromTo("#bl64", {opacity:0, scale:0.85}, {opacity:1, scale:1.15, duration:0.7, ease:"power2.out"}, 56.9); tl.to("#bl64", {opacity:0, duration:0.45, ease:"sine.in"}, 57.15);
+tl.fromTo("#v65", {scale:1, x:9}, {scale:1.02, x:-9, duration:4.12, ease:"sine.inOut"}, 59.4);
+tl.fromTo("#w66, #w67", {x:24, opacity:0}, {x:0, opacity:1, duration:0.25, ease:"power2.out"}, 59.4);
+tl.fromTo("#c68", {opacity:0, y:6}, {opacity:1, y:0, duration:0.12, ease:"power1.out"}, 56.78);
+tl.fromTo("#c68h0", {backgroundSize:"0% 100%"}, {backgroundSize:"100% 100%", duration:0.35, ease:"power2.out"}, 56.9);
+tl.fromTo("#ph72", {opacity:0}, {opacity:1, duration:0.25, ease:"sine.inOut"}, 69.7);
+tl.fromTo("#ph73", {opacity:0}, {opacity:1, duration:0.25, ease:"sine.inOut"}, 71.75);
+tl.fromTo("#ph74", {opacity:0}, {opacity:1, duration:0.25, ease:"sine.inOut"}, 73.95);
+tl.fromTo("#ph69, #ph70", {x:1300}, {x:0, duration:0.7, ease:"power3.out"}, 63.52);
+tl.fromTo("#ph69, #ph70", {scale:1}, {scale:1.02, duration:10.53, ease:"sine.inOut"}, 64.22);
+tl.fromTo("#ph69, #ph70", {x:0}, {x:1300, duration:0.25, ease:"power2.in", immediateRender:false}, 74.75);
+tl.fromTo("#c75", {opacity:0, y:6}, {opacity:1, y:0, duration:0.12, ease:"power1.out"}, 67.38);
+tl.fromTo("#c75h0", {backgroundSize:"0% 100%"}, {backgroundSize:"100% 100%", duration:0.35, ease:"power2.out"}, 67.5);
+tl.fromTo("#v76", {scale:1, x:9}, {scale:1, x:-9, duration:0.95, ease:"sine.inOut"}, 75);
+tl.fromTo("#w77, #w78", {rotationX:2.5, rotationY:-2, transformPerspective:1600}, {rotationX:0, rotationY:0, duration:1, ease:"power2.out"}, 75);
+tl.fromTo("#p79, #p80", {scale:1}, {scale:1.02, duration:1.88, ease:"sine.inOut"}, 75.95);
+tl.fromTo("#v82", {scale:1, x:9}, {scale:1.02, x:-9, duration:2.113, ease:"sine.inOut"}, 77.83);
+tl.fromTo("#w83, #w84", {rotationX:2.5, rotationY:-2, transformPerspective:1600}, {rotationX:0, rotationY:0, duration:1, ease:"power2.out"}, 77.83);
+tl.fromTo("#v85", {scale:1, x:9}, {scale:1.02, x:-9, duration:2.533, ease:"sine.inOut"}, 79.693);
+tl.fromTo("#w86, #w87", {x:24, opacity:0}, {x:0, opacity:1, duration:0.25, ease:"power2.out"}, 79.693);
+tl.fromTo("#v88", {scale:1, x:9}, {scale:1.02, x:-9, duration:6.194, ease:"sine.inOut"}, 81.976);
+tl.fromTo("#w89, #w90", {x:24, opacity:0}, {x:0, opacity:1, duration:0.25, ease:"power2.out"}, 81.976);
+tl.fromTo("#c91", {opacity:0, y:6}, {opacity:1, y:0, duration:0.12, ease:"power1.out"}, 81.38);
+tl.fromTo("#c91h0", {backgroundSize:"0% 100%"}, {backgroundSize:"100% 100%", duration:0.35, ease:"power2.out"}, 81.5);
 tl.set({}, {}, 99.99);
 window.__timelines["main"] = tl;
 </script>

@@ -50,7 +50,7 @@ const FOOTAGE = {
   4: [cut('L', 'board', 0.11, 3.97, [60, 60, 1380, 720], 1.2, 16)], // the board: hero, Inventory, People need
   5: [cut('R', 'type-ask', 0.45, 2.15, [380, 140, 1030, 620], 1.4, 15), // typing the ask
     cut('R', 'needs-visible', 0.06, 2.22, [890, 340, 1340, 650], 1.6, 12)], // result: it sits under People need
-  6: [cut('L', 'photo', -0.2, 3.69, [40, 90, 1400, 820], 1.2, 14), // photo in, Gemini looks at it: photo + card, whole page
+  6: [cut('L', 'photo', -0.2, 3.69, [40, 100, 1400, 760], 1.2, 14), // photo in, Gemini looks at it: photo + card, whole page
     cut('L', 'match', -0.3, 2.9, [700, 540, 1360, 800], 1.5, 14), // the match card
     cut('L', 'fair', -0.5, 1.3, [680, 180, 1330, 480], 1.5, 14, true), // correct the condition: Fair
     cut('L', 'offer', -0.8, 0.91, [650, 620, 1300, 770], 1.5, 14, true)], // approve: Offer to them
@@ -64,10 +64,11 @@ const FOOTAGE = {
     cut('R', 'pass-on', -0.5, 3.37, [60, 290, 810, 530], 1.5, 14)],
   10.5: [cut('R', 'works', -0.2, 0.75, [840, 70, 1385, 310], 2.0, 10)], // PLANNING -> SET, "YOU AGREED"
   11: [cut('P', 'pile-photo', -0.3, 2.2, [60, 220, 1300, 660], 1.5, 13), // one photo in
-    cut('P', 'pile-review', -0.4, 2.3, [40, 90, 1400, 820], 1.2, 14), // "Gemini found 6 things": the boxes on the photo + draft 1
-    cut('P', 'pile-card-2', -0.6, ['pile-scrolled', 1.4], [640, 40, 1400, 880], 1.3, 14)], // the scroll through drafts 2-6
+    cut('P', 'pile-review', -0.4, 2.3, [40, 100, 1400, 760], 1.2, 14), // "Gemini found 6 things": the boxes on the photo + draft 1
+    cut('P', 'pile-card-2', -0.6, ['pile-scrolled', 1.4], [640, 130, 1400, 790], 1.3, 14)], // the scroll through drafts 2-6
 };
 const REFUSAL = ['R', M('R', 'refusal'), 600]; // old shot 12 [pane, Loop's refusal on screen, focus row], under the last sentence of beat 10
+const STAMP_CSS = [460, 430]; // where the KEPT IN USE stamp sits on the giver's page (CSS px)
 const SHAKE = { pane: 'L', at: M('L', 'confirm') + 0.15 }; // the KEPT IN USE stamp lands: a 2-frame shake (+ thump)
 
 // Beat 10 (shot 10, iPhone): phrase onsets measured in raw/voice/vo-minimax.wav, as seconds after beat 10's first
@@ -89,6 +90,9 @@ const PHONE_SEGS = [ // [recording second of the moment, film time of the word, 
 const PHONE_S = 0.55; // 1320 px recording -> 726 px: bubble text (~44 px) at ~24 px, the To: number (~34 px) at ~19 px
 const REF_FROM = REFUSAL[1] - Math.min(0.5, REFUSAL_LEN * 0.25); // open just before the refusal lands
 
+// Kinetic captions: the plain words fade in 120 ms before the first lime wipe; each [phrase] wipes under on its word.
+// Wipe times are film seconds measured in raw/voice/vo-minimax.wav (phrase onsets); beat 9 wipes on the stamp.
+const CAP_WIPES = { 5: [26.9], 6: [30.5, 38.3], 7: [42.25], 8: [43.9, 51.0], 10: [67.5], 11: [81.5] };
 // Shots on the VO windows. cap: the storyboard's caption column ("[x]" = lime).
 const SHOTS = [
   { n: 1, at: W[1][0], end: W[1][1], kind: 'wc' },
@@ -100,7 +104,7 @@ const SHOTS = [
   { n: 7, at: W[7][0], end: W[7][1], kind: 'p', cap: 'The ticket is the [only identity].' },
   { n: 8, at: W[8][0], end: W[8][1], kind: 'split', cap: 'Loop [proposes]. People [confirm].' },
   { n: 9, at: W[9][0], end: W[9][1], kind: 'p', cap: '[KEPT IN USE]', capAt: SHAKE },
-  { n: 10, at: W[10][0], end: SET_AT, kind: 'phone', cap: "[Photon Spectrum] = Loop's real iMessage number" },
+  { n: 10, at: W[10][0], end: SET_AT, kind: 'phone', cap: "Photon Spectrum = Loop's [real iMessage number]" },
   { n: 10.5, at: SET_AT, end: REFUSAL_AT, kind: 'p' }, // the plan card flips to SET (desktop take), hard cut in
   { n: 12, at: REFUSAL_AT, end: W[10][1], kind: 'refusal' },
   { n: 11, at: W[11][0], end: W[11][1], kind: 'p', cap: 'One photo, [six listings].' },
@@ -140,12 +144,12 @@ function remotionClip(comp, seconds, cue) {
 // Knot choreography (local seconds). from/to: the 64-unit SVG box on screen [left, top, size].
 const KNOTS = {
   title: (r) => ({ // "That's why I built Loop." (1.9 s at 150 wpm; times scale by r): spin settles, flattens, wordmark on "Loop"
-    cfg: { turns: 0.6, spinEnd: 1.0 * r, spinEase: 'out', flatAt: 1.0 * r, flatDur: 0.42 * r, from: [610, 165, 700], to: [452, 370, 340] },
+    cfg: { drawEnd: 0.45 * r, turns: 0.6, spinEnd: 1.0 * r, spinEase: 'out', flatAt: 1.0 * r, flatDur: 0.42 * r, from: [610, 165, 700], to: [452, 370, 340] },
     words: `<p class="kword" data-in="${f3(1.45 * r)}" style="left:842px;top:392px;font-size:250px">Loop</p>`,
   }),
   end: () => ({ // spins once more and settles by speechEnd; the end card holds to the end, then 0.3 s of black
     cfg: { turns: 1, spinEnd: 2.3, spinEase: 'inout', flatAt: 2.3, flatDur: 0.6, from: [700, 60, 520], to: [612, 168, 230] },
-    words: `<p class="kword" data-in="2.95" style="left:860px;top:184px;font-size:176px">Loop</p>
+    words: `<p class="kword cascade" style="left:860px;top:184px;font-size:176px">${[...'Loop'].map((ch, i) => `<span class="kl" data-in="${f3(2.95 + i * 0.04)}">${ch}</span>`).join('')}</p>
 <p class="ktag" data-in="3.05"><span class="hl">Post what you don't need.</span></p>
 <p class="kmono" data-in="3.2" style="top:630px">github.com/rongtnt/loop</p>
 <p class="kbuilt" data-in="3.35">BUILT WITH</p>
@@ -170,16 +174,21 @@ const PUSH = 1.02, XF = 0.25, MIN_PUSH_CUT = 1.5;
 const SAFE = { x0: 60, x1: 1860, y0: 50, y1: 1030, capY1: 920 };
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const checks = []; // one row per product cut: the readable region's bounds at the cut's last frame
+// Product footage sits in a minimal window on the cream: 12 px radius, ink hairline, soft shadow. The page inside
+// drifts 18 px against the frame (parallax) under the 1.02 push; the camera keeps the region inside the window.
+const WIN = { x: 32, y: 24, w: 1856, h: 1036 }, DRIFT = 18; // 1856 px wide: 14 px page text >= 18 px at the widest shot
 function camera(c, capOn) {
-  const k = 1920 / CSS_W, [x0, y0, x1, y1] = c.region;
-  const bottom = capOn ? SAFE.capY1 : SAFE.y1;
-  const z = Math.max(1, Math.min(c.zmax, (SAFE.x1 - SAFE.x0) / ((x1 - x0) * k * PUSH), (bottom - SAFE.y0) / ((y1 - y0) * k * PUSH)));
+  const k = Math.max(WIN.w / CSS_W, WIN.h / CSS_H), [x0, y0, x1, y1] = c.region;
+  const left = WIN.x + 20 + DRIFT / 2, right = WIN.x + WIN.w - 20 - DRIFT / 2;
+  const top = WIN.y + 14, bottom = capOn ? SAFE.capY1 : WIN.y + WIN.h - 14;
+  const z = Math.max(1, Math.min(c.zmax, (right - left) / ((x1 - x0) * k * PUSH), (bottom - top) / ((y1 - y0) * k * PUSH)));
   const S = k * z, cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
-  const tx = clamp(960 - cx * S, 1920 - CSS_W * S, 0);
-  const ty = clamp((SAFE.y0 + bottom) / 2 - cy * S, 1080 - CSS_H * S, 0);
-  const hx = ((x1 - x0) * S * PUSH) / 2, hy = ((y1 - y0) * S * PUSH) / 2, sx = cx * S + tx, sy = cy * S + ty;
+  const tx = clamp((left + right) / 2 - WIN.x - cx * S, WIN.w - CSS_W * S, 0);
+  const ty = clamp((top + bottom) / 2 - WIN.y - cy * S, WIN.h - CSS_H * S, 0);
+  const hx = ((x1 - x0) * S * PUSH) / 2 + DRIFT / 2, hy = ((y1 - y0) * S * PUSH) / 2;
+  const sx = WIN.x + cx * S + tx, sy = WIN.y + cy * S + ty;
   const box = [sx - hx, sy - hy, sx + hx, sy + hy].map((v) => Math.round(v));
-  const ok = box[0] >= 0 && box[1] >= 0 && box[2] <= 1920 && box[3] <= (capOn ? SAFE.capY1 + 20 : 1080) && c.minFont * S >= 18;
+  const ok = box[0] >= WIN.x && box[1] >= WIN.y && box[2] <= WIN.x + WIN.w && box[3] <= (capOn ? SAFE.capY1 + 20 : WIN.y + WIN.h) && c.minFont * S >= 18;
   return { S, tx, ty, ox: cx * S, oy: cy * S, box, ok, px: c.minFont * S };
 }
 
@@ -187,17 +196,28 @@ function camera(c, capOn) {
 const placed = [];
 const mapIn = (pane, src) => placed.filter((p) => p.pane === pane && src >= p.from && src < p.to).map((p) => p.at + src - p.from);
 
-// Full-frame cut. The box is untimed (HyperFrames times the video itself). xf: crossfade in over the previous cut.
-function fullCut(at, c, capOn, xf, label) {
+// A product cut in its window. The box is untimed (HyperFrames times the video itself); the frame (hairline +
+// shadow) is timed. enter: 'tilt' (a shot's first cut: 2.5 deg perspective easing flat over 1 s), 'slide' (a cut
+// inside a beat: the window slides 24 px in with the 0.25 s crossfade), 'flip' (the ticket: a 3D card flip).
+function fullCut(at, c, capOn, xf, label, enter) {
   const dur = c.to - c.from, cam = camera(c, capOn);
   const start = at - xf, from = c.from - xf;
-  const id = `v${++uid}`;
-  els.push(`<div class="shot-box"><video id="${id}" class="clip" src="${src(c.pane)}" muted playsinline data-start="${f3(start)}" data-duration="${f3(dur + xf)}" data-media-start="${f3(from)}" style="left:${f3(cam.tx)}px;top:${f3(cam.ty)}px;width:${f3(CSS_W * cam.S)}px;height:${f3(CSS_H * cam.S)}px;transform-origin:${f3(cam.ox)}px ${f3(cam.oy)}px"></video></div>`);
-  if (dur >= MIN_PUSH_CUT) anim.push(`tl.fromTo("#${id}", {scale:1}, {scale:${PUSH}, duration:${f3(dur + xf)}, ease:"sine.inOut"}, ${f3(start)});`);
-  if (xf) anim.push(`tl.fromTo("#${id}", {opacity:0}, {opacity:1, duration:${xf}, ease:"sine.inOut"}, ${f3(start)});`);
+  const id = `v${++uid}`, box = `w${++uid}`, frame = `w${++uid}`;
+  const rect = `left:${WIN.x}px;top:${WIN.y}px;width:${WIN.w}px;height:${WIN.h}px`;
+  els.push(`<div id="${box}" class="win-box" style="${rect}"><video id="${id}" class="clip" src="${src(c.pane)}" muted playsinline data-start="${f3(start)}" data-duration="${f3(dur + xf)}" data-media-start="${f3(from)}" style="left:${f3(cam.tx)}px;top:${f3(cam.ty)}px;width:${f3(CSS_W * cam.S)}px;height:${f3(CSS_H * cam.S)}px;transform-origin:${f3(cam.ox)}px ${f3(cam.oy)}px"></video></div>`);
+  els.push(`<div id="${frame}" class="clip win-frame" data-start="${f3(start)}" data-duration="${f3(dur + xf)}" style="${rect}"></div>`);
+  const both = `#${box}, #${frame}`;
+  const push = dur >= MIN_PUSH_CUT ? PUSH : 1;
+  anim.push(`tl.fromTo("#${id}", {scale:1, x:${DRIFT / 2}}, {scale:${push}, x:${-DRIFT / 2}, duration:${f3(dur + xf)}, ease:"sine.inOut"}, ${f3(start)});`);
+  if (enter === 'tilt') anim.push(`tl.fromTo("${both}", {rotationX:2.5, rotationY:-2, transformPerspective:1600}, {rotationX:0, rotationY:0, duration:1, ease:"power2.out"}, ${f3(start)});`);
+  if (enter === 'slide') {
+    anim.push(`tl.fromTo("${both}", {x:24, opacity:0}, {x:0, opacity:1, duration:${xf}, ease:"power2.out"}, ${f3(start)});`);
+    sfx.push({ t: start, kind: 'whoosh', db: -9, why: 'frame slide' });
+  }
+  if (enter === 'flip') anim.push(`tl.fromTo("${both}", {rotationY:-90, transformPerspective:800}, {rotationY:0, duration:0.5, ease:"power3.out"}, ${f3(start)});`);
   placed.push({ pane: c.pane, from, to: c.to, at: start, thread: c.region[2] > 840 });
-  checks.push(`${label}  film ${at.toFixed(2)}-${(at + dur).toFixed(2)}  ${c.pane} ${c.from.toFixed(2)}-${c.to.toFixed(2)}  ${dur.toFixed(2)} s  scale ${cam.S.toFixed(2)}  push ${dur >= MIN_PUSH_CUT ? PUSH : 1}  smallest word ${cam.px.toFixed(0)} px  region at end [${cam.box}]  ${cam.ok ? 'ok' : 'CHECK'}`);
-  return id;
+  checks.push(`${label}  film ${at.toFixed(2)}-${(at + dur).toFixed(2)}  ${c.pane} ${c.from.toFixed(2)}-${c.to.toFixed(2)}  ${dur.toFixed(2)} s  scale ${cam.S.toFixed(2)}  push ${push}  smallest word ${cam.px.toFixed(0)} px  region at end [${cam.box}]  ${cam.ok ? 'ok' : 'CHECK'}`);
+  return { id, both, cam };
 }
 
 // One thread column (CSS x 840-1385) in a pane at frame rect [X, Y, W, H], scaled by k, centred on CSS row fy.
@@ -227,7 +247,10 @@ function splitCut(at, c, xf, label) {
   const a = threadPane(c.pane, at - xf, dur + xf, c.from - xf, c.fy, rect(c.pane), 'active');
   const b = threadPane(other, at - xf, dur + xf, otherFrom - xf, c.fy, rect(other), 'veil');
   if (dur >= MIN_PUSH_CUT) anim.push(`tl.fromTo("${a}", {scale:1}, {scale:${PUSH}, duration:${f3(dur + xf)}, ease:"sine.inOut"}, ${f3(at - xf)});`);
-  if (xf) anim.push(`tl.fromTo("${a}, ${b}", {opacity:0}, {opacity:1, duration:${xf}, ease:"sine.inOut"}, ${f3(at - xf)});`);
+  if (xf) {
+    anim.push(`tl.fromTo("${a}, ${b}", {opacity:0, x:24}, {opacity:1, x:0, duration:${xf}, ease:"power2.out"}, ${f3(at - xf)});`);
+    sfx.push({ t: at - xf, kind: 'whoosh', db: -9, why: 'frame slide' });
+  }
 }
 
 const sfx = []; // { t, kind, db, why }
@@ -265,6 +288,8 @@ function phoneShot(s) {
 }
 for (const s of shots) {
   const dur = s.end - s.at;
+  if (CAP_WIPES[s.n]) s.wipes = CAP_WIPES[s.n];
+  if (['wc', 'clip', 'knot'].includes(s.kind)) els.push(`<div class="clip surface" data-start="${f3(s.at)}" data-duration="${f3(dur)}"></div>`);
   if (s.kind === 'wc') {
     els.push(`<div id="wc" class="clip scene" data-start="${f3(s.at)}" data-duration="${f3(dur)}" data-cue-scale="${f3(SPEECH(1) / 9.81)}" data-cue-offset="${f3(B[1].start - s.at - 0.6 * (SPEECH(1) / 9.81))}"></div>`); // wc.js cues are in this voice's seconds (beat 1 speech 0.6-10.41)
   } else if (s.kind === 'clip') {
@@ -284,14 +309,19 @@ ${k.words}`, ` data-knot='${JSON.stringify(k.cfg)}'`));
     const starts = cuts.map((_, i) => s.at + cuts.slice(0, i).reduce((a, c) => a + c.to - c.from, 0));
     // The caption lands on a cut (capFrom) or on the stamp (capAt); cuts it covers keep their words above it.
     const stampCut = cuts.findIndex((c) => c.pane === SHAKE.pane && SHAKE.at >= c.from && SHAKE.at < c.to);
-    s.capStart = s.capAt && stampCut >= 0 ? starts[stampCut] + SHAKE.at - cuts[stampCut].from : starts[s.capFrom ?? 0];
+    if (s.capAt && stampCut >= 0) s.wipes = [starts[stampCut] + SHAKE.at - cuts[stampCut].from];
+    s.capStart = s.wipes ? s.wipes[0] - 0.12 : Infinity;
     cuts.forEach((c, i) => {
-      const xf = i || s.xfIn ? XF : 0, t = starts[i], label = `beat ${s.n}.${i + 1}`;
+      const flip = s.n === 7 && i === 1; // the ticket lands as a card flip
+      const xf = i && !flip ? XF : 0, t = starts[i], label = `beat ${s.n}.${i + 1}`;
       if (s.kind === 'split') return splitCut(t, c, xf, label);
-      const id = fullCut(t, c, Boolean(s.cap) && t + (c.to - c.from) > s.capStart, xf, label);
-      if (i === stampCut) {
-        const at = f3(s.capStart);
-        anim.push(`tl.set("#${id}", {x:9, y:-5}, ${at}); tl.set("#${id}", {x:-7, y:4}, ${f3(at + 1 / 30)}); tl.set("#${id}", {x:0, y:0}, ${f3(at + 2 / 30)});`);
+      const { both, cam } = fullCut(t, c, Boolean(s.cap) && t + (c.to - c.from) > s.capStart, xf, label, flip ? 'flip' : i ? 'slide' : 'tilt');
+      if (i === stampCut) { // KEPT IN USE: a 2-frame paper squash and a faint ink bleed under the stamp
+        const at = f3(s.wipes[0]);
+        anim.push(`tl.set("${both}", {scaleX:1.02, scaleY:0.97}, ${at}); tl.set("${both}", {scaleX:1, scaleY:1}, ${f3(at + 2 / 30)});`);
+        const bx = WIN.x + STAMP_CSS[0] * cam.S + cam.tx, by = WIN.y + STAMP_CSS[1] * cam.S + cam.ty;
+        els.push(`<div id="bl${++uid}" class="clip bleed" data-start="${at}" data-duration="0.7" style="left:${f3(bx - 220)}px;top:${f3(by - 130)}px"></div>`);
+        anim.push(`tl.fromTo("#bl${uid}", {opacity:0, scale:0.85}, {opacity:1, scale:1.15, duration:0.7, ease:"power2.out"}, ${at}); tl.to("#bl${uid}", {opacity:0, duration:0.45, ease:"sine.in"}, ${f3(at + 0.25)});`);
         sfx.push({ t: at, kind: 'thump', why: 'KEPT IN USE stamp' }, { t: at + 0.03, kind: 'crack', why: 'KEPT IN USE stamp' });
       }
       if (s.n === 7 && i === 1) sfx.push({ t: t - 0.2, kind: 'slide', why: 'ticket lands' }, { t: t + 0.02, kind: 'tick', why: 'ticket lands' });
@@ -303,8 +333,13 @@ ${k.words}`, ` data-knot='${JSON.stringify(k.cfg)}'`));
     phoneShot(s);
   }
   if (s.cap) {
-    const from = s.capStart ?? s.at;
-    els.push(timed('cap', from, s.end - from, `<p>${capHtml(s.cap)}</p>`));
+    const wipes = s.wipes ?? [s.at + 0.12];
+    const from = Math.max(s.at, wipes[0] - 0.12), cid = `c${++uid}`;
+    let k = 0;
+    const html = esc(s.cap).replace(/\[([^\]]+)\]/g, (_, w) => `<span class="hl" id="${cid}h${k++}">${w}</span>`);
+    els.push(`<div class="clip cap" data-start="${f3(from)}" data-duration="${f3(s.end - from)}"><p id="${cid}">${html}</p></div>`);
+    anim.push(`tl.fromTo("#${cid}", {opacity:0, y:6}, {opacity:1, y:0, duration:0.12, ease:"power1.out"}, ${f3(from)});`);
+    for (let i = 0; i < k; i++) anim.push(`tl.fromTo("#${cid}h${i}", {backgroundSize:"0% 100%"}, {backgroundSize:"100% 100%", duration:0.35, ease:"power2.out"}, ${f3(wipes[Math.min(i, wipes.length - 1)])});`);
   }
 }
 
@@ -369,19 +404,26 @@ html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--
 #root { position: relative; width: 1920px; height: 1080px; background: var(--cream); overflow: hidden; }
 .clip { position: absolute; }
 .scene { left: 0; top: 0; width: 1920px; height: 1080px; background: var(--cream); }
-.shot-box { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: hidden; }
-.shot-box video.fill { position: absolute; left: 0; width: 1920px; height: 1200px; }
+.win-box { position: absolute; overflow: hidden; border-radius: 12px; z-index: 2; }
+.win-box video { position: absolute; }
+.win-frame { border: 1.5px solid var(--ink); border-radius: 12px; box-shadow: 0 20px 40px rgba(11, 13, 23, .12); z-index: 3; }
+.bleed { width: 440px; height: 260px; border-radius: 50%; background: radial-gradient(closest-side, rgba(11, 13, 23, .10), rgba(11, 13, 23, 0)); z-index: 4; }
+.surface { left: 0; top: 0; width: 1920px; height: 1080px; z-index: 30; pointer-events: none;
+  background-image: radial-gradient(ellipse at center, rgba(11, 13, 23, 0) 58%, rgba(11, 13, 23, .06) 100%), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.95' numOctaves='1' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.04 0 0 0 0 0.05 0 0 0 0 0.09 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)' opacity='0.028'/%3E%3C/svg%3E"); }
+.kword.cascade { opacity: 1; }
+.kl { display: inline-block; opacity: 0; }
 .scene canvas { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
-.hl { background: var(--lime); padding: 0 .2em; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.hl { background: linear-gradient(var(--lime), var(--lime)) no-repeat 0 0 / 0% 100%; padding: 0 .2em; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.ktag .hl, .end .hl { background-size: 100% 100%; }
 .cap { left: 0; top: 948px; width: 1920px; height: 104px; display: flex; align-items: center; justify-content: center; z-index: 20; }
 .cap p { font: 400 48px/1.2 "JBM", monospace; letter-spacing: -.01em; background: var(--cream); border: 3px solid var(--ink); border-radius: 12px; padding: 12px 26px; box-shadow: 6px 6px 0 var(--ink); white-space: nowrap; }
-.phone-shell { background: #0d0d10; border-radius: 74px 74px 0 0; box-shadow: 10px 10px 0 var(--ink); z-index: 2;
+.phone-shell { background: #0d0d10; border-radius: 74px 74px 0 0; box-shadow: 0 20px 40px rgba(11, 13, 23, .12); z-index: 2;
   -webkit-mask-image: linear-gradient(to bottom, #000 94%, transparent); mask-image: linear-gradient(to bottom, #000 94%, transparent); }
 .phone-box { position: absolute; overflow: hidden; border-radius: 60px 60px 0 0; z-index: 3; }
 .phone-box img, .phone-box video { position: absolute; left: 0; top: 0; }
-.pane-box { position: absolute; overflow: hidden; border-radius: 14px; z-index: 2; }
+.pane-box { position: absolute; overflow: hidden; border-radius: 12px; z-index: 2; }
 .pane-box video { position: absolute; }
-.pane-edge { border: 3px solid var(--ink); border-radius: 14px; box-shadow: 8px 8px 0 var(--ink); z-index: 3; }
+.pane-edge { border: 1.5px solid var(--ink); border-radius: 12px; box-shadow: 0 20px 40px rgba(11, 13, 23, .12); z-index: 3; }
 .pane-edge.veil { background: rgba(246, 241, 227, .55); }
 .who { position: absolute; top: -18px; left: 22px; font: 700 22px/1 "JBM", monospace; text-transform: uppercase; letter-spacing: .06em; padding: 8px 14px; border: 2px solid var(--ink); border-radius: 6px; transform: rotate(-2deg); }
 .who.giver { background: var(--ink); color: var(--cream); }

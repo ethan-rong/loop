@@ -104,6 +104,10 @@ function mount(host) {
     const s = inOutCubic(clamp01((t - cfg.flatAt) / cfg.flatDur));
     for (let i = 0; i < buf.length; i++) buf[i] = lerp(round[i], flat[i], s);
     geom.setPositions(buf);
+    if (cfg.drawEnd) { // trim path: the wire draws itself along the knot before it ties
+      const total = buf.length / 6;
+      geom.instanceCount = Math.max(1, Math.round(total * outCubic(clamp01(t / cfg.drawEnd))));
+    }
     const k = lerp(from.k, to.k, s);
     group.position.set(lerp(from.x, to.x, s), lerp(from.y, to.y, s), 0);
     group.scale.set(k, -k, k);
