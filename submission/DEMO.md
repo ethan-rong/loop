@@ -41,7 +41,7 @@ Button labels as built: Post something · Ask for something · Looks right · Of
 Rehearse with a timer three times. Cut words, not steps. Record phone and screen together (QuickTime: screen recording + iPhone mirrored via USB, or film the phone with a second device).
 
 ### Seed for the demo
-`server/seed.mjs` holds the three people, their requests and the two available items. the taker's request is "Reading lamp for my desk"; change its title/details to match the object you will photograph, then `npm run seed`. Keep another tab's coat request and Ethan's fridge request as unmatched background needs.
+`server/seed.mjs` holds five anonymous people, their four requests and three available items (all three belong to the phone persona, so reserving any of them texts your phone). the taker's request is "Reading lamp for my desk"; change its title/details to match the object you will photograph, then `npm run seed`. Keep another tab's coat request and Ethan's fridge request as unmatched background needs.
 
 ## What makes Loop different (say these, in this order, when a judge asks "how is this different from X")
 
@@ -63,8 +63,8 @@ Rehearse with a timer three times. Cut words, not steps. Record phone and screen
 - **iMessage:** Photon's Spectrum on a shared line forwards thread messages to linked phones and routes replies back into the same thread (text-a-photo giving and code-by-text are described in SPEC3.md; say exactly what was verified live).
 - **Why Gemini only drafts:** condition claims affect a stranger's decision; the owner is accountable, so the model's text stays a dashed draft until a person edits or approves it.
 - **What's checked:** scripted end-to-end runs (items ×3, threads ×3, mock AI) + real-photo calls (lamp → matched; fan → no match and honest "dusty"; pile → 6 items, 1 correct match, 5 honest no-matches) + full UI loop with the live model.
-- **Limits, said plainly:** no accounts (demo identities), single-server JSON store, free-tier iMessage line (10 people, must text the line once), image accuracy spot-checked only, no real users yet, no environmental impact measured.
-- **What I built vs. reused:** everything in `server/` and `public/` was written during the event with AI coding assistance that I directed, reviewed and tested; Express, spectrum-ts and Nunito are third-party; seed photos are Wikimedia Commons (credited).
+- **Limits, said plainly:** no accounts (anonymous sessions), single-server JSON store, free-tier iMessage line (10 numbers, registered automatically when a person links a phone), image accuracy spot-checked only, no real users yet, no environmental impact measured.
+- **What I built vs. reused:** everything in `server/` and `public/` was written during the event with AI coding assistance that I directed, reviewed and tested; Express, spectrum-ts, the Hairline figures and the fonts Space Grotesk and JetBrains Mono are third-party; seed photos are Wikimedia Commons (credited).
 - **Why it looks like a poster:** judges see dozens of pale SaaS screens; Loop is set like a bold light poster — cream and ink, lime and coral stickers, hard shadows, a ticket stub for the code, a "Kept in use" stamp — so the physical handoff reads as physical. The Knot mark is one continuous over-under line, built from a parametric curve.
 
 ## Backup plan

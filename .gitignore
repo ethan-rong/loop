@@ -19,3 +19,5 @@ film/**/*.aiff
 film/raw/
 film/**/*.png
 film/node_modules/
+film/remotion/out/
+film/comp/assets/clips/

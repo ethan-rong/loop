@@ -1,3 +1,5 @@
+// DORMANT: thread translation is switched off in the UI (English only for the demo); this suite is not maintained
+// and fails against the current seed. Kept for the day translation comes back.
 // Bilingual threads (SPEC4 §C) at the API level, 3 runs against a running mock server:
 //   GEMINI_MOCK=1 PORT=3700 DATA_DIR=.tmp-g/data node server/index.mjs &
 //   PORT=3700 node scripts/e2e-translate.mjs        (BASE_URL overrides http://localhost:$PORT)
@@ -65,7 +67,7 @@ async function zhThread() {
   void seed;
   const { reservation: { code } } = await ok(call('POST', '/api/items/i_fan/reserve', { personId: 'tom' }));
   let t = await newestThread('i_fan');
-  assert.deepEqual([t.ownerId, t.recipientId, t.messages.length], ['jerry', 'tom', 2]);
+  assert.deepEqual([t.ownerId, t.recipientId, t.messages.length], ['ethan', 'tom', 2]); // seed items belong to the phone persona
   t = await waitFor(t.id, settled, 'the opening messages in zh');
   assert.ok(t.messages.every((m) => m.from === 'loop' && m.translations.zh), 'both opening lines in zh');
 
@@ -76,7 +78,7 @@ async function zhThread() {
   assert.deepEqual(t.messages.find((m) => m.id === reply.id).translations, { zh: '[zh] Got it.' });
 
   // jerry types a plan, tom taps the buttons: every new line reaches tom in Chinese.
-  await say(t, 'jerry', 'Davis at 5 pm?');
+  await say(t, 'ethan', 'Davis at 5 pm?');
   assert.equal((await act(t, 'tom', 'accept')).thread.status, 'set');
   assert.equal((await act(t, 'tom', 'arrived')).thread.status, 'meeting');
   t = await waitFor(t.id, (x) => x.messages.at(-1).text.includes('4-digit code') && settled(x), 'plan, set and arrived in zh');
@@ -86,7 +88,7 @@ async function zhThread() {
   // The code text stays untranslated; the closing line still gets Chinese after the thread is done.
   const codeText = `我的取件码是 ${code}`;
   await say(t, 'tom', codeText);
-  assert.equal((await ok(call('POST', '/api/items/i_fan/confirm', { personId: 'jerry', code }))).status, 'collected');
+  assert.equal((await ok(call('POST', '/api/items/i_fan/confirm', { personId: 'ethan', code }))).status, 'collected');
   t = await waitFor(t.id, (x) => x.status === 'done' && settled(x), 'the closing line in zh');
   assert.deepEqual(byText(t, codeText).translations, {});
   assert.match(t.messages.at(-1).translations.zh, /^\[zh\] Handed over/);
