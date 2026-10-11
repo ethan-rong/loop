@@ -1174,18 +1174,18 @@ select.input {
   .wrap { max-width: 1200px; padding: 40px 40px 96px; }
   .topbar-inner { max-width: 1200px; padding: 8px 40px; }
 
-  /* Board: the headline on one line across the top (at 56-64 px it is wider than 7 columns), the lead and the two
-     actions on 7 columns beside the riffle (5 columns, 320 px tall); For you full width; Inventory on 8 columns
-     with People need as a 4-column sidebar. */
+  /* Board: the headline (two balanced lines), the lead and the two actions on 8 columns; the riffle on the right 4,
+     sized to the same height (330 px wide at 5:4 = 264 px) so the hero ends where the words end; For you full width;
+     Inventory on 8 columns with People need as a 4-column sidebar. */
   .board { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: 32px; align-items: start; }
   .board > * { grid-column: 1 / -1; }
   .board > .board-inv { grid-column: 1 / span 8; }
   .board > .board-needs { grid-column: 9 / span 4; }
   .board > .hero { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: auto auto 1fr; column-gap: 32px; }
-  .hero h1 { grid-column: 1 / -1; font-size: clamp(56px, 32px + 2.5vw, 64px); white-space: nowrap; }
-  .hero .lead { grid-column: 1 / span 7; grid-row: 2; margin-top: 20px; font-size: 21px; }
-  .hero .hero-actions { grid-column: 1 / span 7; grid-row: 3; align-self: start; flex-direction: row; align-items: center; gap: 24px; margin-top: 28px; }
-  .fig-hero { grid-column: 8 / span 5; grid-row: 2 / -1; justify-self: end; align-self: start; width: min(400px, 100%); margin: 8px 0 0; }
+  .hero h1 { grid-column: 1 / span 8; grid-row: 1; font-size: clamp(56px, 32px + 2.5vw, 64px); text-wrap: balance; }
+  .hero .lead { grid-column: 1 / span 8; grid-row: 2; margin-top: 20px; font-size: 21px; }
+  .hero .hero-actions { grid-column: 1 / span 8; grid-row: 3; align-self: start; flex-direction: row; align-items: center; gap: 24px; margin-top: 28px; }
+  .fig-hero { grid-column: 9 / span 4; grid-row: 1 / -1; justify-self: end; align-self: center; width: min(330px, 100%); margin: 0; }
   .board-you .list { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
   .board-inv .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px 20px; }
   .board-inv .thumb { aspect-ratio: 4 / 3; }
