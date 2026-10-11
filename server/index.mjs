@@ -4,7 +4,7 @@ import express from 'express';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { channelStatus, forwardNewMessages, forwardTranslation, sendToPerson, startChannel } from './channels/spectrum.mjs';
+import { allowUser, channelStatus, forwardNewMessages, forwardTranslation, sendToPerson, startChannel, welcomeLinked } from './channels/spectrum.mjs';
 import { coordinate } from './coordinator.mjs';
 import { CATEGORIES, CONDITIONS, clamp, describeItem, isMock, modelName, suggestItems } from './gemini.mjs';
 import { pileRouter } from './pile.mjs';
@@ -135,6 +135,25 @@ app.get('/api/people/:id/texts', (req, res) => {
   const { lineNumber, linkedPhones } = channelStatus();
   res.json({ linked: linkedPhones.includes(id), code, lineNumber });
 });
+// The other way to link: a number typed on the item page. Loop lists it with Photon, keeps it (never shown) and
+// texts a hello. US numbers may be typed without +1.
+function normalizePhone(raw) {
+  const s = String(raw ?? '').trim();
+  const digits = s.replace(/\D/g, '');
+  if (s.startsWith('+') && /^[1-9]\d{6,14}$/.test(digits)) return `+${digits}`;
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`;
+  return null;
+}
+app.post('/api/people/:id/phone', async (req, res) => {
+  const { id } = store.getPerson(db, req.params.id);
+  const phone = normalizePhone(body(req).phone);
+  if (!phone) throw new ApiError(400, 'invalid_field', 'Enter a mobile number, like 919 555 0123.');
+  if (!(await allowUser(phone))) throw new ApiError(502, 'texts_unavailable', "Loop couldn't register that number with its texting line just now. Try texting the code instead.");
+  commit(store.setPersonPhone(db, id, phone));
+  res.json({ linked: true, sent: await welcomeLinked(id) });
+});
+
 // A stranger texted the 4-digit code from the web page: their phone now belongs to that tab's person, once Photon
 // has listed the number (allow(phone) -> boolean, the channel's job). null leaves them a stranger.
 async function linkPhone(code, phone, allow = async () => true) {

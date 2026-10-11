@@ -307,10 +307,10 @@ img { max-width: 100%; }
 .empty { padding: 20px; color: var(--muted); text-align: center; font-size: var(--fs-4); }
 .empty.glass { border-style: dashed; }
 .give-center { max-width: 560px; margin-inline: auto; } /* the failure card alone, centred */
-.texts-card .texts-code { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 14px 0; font: 500 var(--fs-4)/1.3 var(--mono); }
-.link-code.big { font-size: 34px; line-height: 1.3; padding: 2px 16px; letter-spacing: .14em; }
-.texts-card .actions { margin-top: 4px; }
-.texts-card .small { margin-top: 10px; }
+.texts-card .phone-row { display: flex; gap: 10px; }
+.texts-card .phone-row .input { flex: 1; min-width: 0; }
+.texts-card .phone-row .btn { flex: none; }
+.texts-card .small { margin-top: 12px; }
 .link-code { display: inline-block; padding: 0 7px; border: 1.5px solid var(--ink); background: var(--lime); color: var(--ink); font-weight: 700; letter-spacing: .08em; line-height: 1.6; white-space: nowrap; }
 
 /* Hairline figures (vendored in /vendor/): ink lines on the surface they sit on. The library draws at the box's width

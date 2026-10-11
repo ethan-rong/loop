@@ -57,7 +57,7 @@ const USERS_URL = (projectId) => `https://spectrum.photon.codes/projects/${proje
 // Photon only texts people on the project's Users page (10 on Free, 100 on Pro). A phone that texts its link code
 // is put there through the API, as a user of the shared line, so nobody opens the dashboard; an existing number
 // comes back unchanged. false when Photon refuses (the plan's cap, bad credentials): the warning says why.
-async function allowUser(phone) {
+export async function allowUser(phone) {
   const { projectId, projectSecret } = credentials();
   if (!projectId || !projectSecret) return true; // tests and offline: nothing to allow
   try {
@@ -348,6 +348,8 @@ async function offer(personId, space, sent, choice, poll) {
 // Never rejects: resolves true when sent; false when not linked, not connected, or it failed twice (it then waits
 // for the person's next text).
 // The DM a person last texted from counts too (in production that only happens once connected; tests use it).
+export const welcomeLinked = (personId) => sendToPerson(personId, LINKED); // after a number typed on the web
+
 export function sendToPerson(personId, text, choice = null) {
   if (!(im || spaces.has(personId)) || !phones().has(personId)) return Promise.resolve(false);
   return deliver(personId, text, choice);

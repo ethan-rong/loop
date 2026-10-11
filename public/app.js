@@ -87,6 +87,7 @@ const freshUi = () => ({
   notice: null, // { text, tone, where } for the current view; where = 'thread' puts it in the conversation
   reserveOpen: false,
   reserve: { place: '', date: '', hour: '', time: '' }, // all optional: people can settle it in the thread
+  phone: { phone: '' }, // the texts card's number field
   propose: null, // { threadId, place, time } while "Suggest another time" is open
   composer: {}, // thread id -> unsent message
   code: '',
@@ -682,12 +683,36 @@ function textsCard(item) {
   return html`<section class="glass card texts-card" aria-labelledby="texts-title">
     <h2 id="texts-title">${mine ? 'Get a text when someone reserves this' : "Get Loop's messages on your phone"}</h2>
     <p class="muted">${mine
-      ? "Loop will message you here when someone wants it. If you'd rather not keep this tab open, text this code to Loop once and it texts you instead."
-      : "The pickup plan and the giver's replies can reach you by text. Text this code to Loop once."}</p>
-    <p class="texts-code"><b class="link-code big">${t.code}</b><span class="muted">to ${lineLabel(state.health.lineNumber)}</span></p>
-    <div class="actions"><a class="btn btn-primary" href="${smsHref(t.code)}">Open Messages</a></div>
-    <p class="small muted">Your number stays private. Reply STOP to unlink.</p>
+      ? "Loop will message you here when someone wants it. If you'd rather not keep this tab open, give Loop your number and it texts you instead."
+      : "The pickup plan and the giver's replies can reach you by text."}</p>
+    <form class="stack-sm" data-form="phone" novalidate>
+      <label class="sr-only" for="phone-input">Your mobile number</label>
+      <div class="phone-row">
+        <input id="phone-input" class="input" type="tel" name="phone" data-scope="phone" inputmode="tel" autocomplete="tel" placeholder="Your mobile number" value="${state.ui.phone.phone}">
+        <button class="btn btn-primary" type="submit" id="phone-submit">${busyText('phone', 'Text me', 'Linking…')}</button>
+      </div>
+      ${noticeBlock('texts')}
+    </form>
+    <p class="small muted">Or text <b class="link-code">${t.code}</b> to <a class="line-link" href="${smsHref(t.code)}">${lineLabel(state.health.lineNumber)}</a>. Your number stays private. Reply STOP to unlink.</p>
   </section>`;
+}
+
+/* The texts card's number: Loop lists it with Photon and texts a hello; the card then goes away. */
+async function submitPhone() {
+  const phone = state.ui.phone.phone.trim();
+  if (!phone) {
+    state.ui.notice = { text: 'Enter your mobile number.', tone: 'error', where: 'texts' };
+    render();
+    announce(state.ui.notice.text);
+    return;
+  }
+  await mutate('phone', () => api('POST', `/api/people/${encodeURIComponent(state.me)}/phone`, { phone }), (res) => {
+    state.texts = { ...(state.texts ?? {}), linked: true };
+    textsFor = state.me;
+    state.ui.phone.phone = '';
+    showToast(res.sent ? 'Linked. Loop just texted you.' : 'Linked.');
+    announce('Linked.');
+  });
 }
 
 function timeline(item) {
@@ -1323,7 +1348,7 @@ async function mutate(kind, request, onDone) {
 }
 
 function showError(err) {
-  const where = state.busy.startsWith('thread') ? 'thread' : 'action'; // thread errors show in the conversation
+  const where = state.busy.startsWith('thread') ? 'thread' : state.busy === 'phone' ? 'texts' : 'action'; // thread errors show in the conversation
   if (err.code === 'wrong_code') {
     state.ui.codeError = err.message;
     state.ui.codeAlert = true;
@@ -1968,6 +1993,7 @@ const actions = {
 };
 
 const forms = {
+  phone: () => submitPhone(),
   reserve: (form) => reserveItem(form.dataset.request || null),
   confirm: confirmHandoff,
   ask: postAsk,
