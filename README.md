@@ -96,7 +96,6 @@ Not measured: behaviour under a real 429 (would burn quota), image accuracy beyo
 ## Attribution and AI disclosure
 
 - Built during the hacking window with AI coding assistance: **Claude Code** (Claude Fable 5.1 for planning, specification and review; Claude Opus for implementation). AI wrote most of the code under my direction; I set the scope and the rules (human approval at every step, honest AI drafts), reviewed the flows, tested the app end to end, and can explain how it works. Pre-event research on the rules and past winners used OpenAI Codex/ChatGPT.
-- 
 - The product calls **Google Gemini** (`gemini-3.5-flash-lite`) through the Gemini API, and **Photon Spectrum** (`spectrum-ts`) for iMessage on a shared line.
 - **Express** (MIT). **Nunito** font (SIL Open Font License), self-hosted.
 - Seed photos from **Wikimedia Commons**, credited in `public/seed/ATTRIBUTION.md`.
