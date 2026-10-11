@@ -135,10 +135,12 @@ app.get('/api/people/:id/texts', (req, res) => {
   const { lineNumber, linkedPhones } = channelStatus();
   res.json({ linked: linkedPhones.includes(id), code, lineNumber });
 });
-// A stranger texted the 4-digit code from the web page: their phone now belongs to that tab's person.
-function linkPhone(code, phone) {
+// A stranger texted the 4-digit code from the web page: their phone now belongs to that tab's person, once Photon
+// has listed the number (allow(phone) -> boolean, the channel's job). null leaves them a stranger.
+async function linkPhone(code, phone, allow = async () => true) {
   const personId = linkCodes.get(code);
   if (!personId || !db.people.some((p) => p.id === personId)) return null;
+  if (!(await allow(phone))) return null;
   linkCodes.delete(code);
   commit(store.setPersonPhone(db, personId, phone));
   return personId;

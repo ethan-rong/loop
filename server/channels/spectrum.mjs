@@ -51,7 +51,29 @@ const sentTo = new Set(); // people whose first successful send was logged
 const logged = new Set();
 const offers = new Map(); // personId -> {id, choice}: the last text Loop sent them with two choices, until answered
 let getLinks = () => new Map(); // personId -> phone linked by a texted code (index.mjs reads them from the db)
-let linkCode = () => null; // (code, phone) -> personId when the code belongs to a web tab, else null
+let linkCode = async () => null; // (code, phone, allow) -> personId when the code belongs to a web tab, else null
+const USERS_URL = (projectId) => `https://spectrum.photon.codes/projects/${projectId}/users/`;
+
+// Photon only texts people on the project's Users page (10 on Free, 100 on Pro). A phone that texts its link code
+// is put there through the API, as a user of the shared line, so nobody opens the dashboard; an existing number
+// comes back unchanged. false when Photon refuses (the plan's cap, bad credentials): the warning says why.
+async function allowUser(phone) {
+  const { projectId, projectSecret } = credentials();
+  if (!projectId || !projectSecret) return true; // tests and offline: nothing to allow
+  try {
+    const res = await fetch(USERS_URL(projectId), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Basic ${Buffer.from(`${projectId}:${projectSecret}`).toString('base64')}` },
+      body: JSON.stringify({ type: 'shared', phoneNumber: phone }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (res.ok) return true;
+    fail('allow user', new Error(`HTTP ${res.status} ${(await res.text()).slice(0, 120)}`));
+  } catch (err) {
+    fail('allow user', err);
+  }
+  return false;
+}
 
 const credentials = () => ({
   projectId: process.env.SPECTRUM_PROJECT_ID || process.env.PHOTON_PROJECT_ID,
@@ -216,12 +238,12 @@ async function download(photo) {
 // confirms. Linking is done by texting, so no phone number is ever typed into the site. false for anything else.
 async function linkFromCode(from, text, space) {
   const code = text?.match(LINK_CODE)?.[1];
-  const personId = code && E164.test(from) ? linkCode(code, from) : null;
+  const personId = code && E164.test(from) ? await linkCode(code, from, allowUser) : null;
   if (!personId) return false;
   spaces.set(personId, space);
   toldUnknown.delete(from);
-  await space.send(LINKED).catch((err) => fail('send', err));
   console.log(`imessage: a phone linked itself to ${personId}`);
+  await deliver(personId, LINKED); // the retry path: the first text to a just-listed number can fail once
   return true;
 }
 
