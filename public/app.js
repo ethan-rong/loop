@@ -10,16 +10,8 @@ const SLOW_MS = 8000;
 const UPLOAD_TIMEOUT_MS = 60000;
 const MAX_SIDE = 1024;
 const JPEG_QUALITY = 0.85;
-const PLACES = ['Davis Library lobby', 'Student Union', 'Dorm front desk'];
 const CONDITIONS = ['good', 'fair', 'worn'];
 const CATEGORIES = ['furniture', 'lighting', 'kitchen', 'textbooks', 'electronics', 'clothing', 'bedding', 'sports', 'other'];
-/* SPEC4 §F campus map: schematic spots on a 0-100 grid (x right, y down), Franklin St on top, South Campus at the
-   bottom. The 4th field puts the label beside the dot so no two labels touch. */
-const SPOTS = [
-  ['Franklin St', 50, 9, 'up'], ['Granville Towers', 12, 22], ['Lenoir', 60, 31], ['Davis Library', 34, 47, 'left'],
-  ['Student Union', 62, 50], ['Carmichael', 85, 64, 'below'], ['Craige', 25, 77, 'left'], ['Ehringhaus', 49, 84],
-  ['Hinton James', 72, 93],
-];
 const COND_LABEL = { good: 'Good condition', fair: 'Fair condition', worn: 'Worn' };
 const STATUS_LABEL = { available: 'Available', offered: 'Offered', reserved: 'Reserved', collected: 'Collected', withdrawn: 'Taken back' };
 const REQUEST_LABEL = { open: 'Open need', matched: 'Matched', fulfilled: 'Fulfilled', closed: 'Closed' };
@@ -94,7 +86,7 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const freshUi = () => ({
   notice: null, // { text, tone, where } for the current view; where = 'thread' puts it in the conversation
   reserveOpen: false,
-  reserve: { place: '', spot: '', when: '' }, // all optional: people can settle it in the thread
+  reserve: { place: '', date: '', hour: '', time: '' }, // all optional: people can settle it in the thread
   propose: null, // { threadId, place, time } while "Suggest another time" is open
   composer: {}, // thread id -> unsent message
   code: '',
@@ -200,19 +192,23 @@ function nyWall(ms) { // New York's wall clock at instant ms, written as if it w
 const DAY_MS = 86_400_000;
 const NY_CLOCK = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' });
 const NY_DATE = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'short', month: 'short', day: 'numeric' });
-function timeLabel(ms, now = Date.now()) {
+function dayLabel(ms, now = Date.now()) {
   const days = Math.floor(nyWall(ms) / DAY_MS) - Math.floor(nyWall(now) / DAY_MS);
-  const day = days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : `${NY_DATE.format(ms)},`;
-  return `${day} ${NY_CLOCK.format(ms).toLowerCase()}`.replace(/[\u202f\u00a0]/g, ' ');
+  return days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : NY_DATE.format(ms).replace(',', ''); // "Tue Oct 13"
+}
+function timeLabel(ms, now = Date.now()) {
+  const day = dayLabel(ms, now);
+  const clock = NY_CLOCK.format(ms).toLowerCase().replace(/[\u202f\u00a0]/g, ' ');
+  return `${day}${day === 'Today' || day === 'Tomorrow' ? ' ' : ', '}${clock}`;
 }
 console.assert(timeLabel(Date.parse('2026-10-10T21:00:00Z'), Date.parse('2026-10-10T17:37:00Z')) === 'Today 5:00 pm', 'time label: today');
 console.assert(timeLabel(Date.parse('2026-10-11T16:00:00Z'), Date.parse('2026-10-10T17:37:00Z')) === 'Tomorrow 12:00 pm', 'time label: tomorrow');
 console.assert(timeLabel(Date.parse('2026-10-13T16:30:00Z'), Date.parse('2026-10-10T17:37:00Z')) === 'Tue Oct 13, 12:30 pm', 'time label: later');
-// The picker's earliest value: now, rounded up to 5 minutes, in the browser's own zone (datetime-local is local time).
-function localInputValue(ms) {
-  const d = new Date(Math.ceil(ms / 300_000) * 300_000);
+// Today's date as the date picker writes it, in the browser's own zone (the pickers give local wall time).
+function localDate(ms) {
+  const d = new Date(ms);
   const two = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}T${two(d.getHours())}:${two(d.getMinutes())}`;
+  return `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}`;
 }
 
 /* Two announcements in one burst (pickup code, then Loop's message) are read together, not the last one only. */
@@ -729,36 +725,29 @@ function reserveBlock(item, offeredReq) {
   </form>`;
 }
 
-/* Area chips plus the exact spot, and a date-time picker; shared by the reserve form and "Suggest another time".
-   Everything is optional. */
-const pickButton = (scope, field, value, i, current) => html`<button type="button" class="pick" id="${scope === 'reserve' ? 'pick' : scope}-${field}-${i}" data-action="pick" data-scope="${scope}" data-field="${field}" data-value="${value}" aria-pressed="${String(value === current)}">${icon('check', 'tick')}${value}</button>`;
-function placeTimeFields(scope, { place, spot, when }) {
+/* One box for the exact place, a date and a time picker, or a time in words; shared by the reserve form and
+   "Suggest another time". Everything is optional. */
+function placeTimeFields(scope, { place, date, hour, time }) {
   const id = (field) => (scope === 'reserve' ? `${field}-input` : `${scope}-${field}`);
   return html`<fieldset class="field">
       <legend class="label">Meet at</legend>
-      <div class="picks">${MEET_PLACES.map((v, i) => pickButton(scope, 'place', v, i, place))}</div>
-      <label class="sr-only" for="${id('spot')}">Exactly where</label>
-      <input id="${id('spot')}" class="input" name="spot" data-scope="${scope}" maxlength="40" autocomplete="off" placeholder="Exactly where? e.g. front entrance, by the printers" value="${spot}">
+      <label class="sr-only" for="${id('place')}">Exact place</label>
+      <input id="${id('place')}" class="input" name="place" data-scope="${scope}" maxlength="80" autocomplete="off" placeholder="Exactly where, e.g. Davis Library, 2nd floor by the printers" value="${place}">
     </fieldset>
     <fieldset class="field">
       <legend class="label">When</legend>
-      <label class="sr-only" for="${id('when')}">Date and time</label>
-      <input id="${id('when')}" class="input input-when" type="datetime-local" name="when" data-scope="${scope}" step="300" min="${localInputValue(Date.now())}" value="${when}">
+      <div class="when-row">
+        <label class="sr-only" for="${id('date')}">Date</label>
+        <input id="${id('date')}" class="input" type="date" name="date" data-scope="${scope}" min="${localDate(Date.now())}" value="${date}">
+        <label class="sr-only" for="${id('hour')}">Time</label>
+        <input id="${id('hour')}" class="input" type="time" name="hour" data-scope="${scope}" step="300" value="${hour}">
+      </div>
+      <label class="sr-only" for="${id('time')}">Or a time in words</label>
+      <input id="${id('time')}" class="input" name="time" data-scope="${scope}" maxlength="40" autocomplete="off" placeholder="Or type it, like “after 6 tonight”" value="${time}">
     </fieldset>`;
 }
 const meetGrid = (place, time) => html`<dl class="meet"><div><dt>Where</dt><dd>${place || NOT_SET}</dd></div><div><dt>When</dt><dd>${time || NOT_SET}</dd></div></dl>`;
 
-/* Meeting spots: the quick picks plus the known campus spots, as one de-duplicated chip list. */
-const spotFor = (place) => {
-  const p = String(place ?? '').trim().toLowerCase();
-  return p ? SPOTS.find(([name]) => p.startsWith(name.toLowerCase())) : undefined;
-};
-console.assert(spotFor('Davis Library lobby')?.[0] === 'Davis Library' && !spotFor('Dorm front desk') && !spotFor(''), 'spots: prefix match');
-const spotValue = (name) => PLACES.find((p) => p.startsWith(name)) ?? name; // a quick pick's own wording wins
-// "Meet at" chips: one list, no repeats. The quick picks keep their wording ("Davis Library lobby"), then every other
-// map spot, so each chip and its spot on the map are the same choice.
-const MEET_PLACES = [...PLACES, ...SPOTS.map(([name]) => name).filter((name) => !PLACES.some((p) => spotFor(p)?.[0] === name))];
-console.assert(MEET_PLACES.length === new Set(MEET_PLACES.map((p) => spotFor(p)?.[0] ?? p)).size && MEET_PLACES.every((p) => spotValue(spotFor(p)?.[0] ?? p) === p), 'meet places: one chip per spot, map taps match chips');
 
 
 
@@ -1324,28 +1313,33 @@ async function removeRequest(id) {
 
 const itemPath = (action) => `/api/items/${encodeURIComponent(state.route.id)}/${action}`;
 
-/* Place and time are optional; blank ones are left out so the two people settle them in the thread. The place is the
-   area chip plus the exact spot ("Davis Library lobby, by the printers"); the time is the picker's local value. */
-function planBody({ place, spot, when }) {
+/* Place and time are optional; blank ones are left out so the two people settle them in the thread. A picked date and
+   time become a label plus the instant (so Loop can remind); a time in words stays words, with the day in front
+   when a date was picked; a time with no date means today. */
+function planBody({ place, date, hour, time }) {
   const body = {};
-  const where = [place.trim(), spot.trim()].filter(Boolean).join(', ');
-  if (where) body.place = where;
-  if (when) {
-    const at = new Date(when).getTime();
-    if (!(at > Date.now())) return { error: "Pick a time that's still ahead." };
+  if (place.trim()) body.place = place.trim();
+  const words = time.trim();
+  const day = date ? dayLabel(new Date(`${date}T12:00`).getTime()) : '';
+  if (words) body.time = day ? `${day}, ${words}` : words;
+  else if (hour) {
+    const at = new Date(`${date || localDate(Date.now())}T${hour}`).getTime();
+    if (!(at > Date.now())) return { error: date ? "Pick a time that's still ahead." : 'That time has passed today. Pick a date too.' };
     body.time = timeLabel(at);
     body.timeISO = new Date(at).toISOString();
-  }
+  } else if (day) body.time = day;
   return { body };
 }
-console.assert(planBody({ place: 'Student Union', spot: ' by the stairs ', when: '' }).body.place === 'Student Union, by the stairs', 'plan: area + spot');
-console.assert(planBody({ place: '', spot: '', when: '2000-01-01T10:00' }).error, 'plan: a past time is refused');
+console.assert(planBody({ place: ' Davis Library, 2nd floor ', date: '', hour: '', time: '' }).body.place === 'Davis Library, 2nd floor', 'plan: place trimmed');
+console.assert(planBody({ place: '', date: localDate(Date.now() + DAY_MS), hour: '', time: 'after 6' }).body.time === 'Tomorrow, after 6', 'plan: day + words');
+console.assert(planBody({ place: '', date: '2000-01-01', hour: '10:00', time: '' }).error, 'plan: a past time is refused');
+console.assert(planBody({ place: '', date: '2000-01-01', hour: '10:00', time: 'whenever' }).body.time === 'Sat Jan 1, whenever', 'plan: words win over the clock');
 
 async function reserveItem(requestId) {
   const { body: plan, error } = planBody(state.ui.reserve);
   if (error) {
     state.ui.notice = { text: error, tone: 'error' };
-    state.focusTarget = '#when-input';
+    state.focusTarget = '#date-input';
     render();
     announce(error);
     return;
@@ -1400,12 +1394,9 @@ async function threadAction(threadId, kind) {
   if (kind === 'enter_code') return focusCodeInput();
   const t = threadById(threadId);
   if (kind === 'propose') {
-    const [area, ...rest] = (t?.plan.place ?? '').split(', '); // "Student Union, by the stairs" back into chip + spot
-    state.ui.propose = MEET_PLACES.includes(area)
-      ? { threadId, place: area, spot: rest.join(', '), when: '' }
-      : { threadId, place: '', spot: t?.plan.place ?? '', when: '' };
+    state.ui.propose = { threadId, place: t?.plan.place ?? '', date: '', hour: '', time: '' };
     state.ui.notice = null;
-    state.focusTarget = '#propose-place-0';
+    state.focusTarget = '#propose-place';
     return render();
   }
   if (kind === 'cancel' && !confirm(`Cancel this pickup? The reservation ends and it goes back on the board.`)) return;
@@ -1429,7 +1420,7 @@ async function submitPropose() {
   const fail = error || (!plan.time && (!plan.place || plan.place === t.plan.place) ? 'Pick a new time or place to suggest.' : '');
   if (fail) {
     state.ui.notice = { text: fail, tone: 'error', where: 'thread' };
-    state.focusTarget = '#propose-when';
+    state.focusTarget = '#propose-date';
     render();
     announce(fail);
     return;
@@ -1875,13 +1866,6 @@ const actions = {
     state.focusTarget = '#open-reserve';
     render();
   },
-  pick: (el) => { // tapping the chosen chip again clears it: every quick pick is optional
-    const target = state.ui[el.dataset.scope];
-    if (!target) return;
-    const { field, value } = el.dataset;
-    target[field] = target[field] === value ? '' : value;
-    render();
-  },
   'thread-action': (el) => threadAction(el.dataset.thread, el.dataset.kind),
   'close-propose': () => {
     state.ui.propose = null;
@@ -1968,9 +1952,6 @@ function bind(el) {
   if (!target) return;
   target[el.name] = el.value;
   if (scope === 'give') markChecked();
-  if (scope === 'reserve' || scope === 'propose') {
-    document.querySelectorAll(`.pick[data-scope="${scope}"][data-field="${el.name}"]`).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.value === el.value)));
-  }
 }
 
 document.addEventListener('click', (event) => {

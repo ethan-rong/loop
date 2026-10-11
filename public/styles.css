@@ -476,7 +476,9 @@ select.input {
 
 .picks { display: flex; flex-wrap: wrap; gap: 10px; }
 .picks ~ .input { margin-top: 12px; } /* ~ not +: a visually hidden label sits between them */
-.input-when { max-width: 320px; color-scheme: light; } /* the native date-time picker, in the page's own colours */
+.when-row { display: flex; gap: 10px; }
+.when-row .input { flex: 1; min-width: 0; max-width: 220px; color-scheme: light; } /* native date and time pickers */
+.when-row ~ .input { margin-top: 12px; } /* ~ not +: a visually hidden label sits between them */
 .pick {
   position: relative;
   display: inline-flex;
