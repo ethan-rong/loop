@@ -14,7 +14,9 @@ const VO = JSON.parse(readFileSync(process.env.VO_TIMING ?? new URL('../vo-timin
 const B = Object.fromEntries(VO.beats.map((b) => [b.id, b])); // B[n].start / B[n].end: where beat n's words sit
 // Picture windows tile the film: shot n runs from its beat's first word (0 for beat 1) to the next beat's first word,
 // so the pause after a beat belongs to its shot. W[n] = [start, end]; the last beat ends at speechEnd.
-const W = Object.fromEntries(VO.beats.map((b, i, all) => [b.id, [i === 0 ? 0 : b.start, all[i + 1]?.start ?? VO.speechEnd]]));
+// A long breath (> 1 s) before a beat belongs to that beat's shot: the previous shot cuts 0.22 s after its last word.
+const WSTART = VO.beats.map((b, i, all) => (i === 0 ? 0 : b.start - all[i - 1].end > 1 ? all[i - 1].end + 0.22 : b.start));
+const W = Object.fromEntries(VO.beats.map((b, i) => [b.id, [WSTART[i], WSTART[i + 1] ?? VO.speechEnd]]));
 const SPEECH = (n) => B[n].end - B[n].start;
 const KNOT_SVG = readFileSync('/Users/ethan/loop/brand/knot.svg', 'utf8');
 const KNOT_D = KNOT_SVG.match(/ d="([^"]+)"/)[1];
@@ -34,6 +36,17 @@ const RAW = new URL('../raw/', import.meta.url).pathname;
 // Marks of the main take (panes L, R) plus the pile re-take (pane P, scripts/record.mjs pile) when it exists.
 const MARKS = [...JSON.parse(readFileSync(`${RAW}main-marks.json`)), ...(existsSync(`${RAW}pile-marks.json`) ? JSON.parse(readFileSync(`${RAW}pile-marks.json`)) : [])];
 if (existsSync(`${RAW}pile-P.mp4`)) copyFileSync(`${RAW}pile-P.mp4`, `${COMP}assets/clips/pile-P.mp4`);
+// Pane Q = the pile re-take with a 1.3 s hold of its idle "Gemini found 6 things" page inserted at 16.10 s (the page
+// is static there; this only lengthens the wait before the scroll), so that state can hold 4.5 s.
+const Q_AT = 16.1, Q_HOLD = 1.3;
+if (existsSync(`${RAW}pile-P.mp4`)) {
+  MARKS.push(...MARKS.filter((m) => m.pane === 'P').map((m) => ({ ...m, pane: 'Q', ms: m.ms + (m.ms / 1000 > Q_AT ? Q_HOLD * 1000 : 0) })));
+  if (!existsSync(`${COMP}assets/clips/pile-Q.mp4`)) {
+    execFileSync('ffmpeg', ['-loglevel', 'error', '-y', '-i', `${RAW}pile-P.mp4`, '-filter_complex',
+      `[0:v]split[a][b];[a]trim=0:${Q_AT},setpts=PTS-STARTPTS,tpad=stop_mode=clone:stop_duration=${Q_HOLD}[a2];[b]trim=start=${Q_AT},setpts=PTS-STARTPTS[b2];[a2][b2]concat=n=2:v=1:a=0[v]`,
+      '-map', '[v]', '-c:v', 'libx264', '-crf', '14', '-preset', 'medium', '-pix_fmt', 'yuv420p', `${COMP}assets/clips/pile-Q.mp4`]);
+  }
+}
 const M = (pane, label) => {
   const m = MARKS.find((x) => x.pane === pane && x.label === label);
   if (!m) throw new Error(`no mark ${pane}:${label} in raw/main-marks.json or raw/pile-marks.json`);
@@ -63,9 +76,10 @@ const FOOTAGE = {
   9: [cut('R', 'here', -0.9, 0.7, [60, 230, 1380, 560], 1.6, 14, true), cut('L', 'confirm', -1.33, 2.9, [60, 300, 810, 520], 1.5, 14, true),
     cut('R', 'pass-on', -0.5, 3.37, [60, 290, 810, 530], 1.5, 14)],
   10.5: [cut('R', 'works', -0.2, 0.75, [840, 70, 1385, 310], 2.0, 10)], // PLANNING -> SET, "YOU AGREED"
-  11: [cut('P', 'pile-photo', -0.3, 2.2, [60, 220, 1300, 660], 1.5, 13), // one photo in
-    cut('P', 'pile-review', -0.4, 2.3, [40, 100, 1400, 760], 1.2, 14), // "Gemini found 6 things": the boxes on the photo + draft 1
-    cut('P', 'pile-card-2', -0.6, ['pile-scrolled', 1.4], [640, 130, 1400, 790], 1.3, 14)], // the scroll through drafts 2-6
+  // Beat 11 (77.6-91.2): sorting during the breath, the six boxes held under "Have a whole pile of stuff?", the scroll.
+  11: [cut('Q', 'pile-photo', -0.1, 2.5, [60, 220, 1300, 660], 1.5, 13), // one photo in, "Gemini is sorting the pile..." (2.6 s)
+    cut('Q', 'pile-review', -0.1, 4.4, [40, 100, 1400, 760], 1.2, 14), // "Gemini found 6 things", the boxes (4.5 s)
+    cut('Q', 'pile-card-2', -0.2, ['pile-scrolled', 1.29], [640, 130, 1400, 790], 1.3, 14)], // drafts 1-6 to "List 6 items"
 };
 const REFUSAL = ['R', M('R', 'refusal'), 600]; // old shot 12 [pane, Loop's refusal on screen, focus row], under the last sentence of beat 10
 const STAMP_CSS = [460, 430]; // where the KEPT IN USE stamp sits on the giver's page (CSS px)
@@ -92,7 +106,8 @@ const REF_FROM = REFUSAL[1] - Math.min(0.5, REFUSAL_LEN * 0.25); // open just be
 
 // Kinetic captions: the plain words fade in 120 ms before the first lime wipe; each [phrase] wipes under on its word.
 // Wipe times are film seconds measured in raw/voice/vo-minimax.wav (phrase onsets); beat 9 wipes on the stamp.
-const CAP_WIPES = { 5: [26.9], 6: [30.5, 38.3], 7: [42.25], 8: [43.9, 51.0], 10: [67.5], 11: [81.5] };
+const CAP_WIPE_AFTER = { 5: [1.83], 6: [1.57, 9.37], 7: [2.72], 8: [0.38, 7.48], 10: [3.98], 11: [3.72] }; // s after B[n].start
+const CAP_WIPES = Object.fromEntries(Object.entries(CAP_WIPE_AFTER).map(([n, ds]) => [n, ds.map((d) => B[n].start + d)]));
 // Shots on the VO windows. cap: the storyboard's caption column ("[x]" = lime).
 const SHOTS = [
   { n: 1, at: W[1][0], end: W[1][1], kind: 'wc' },
@@ -167,7 +182,7 @@ const anim = [];
 const stills = [];
 const timed = (cls, at, dur, inner, extra = '', tag = 'div') =>
   `<${tag} id="e${++uid}" class="clip ${cls}" data-start="${f3(at)}" data-duration="${f3(dur)}"${extra}>${inner}</${tag}>`;
-const src = (pane) => (pane === 'P' ? 'assets/clips/pile-P.mp4' : `assets/clips/main-${pane}.mp4`);
+const src = (pane) => (pane === 'P' || pane === 'Q' ? `assets/clips/pile-${pane}.mp4` : `assets/clips/main-${pane}.mp4`);
 
 // ---- camera: fit the cut's region into the safe frame (above the caption when one shows), push <= 1.02 eased ----
 const PUSH = 1.02, XF = 0.25, MIN_PUSH_CUT = 1.5;
