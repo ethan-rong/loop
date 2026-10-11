@@ -157,48 +157,55 @@ async function runTest(browser) {
   return [p];
 }
 
+// v2 film (STORYBOARD.md): desktop layout, 1440x900 viewport at 2x. L = giver, R = taker. One take covers
+// shots 4-9, 11 and 12 (the refusal is sent through the API as the taker; the pile runs last on the giver's tab).
+const VW = 1440, VH = 900;
+
 async function runMain(browser) {
   await api('/api/reset', { method: 'POST' });
-  const L = await open(browser, 'L', 640, 844);
-  const R = await open(browser, 'R', 640, 844);
+  const L = await open(browser, 'L', VW, VH);
+  const R = await open(browser, 'R', VW, VH);
   await sleep(2500);
   mark(L, 'ready'); mark(R, 'ready');
 
-  // RIGHT asks.
+  // Shot 4: the board as it is (hero, riffle, Inventory, People need), no cursor.
+  mark(L, 'board');
+  await sleep(4000);
+
+  // Shot 5: the taker asks.
   await tap(R, R.getByRole('link', { name: 'Ask for something' }), 'ask');
   await type(R, R.locator('#a-title'), 'Reading lamp for my desk', 'type-ask');
-  await tap(R, R.locator('#ask-submit'), 'post-ask', { after: 1500 });
+  await tap(R, R.locator('#ask-submit'), 'post-ask', { after: 1200 });
   await R.getByRole('heading', { name: 'Posted' }).waitFor({ timeout: 30_000 });
   mark(R, 'posted');
-  await sleep(1200);
-  await tap(R, R.getByRole('link', { name: 'Back to the board' }), 'back-board', { after: 900 });
+  await sleep(1000);
+  await tap(R, R.getByRole('link', { name: 'Back to the board' }), 'back-board', { after: 600 });
   await reveal(R, R.locator('#h-needs'));
   mark(R, 'needs-visible');
   await sleep(2500);
 
-  // LEFT posts the lamp; Gemini drafts and matches (real wait kept).
-  await tap(L, L.getByRole('link', { name: 'Post something' }), 'give');
-  await sleep(800);
+  // Shot 6: the giver posts the lamp; Gemini drafts and matches (real wait kept, trimmed in the edit).
+  await sleep(600);
+  await tap(L, L.getByRole('link', { name: 'Post something' }), 'give', { after: 900 });
   await pickPhoto(L, 'lamp.jpg', 'photo');
   await L.locator('#draft-card').waitFor({ timeout: 45_000 });
   mark(L, 'draft');
-  await sleep(2200);
+  await sleep(2500);
   await reveal(L, L.locator('#match-title'));
   mark(L, 'match');
-  await sleep(3000);
+  await sleep(2500);
   await tap(L, L.locator('#draft-card label.pick', { hasText: 'Fair' }), 'fair');
-  // Editing a field already counts as checked (the app hides Looks right then); tap it only if it is still there.
   if (await L.locator('#approve').isVisible()) await tap(L, L.locator('#approve'), 'looks-right');
   else mark(L, 'checked-by-edit');
   await tap(L, L.locator('#publish-offer'), 'offer', { after: 2500 });
 
-  // RIGHT accepts with the pickup left blank.
+  // Shot 7: the taker accepts; the ticket.
   await R.locator('#h-you').waitFor({ timeout: 20_000 });
   await R.evaluate(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
   await sleep(900);
   mark(R, 'for-you');
   await sleep(1500);
-  await tap(R, R.locator('section[aria-labelledby="h-you"] a').first(), 'open-offer', { after: 1500 });
+  await tap(R, R.locator('section[aria-labelledby="h-you"] a').first(), 'open-offer', { after: 1300 });
   await tap(R, R.locator('#open-reserve'), 'open-reserve', { after: 900 });
   await tap(R, R.locator('#reserve-submit'), 'reserve', { after: 400 });
   await R.locator('.ticket').waitFor({ timeout: 20_000 });
@@ -206,18 +213,24 @@ async function runMain(browser) {
   mark(R, 'ticket');
   await sleep(3500);
 
-  // LEFT proposes Davis Library, tomorrow noon.
+  // Shot 8: Loop asks the giver first; the giver proposes Davis, tomorrow noon; the taker confirms.
   const suggest = L.getByRole('button', { name: 'Suggest a time and place' });
   await suggest.waitFor({ timeout: 20_000 });
   await reveal(L, L.locator('.msg-loop').last());
   mark(L, 'loop-asks');
   await sleep(2500);
   await tap(L, suggest, 'suggest', { after: 900 });
-  await tap(L, L.locator('form[data-form="propose"] g.spot[data-value="Davis Library lobby"] circle.spot-hit'), 'map-davis');
-  await tap(L, L.locator('form[data-form="propose"]').getByRole('button', { name: 'Tomorrow noon' }), 'tomorrow-noon');
+  // The form: an exact place typed, then the date and time pickers (no time in words).
+  await type(L, L.locator('#propose-place'), 'Davis Library, 2nd floor by the printers', 'type-place');
+  const tomorrow = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' })
+    .format(new Date(Date.now() + 86_400_000)); // YYYY-MM-DD in Chapel Hill
+  await tap(L, L.locator('#propose-date'), 'pick-date', { after: 150 });
+  await L.locator('#propose-date').fill(tomorrow);
+  await sleep(600);
+  await tap(L, L.locator('#propose-hour'), 'pick-time', { after: 150 });
+  await L.locator('#propose-hour').fill('17:00');
+  await sleep(600);
   await tap(L, L.locator('#propose-submit'), 'propose', { after: 1500 });
-
-  // RIGHT confirms; plan SET + reminder line.
   const works = R.getByRole('button', { name: 'Works for me' });
   await works.waitFor({ timeout: 20_000 });
   await reveal(R, R.locator('.msg-loop').last());
@@ -226,33 +239,34 @@ async function runMain(browser) {
   await tap(R, works, 'works', { after: 1500 });
   await R.getByText('remind you both', { exact: false }).first().waitFor({ timeout: 20_000 }).catch(() => mark(R, 'no-reminder-line'));
   mark(R, 'set');
-  await reveal(R, R.locator('.campus-map').first());
-  mark(R, 'map-set');
+  await reveal(R, R.getByText('remind you both', { exact: false }).first()).catch(() => {});
+  mark(R, 'plan-set');
   await sleep(3000);
 
-  // RIGHT asks Loop for the giver's number (Loop should refuse).
-  const composer = R.locator('textarea.composer-input');
-  await type(R, composer, "What's the giver's phone number?", 'type-refusal');
-  await tap(R, R.locator('.composer-send'), 'send-refusal', { after: 500 });
-  const before = (await api('/api/state')).version;
+  // Shot 12: the taker asks Loop for the giver's number (sent through the API as the taker; Loop refuses).
+  const st = await api('/api/state');
+  const tid = st.threads.at(-1).id;
+  const me = await R.evaluate(() => sessionStorage.getItem('loop.person'));
+  const before = st.version;
+  mark(R, 'refusal-ask');
+  await api(`/api/threads/${tid}/messages`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ personId: me, text: "What's the giver's phone number?" }) });
   for (let i = 0; i < 40; i++) {
     const s = await api('/api/state');
-    const t = s.threads.at(-1);
-    if (t.messages.at(-1)?.from === 'loop' && s.version > before) break;
-    await sleep(500);
+    if (s.threads.find((t) => t.id === tid).messages.at(-1)?.from === 'loop' && s.version > before) break;
+    await sleep(400);
   }
-  await sleep(2000);
+  await sleep(1800);
   await reveal(R, R.locator('.msg').last());
   mark(R, 'refusal');
   await sleep(3500);
 
-  // RIGHT is here; LEFT types the code.
+  // Shot 9: the taker is here; the giver types the code; collected; KEPT IN USE; Pass it on again.
   await tap(R, R.getByRole('button', { name: "I'm here" }), 'here', { after: 1500 });
   const prompt = L.getByText('Ask for the 4-digit code', { exact: false }).last();
   await prompt.waitFor({ timeout: 20_000 });
-  await reveal(L, prompt);
+  await reveal(L, L.locator('#code-input'));
   mark(L, 'code-prompt');
-  await sleep(2500);
+  await sleep(2000);
   const s = await api('/api/state');
   const item = s.items.filter((i) => i.reservation && i.status === 'reserved').at(-1);
   await type(L, L.locator('#code-input'), item.reservation.code, 'type-code');
@@ -263,36 +277,30 @@ async function runMain(browser) {
   await sleep(3000);
   const again = R.getByRole('button', { name: 'Pass it on again' });
   await again.waitFor({ timeout: 20_000 });
-  await reveal(R, R.getByText('Collected by', { exact: false }).first());
-  mark(R, 'collected');
-  await sleep(2000);
   await reveal(R, again);
   mark(R, 'pass-on');
   await sleep(3000);
   writeFileSync(`${RAW}main-state.json`, JSON.stringify(await api('/api/state'), null, 1));
-  return [L, R];
-}
 
-async function runPile(browser) {
-  const P = await open(browser, 'P', 390, 844);
-  await sleep(2000);
-  mark(P, 'ready');
-  await tap(P, P.getByRole('link', { name: 'Post something' }), 'give');
-  await tap(P, P.locator('#mode-pile'), 'pile-mode');
-  await pickPhoto(P, 'pile.jpg', 'photo');
-  await P.getByRole('button', { name: /List \d+ item/ }).first().waitFor({ timeout: 60_000 });
-  mark(P, 'pile-review');
+  // Shot 11: the giver posts a pile.
+  await L.evaluate(() => { location.hash = '#/'; window.scrollTo(0, 0); }); // hash route: no reload, the screencast keeps running
+  await sleep(1500);
+  await tap(L, L.getByRole('link', { name: 'Post something' }), 'pile-give', { after: 900 });
+  await tap(L, L.locator('#mode-pile'), 'pile-mode');
+  await pickPhoto(L, 'pile.jpg', 'pile-photo');
+  await L.locator('#pile-title').waitFor({ timeout: 60_000 });
+  mark(L, 'pile-review');
   await sleep(3000);
-  for (let i = 0; i < 6; i++) await scrollBy(P, 420);
-  mark(P, 'pile-scrolled');
-  await sleep(2000);
-  return [P];
+  const nomatch = L.getByText('No open request fits this one', { exact: false }).first();
+  if (await nomatch.count()) { await reveal(L, nomatch); mark(L, 'pile-nomatch'); }
+  await sleep(4000);
+  return [L, R];
 }
 
 const browser = await chromium.launch({ channel: 'chromium', args: ['--force-device-scale-factor=2'] });
 let pages = [];
 try {
-  pages = await ({ test: runTest, main: runMain, pile: runPile })[mode](browser);
+  pages = await ({ test: runTest, main: runMain })[mode](browser);
 } catch (err) {
   console.error('FAILED:', err.message);
   for (const p of browser.contexts().flatMap((c) => c.pages())) await p.screenshot({ path: `${RAW}${mode}-fail-${p.label ?? 'x'}.png` }).catch(() => {});
@@ -300,3 +308,4 @@ try {
   process.exitCode = 1;
 }
 await finish(browser, pages);
+await api('/api/reset', { method: 'POST' }); // leave the demo data clean

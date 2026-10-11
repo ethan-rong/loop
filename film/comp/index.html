@@ -3,281 +3,150 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=1920, height=1080" />
-<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+<script src="assets/vendor/gsap.min.js"></script>
+<script src="assets/vendor/p5.min.js"></script>
 <style>
-@font-face { font-family: "SG"; src: url("assets/fonts/space-grotesk-latin-500-normal.woff2") format("woff2"); font-weight: 500; }
 @font-face { font-family: "SG"; src: url("assets/fonts/space-grotesk-latin-700-normal.woff2") format("woff2"); font-weight: 700; }
 @font-face { font-family: "JBM"; src: url("assets/fonts/jetbrains-mono-latin-400-normal.woff2") format("woff2"); font-weight: 400; }
 @font-face { font-family: "JBM"; src: url("assets/fonts/jetbrains-mono-latin-700-normal.woff2") format("woff2"); font-weight: 700; }
-:root { --cream: #f6f1e3; --ink: #0b0d17; --lime: #c8ff3c; --coral: #ff6b57; --muted: #4a5068; --card: #ffffff; }
+:root { --cream: #f6f1e3; --ink: #0b0d17; --lime: #c8ff3c; --coral: #ff6b57; --muted: #4a5068; }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--cream); color: var(--ink); font-family: "SG", sans-serif; }
-#root { position: relative; width: 1920px; height: 1080px; background: var(--cream); }
+#root { position: relative; width: 1920px; height: 1080px; background: var(--cream); overflow: hidden; }
 .clip { position: absolute; }
-.hl { background: var(--lime); padding: 0 .22em; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
-
-/* Captions: mono, ink on cream, one lime phrase. */
-.cap { left: 0; top: 924px; width: 1920px; height: 140px; display: flex; align-items: center; justify-content: center; z-index: 20; }
-.cap p { font: 400 46px/1.25 "JBM", monospace; letter-spacing: -.01em; text-align: center; max-width: 1760px; }
-
-/* Panes. */
-.pane-shadow { background: var(--ink); border-radius: 14px; transform: translate(8px, 8px); z-index: 1; }
-video.clip { z-index: 2; background: var(--cream); }
-.pane-edge.veil { background: rgba(246, 241, 227, .66); }
-.pane-edge { border: 3px solid var(--ink); border-radius: 14px; z-index: 3; }
-.crop { background: var(--cream); border-radius: 14px; z-index: 1; }
-.who { position: absolute; top: -20px; left: 22px; font: 700 22px/1 "JBM", monospace; text-transform: uppercase; letter-spacing: .06em; padding: 8px 14px; border: 2px solid var(--ink); border-radius: 6px; transform: rotate(-2deg); }
+.scene { left: 0; top: 0; width: 1920px; height: 1080px; background: var(--cream); }
+.shot-box { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: hidden; }
+.shot-box video.fill { position: absolute; left: 0; width: 1920px; height: 1200px; }
+.scene canvas { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+.hl { background: var(--lime); padding: 0 .2em; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.cap { left: 0; top: 948px; width: 1920px; height: 104px; display: flex; align-items: center; justify-content: center; z-index: 20; }
+.cap p { font: 400 48px/1.2 "JBM", monospace; letter-spacing: -.01em; background: var(--cream); border: 3px solid var(--ink); border-radius: 12px; padding: 12px 26px; box-shadow: 6px 6px 0 var(--ink); white-space: nowrap; }
+.phone-shell { background: #0d0d10; border-radius: 74px 74px 0 0; box-shadow: 10px 10px 0 var(--ink); z-index: 2;
+  -webkit-mask-image: linear-gradient(to bottom, #000 94%, transparent); mask-image: linear-gradient(to bottom, #000 94%, transparent); }
+.phone-box { position: absolute; overflow: hidden; border-radius: 60px 60px 0 0; z-index: 3; }
+.phone-box img, .phone-box video { position: absolute; left: 0; top: 0; }
+.pane-box { position: absolute; overflow: hidden; border-radius: 14px; z-index: 2; }
+.pane-box video { position: absolute; }
+.pane-edge { border: 3px solid var(--ink); border-radius: 14px; box-shadow: 8px 8px 0 var(--ink); z-index: 3; }
+.pane-edge.veil { background: rgba(246, 241, 227, .55); }
+.who { position: absolute; top: -18px; left: 22px; font: 700 22px/1 "JBM", monospace; text-transform: uppercase; letter-spacing: .06em; padding: 8px 14px; border: 2px solid var(--ink); border-radius: 6px; transform: rotate(-2deg); }
 .who.giver { background: var(--ink); color: var(--cream); }
 .who.taker { background: var(--coral); color: var(--ink); }
-.side { left: 1676px; top: 52px; width: 230px; z-index: 4; }
-.side p { font: 400 17px/1.6 "JBM", monospace; color: var(--muted); }
-.side p:first-child { color: var(--ink); font-weight: 700; }
-
-/* Full-screen cards. */
-.card { left: 0; top: 0; width: 1920px; height: 920px; z-index: 5; background: var(--cream); }
-.cold { padding: 190px 160px 0; }
-.kicker { font: 700 26px/1 "JBM", monospace; letter-spacing: .14em; }
-.cold h1 { margin-top: 36px; font: 700 124px/1.02 "SG", sans-serif; letter-spacing: -.035em; max-width: 1500px; }
-.cold .sub { margin-top: 44px; font: 500 52px/1.2 "SG", sans-serif; color: var(--muted); }
-.title { display: flex; align-items: center; justify-content: center; gap: 56px; }
-.knot-big { width: 300px; height: 280px; color: var(--ink); }
-.title .word { font: 700 230px/1 "SG", sans-serif; letter-spacing: -.04em; }
-.tech { padding: 230px 160px 0; }
-.tech ul { list-style: none; margin-top: 44px; }
-.tech li { white-space: nowrap; font: 700 70px/1.35 "SG", sans-serif; letter-spacing: -.02em; }
-.tech li::before { content: "→ "; color: var(--coral); }
-.tech .sub { margin-top: 48px; font: 400 36px/1.3 "JBM", monospace; color: var(--muted); }
-.end { height: 1080px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 30px; }
-.lockup { display: flex; align-items: center; gap: 36px; }
-.knot-end { width: 170px; height: 160px; color: var(--ink); }
-.end .word { font: 700 150px/1 "SG", sans-serif; letter-spacing: -.04em; }
-.end .tag { font: 700 64px/1.2 "SG", sans-serif; letter-spacing: -.02em; margin-bottom: 18px; }
-.end .mono { font: 400 40px/1.3 "JBM", monospace; }
-
-/* Pile beat. */
-.pile-note { left: 140px; top: 250px; width: 860px; z-index: 4; }
-.pile-note .big { font: 700 110px/1.05 "SG", sans-serif; letter-spacing: -.035em; }
-.pile-note .small { margin-top: 36px; font: 400 32px/1.45 "JBM", monospace; color: var(--muted); }
-
-/* The iMessage beat: Loop's real strings set in the product's own type, not a Messages screenshot. */
-.phone { display: flex; flex-direction: column; align-items: center; padding-top: 26px; }
-.sms { width: 1440px; background: var(--card); border: 3px solid var(--ink); border-radius: 14px; box-shadow: 8px 8px 0 var(--ink); overflow: hidden; }
-.sms-head { background: var(--lime); border-bottom: 3px solid var(--ink); font: 700 24px/1 "JBM", monospace; letter-spacing: .08em; padding: 13px 24px; }
-.thread { display: flex; flex-direction: column; gap: 11px; padding: 18px 26px 22px; }
-.msg { position: relative; max-width: 1180px; border: 2px solid var(--ink); border-radius: 14px; padding: 10px 18px; font: 500 26px/1.28 "SG", sans-serif; }
-.msg.loop { align-self: flex-start; background: var(--card); }
-.msg.you { align-self: flex-end; padding: 6px; background: var(--ink); }
-.msg.you img { display: block; height: 118px; border-radius: 10px; }
-.from { font: 700 17px/1 "JBM", monospace; letter-spacing: .1em; margin-bottom: 6px; color: var(--muted); }
-.tap { margin-top: 8px; font: 700 27px/1.2 "JBM", monospace; }
-.tapback { position: absolute; right: -22px; top: -22px; width: 54px; height: 54px; border-radius: 50%; background: var(--coral); border: 2px solid var(--ink); display: flex; align-items: center; justify-content: center; font-size: 28px; }
-.fineprint { margin-top: 18px; font: 400 20px/1.45 "JBM", monospace; color: var(--muted); text-align: center; }
-
+.knot2d { position: absolute; color: var(--ink); opacity: 0; }
+.kword { position: absolute; font-weight: 700; line-height: 1; letter-spacing: -.04em; opacity: 0; }
+.ktag { position: absolute; left: 0; width: 1920px; top: 486px; text-align: center; font: 700 70px/1.2 "SG", sans-serif; letter-spacing: -.02em; opacity: 0; }
+.kmono { position: absolute; left: 0; width: 1920px; text-align: center; font: 400 44px/1.2 "JBM", monospace; opacity: 0; }
+.black { left: 0; top: 0; width: 1920px; height: 1080px; background: #000; z-index: 50; }
+.slot { display: flex; align-items: center; justify-content: center; }
+.slot-in { width: 1500px; padding: 60px 70px; border: 3px dashed var(--ink); border-radius: 18px; }
+.slot-n { font: 700 30px/1 "JBM", monospace; letter-spacing: .08em; color: var(--coral); }
+.slot-label { margin-top: 28px; font: 700 72px/1.12 "SG", sans-serif; letter-spacing: -.02em; }
+.slot-tc { margin-top: 28px; font: 400 30px/1.3 "JBM", monospace; color: var(--muted); }
 </style>
 </head>
 <body>
-<div id="root" data-composition-id="main" data-start="0" data-duration="116.7" data-width="1920" data-height="1080">
-<div id="e1" class="clip card cold" data-start="0" data-duration="12.2"><p class="kicker">EVERY MOVE-OUT</p><h1>Working lamps and chargers go into the dumpster.</h1><p class="sub">Someone down the hall is about to buy the same thing.</p></div>
-<div id="e2" class="clip cap" data-start="6.9" data-duration="5.3"><p>Listings stop at <span class="hl">posted</span>.</p></div>
-<div id="e3" class="clip card title" data-start="12.2" data-duration="2.4"><svg class="knot-big" viewBox="2 4.02 60 55.96" aria-hidden="true"><defs><mask id="drawmask"><path class="draw" d="M25.66 44.93C24.38 43.2 23.26 41.35 22.31 39.42C21.37 37.49 20.61 35.48 20.05 33.45C19.49 31.42 19.13 29.38 18.98 27.38C18.83 25.37 18.89 23.41 19.14 21.55C19.4 19.7 19.85 17.94 20.47 16.35C21.09 14.75 21.88 13.31 22.8 12.07C23.73 10.84 24.79 9.8 25.94 9C27.09 8.2 28.32 7.63 29.59 7.31C30.86 7 32.17 6.94 33.45 7.13C34.74 7.32 36 7.76 37.19 8.44C38.38 9.13 39.49 10.05 40.48 11.19C41.47 12.32 42.34 13.67 43.04 15.19C43.74 16.7 44.28 18.39 44.63 20.19C44.98 21.99 45.14 23.91 45.09 25.89C45.04 27.87 44.79 29.9 44.33 31.94C43.87 33.97 43.21 36 42.36 37.97C41.5 39.93 40.46 41.83 39.26 43.62C38.06 45.4 36.7 47.06 35.23 48.56C33.75 50.06 32.16 51.39 30.5 52.52C28.84 53.66 27.11 54.59 25.38 55.3C23.64 56.01 21.9 56.49 20.2 56.75C18.51 57.02 16.87 57.05 15.33 56.87C13.8 56.68 12.37 56.28 11.1 55.69C9.84 55.09 8.73 54.31 7.82 53.37C6.91 52.42 6.2 51.33 5.73 50.12C5.25 48.91 5 47.59 5 46.22C5 44.85 5.24 43.43 5.73 42C6.22 40.58 6.95 39.15 7.91 37.79C8.87 36.42 10.06 35.11 11.45 33.91C12.84 32.7 14.42 31.61 16.16 30.66C17.89 29.71 19.78 28.91 21.77 28.29C23.76 27.67 25.85 27.23 27.98 26.99C30.11 26.74 32.28 26.69 34.42 26.84C36.57 26.99 38.69 27.33 40.72 27.86C42.76 28.39 44.71 29.11 46.52 29.98C48.33 30.85 50 31.88 51.48 33.03C52.96 34.18 54.26 35.44 55.33 36.78C56.4 38.11 57.25 39.52 57.86 40.94C58.47 42.36 58.84 43.8 58.96 45.19C59.08 46.59 58.95 47.94 58.59 49.2C58.23 50.46 57.63 51.62 56.82 52.63C56.01 53.65 55 54.52 53.81 55.21C52.63 55.9 51.27 56.4 49.79 56.69C48.31 56.98 46.71 57.06 45.05 56.91C43.38 56.76 41.65 56.38 39.92 55.78C38.18 55.18 36.44 54.36 34.75 53.33C33.06 52.3 31.43 51.06 29.9 49.65C28.36 48.24 26.94 46.65 25.66 44.93Z" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></mask></defs><path d="M25.66 44.93C24.38 43.2 23.26 41.35 22.31 39.42C21.37 37.49 20.61 35.48 20.05 33.45C19.49 31.42 19.13 29.38 18.98 27.38C18.83 25.37 18.89 23.41 19.14 21.55C19.4 19.7 19.85 17.94 20.47 16.35C21.09 14.75 21.88 13.31 22.8 12.07C23.73 10.84 24.79 9.8 25.94 9C27.09 8.2 28.32 7.63 29.59 7.31C30.86 7 32.17 6.94 33.45 7.13C34.74 7.32 36 7.76 37.19 8.44C38.38 9.13 39.49 10.05 40.48 11.19C41.47 12.32 42.34 13.67 43.04 15.19C43.74 16.7 44.28 18.39 44.63 20.19C44.98 21.99 45.14 23.91 45.09 25.89C45.04 27.87 44.79 29.9 44.33 31.94C43.87 33.97 43.21 36 42.36 37.97C41.5 39.93 40.46 41.83 39.26 43.62C38.06 45.4 36.7 47.06 35.23 48.56C33.75 50.06 32.16 51.39 30.5 52.52C28.84 53.66 27.11 54.59 25.38 55.3C23.64 56.01 21.9 56.49 20.2 56.75C18.51 57.02 16.87 57.05 15.33 56.87C13.8 56.68 12.37 56.28 11.1 55.69C9.84 55.09 8.73 54.31 7.82 53.37C6.91 52.42 6.2 51.33 5.73 50.12C5.25 48.91 5 47.59 5 46.22C5 44.85 5.24 43.43 5.73 42C6.22 40.58 6.95 39.15 7.91 37.79C8.87 36.42 10.06 35.11 11.45 33.91C12.84 32.7 14.42 31.61 16.16 30.66C17.89 29.71 19.78 28.91 21.77 28.29C23.76 27.67 25.85 27.23 27.98 26.99C30.11 26.74 32.28 26.69 34.42 26.84C36.57 26.99 38.69 27.33 40.72 27.86C42.76 28.39 44.71 29.11 46.52 29.98C48.33 30.85 50 31.88 51.48 33.03C52.96 34.18 54.26 35.44 55.33 36.78C56.4 38.11 57.25 39.52 57.86 40.94C58.47 42.36 58.84 43.8 58.96 45.19C59.08 46.59 58.95 47.94 58.59 49.2C58.23 50.46 57.63 51.62 56.82 52.63C56.01 53.65 55 54.52 53.81 55.21C52.63 55.9 51.27 56.4 49.79 56.69C48.31 56.98 46.71 57.06 45.05 56.91C43.38 56.76 41.65 56.38 39.92 55.78C38.18 55.18 36.44 54.36 34.75 53.33C33.06 52.3 31.43 51.06 29.9 49.65C28.36 48.24 26.94 46.65 25.66 44.93Z" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-dasharray="65.17 18.81" mask="url(#drawmask)"/></svg><p class="word">Loop</p></div>
-<div id="e4" class="clip cap" data-start="12.2" data-duration="2.4"><p><span class="hl">A place to post what you have.</span> No names, no accounts.</p></div>
-<div id="e5" class="clip pane-shadow" data-start="14.6" data-duration="5" style="left:272px;top:36px;width:658px;height:868px;"></div>
-<div id="e6" class="clip pane-shadow" data-start="14.6" data-duration="5" style="left:990px;top:36px;width:658px;height:868px;"></div>
-<video id="e7" class="clip " data-start="14.6" data-duration="5" src="assets/clips/main-L.mp4" muted playsinline data-media-start="4.47" style="left:272px;top:36px;width:658px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<video id="e8" class="clip " data-start="14.6" data-duration="5" src="assets/clips/main-R.mp4" muted playsinline data-media-start="4.3" style="left:990px;top:36px;width:658px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<div id="e9" class="clip pane-edge veil" data-start="14.6" data-duration="5" style="left:272px;top:36px;width:658px;height:868px;"><span class="who giver">Giver</span></div>
-<div id="e10" class="clip pane-edge" data-start="14.6" data-duration="5" style="left:990px;top:36px;width:658px;height:868px;"><span class="who taker">Taker</span></div>
-<div id="e11" class="clip side" data-start="14.6" data-duration="5"><p>RECORDED LIVE</p><p>localhost:3000</p><p>Gemini 3.5 Flash-Lite</p><p>two anonymous tabs</p></div>
-<div id="e12" class="clip cap" data-start="14.6" data-duration="5"><p><span class="hl">Asked just now</span> · Reading lamp for my desk</p></div>
-<div id="e13" class="clip pane-shadow" data-start="19.6" data-duration="2.4" style="left:272px;top:36px;width:658px;height:868px;"></div>
-<div id="e14" class="clip pane-shadow" data-start="19.6" data-duration="2.4" style="left:990px;top:36px;width:658px;height:868px;"></div>
-<video id="e15" class="clip " data-start="19.6" data-duration="2.4" src="assets/clips/main-L.mp4" muted playsinline data-media-start="11.07" style="left:272px;top:36px;width:658px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<video id="e16" class="clip " data-start="19.6" data-duration="2.4" src="assets/clips/main-R.mp4" muted playsinline data-media-start="10.9" style="left:990px;top:36px;width:658px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<div id="e17" class="clip pane-edge veil" data-start="19.6" data-duration="2.4" style="left:272px;top:36px;width:658px;height:868px;"><span class="who giver">Giver</span></div>
-<div id="e18" class="clip pane-edge" data-start="19.6" data-duration="2.4" style="left:990px;top:36px;width:658px;height:868px;"><span class="who taker">Taker</span></div>
-<div id="e19" class="clip side" data-start="19.6" data-duration="2.4"><p>RECORDED LIVE</p><p>localhost:3000</p><p>Gemini 3.5 Flash-Lite</p><p>two anonymous tabs</p></div>
-<div id="e20" class="clip cap" data-start="19.6" data-duration="2.4"><p><span class="hl">Asked just now</span> · Reading lamp for my desk</p></div>
-<div id="e21" class="clip pane-shadow" data-start="22" data-duration="2" style="left:272px;top:36px;width:658px;height:868px;"></div>
-<div id="e22" class="clip pane-shadow" data-start="22" data-duration="2" style="left:990px;top:36px;width:658px;height:868px;"></div>
-<video id="e23" class="clip " data-start="22" data-duration="2" src="assets/clips/main-L.mp4" muted playsinline data-media-start="17.37" style="left:272px;top:36px;width:658px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<video id="e24" class="clip " data-start="22" data-duration="2" src="assets/clips/main-R.mp4" muted playsinline data-media-start="17.2" style="left:990px;top:36px;width:658px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<div id="e25" class="clip pane-edge veil" data-start="22" data-duration="2" style="left:272px;top:36px;width:658px;height:868px;"><span class="who giver">Giver</span></div>
-<div id="e26" class="clip pane-edge" data-start="22" data-duration="2" style="left:990px;top:36px;width:658px;height:868px;"><span class="who taker">Taker</span></div>
-<div id="e27" class="clip side" data-start="22" data-duration="2"><p>RECORDED LIVE</p><p>localhost:3000</p><p>Gemini 3.5 Flash-Lite</p><p>two anonymous tabs</p></div>
-<div id="e28" class="clip cap" data-start="22" data-duration="2"><p><span class="hl">Asked just now</span> · Reading lamp for my desk</p></div>
-<div id="e29" class="clip pane-shadow" data-start="24" data-duration="4.2" style="left:272px;top:36px;width:658px;height:868px;"></div>
-<div id="e30" class="clip pane-shadow" data-start="24" data-duration="4.2" style="left:990px;top:36px;width:658px;height:868px;"></div>
-<video id="e31" class="clip " data-start="24" data-duration="4.2" src="assets/clips/main-L.mp4" muted playsinline data-media-start="22" style="left:272px;top:36px;width:658px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<video id="e32" class="clip " data-start="24" data-duration="4.2" src="assets/clips/main-R.mp4" muted playsinline data-media-start="21.83" style="left:990px;top:36px;width:658px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<div id="e33" class="clip pane-edge" data-start="24" data-duration="4.2" style="left:272px;top:36px;width:658px;height:868px;"><span class="who giver">Giver</span></div>
-<div id="e34" class="clip pane-edge veil" data-start="24" data-duration="4.2" style="left:990px;top:36px;width:658px;height:868px;"><span class="who taker">Taker</span></div>
-<div id="e35" class="clip side" data-start="24" data-duration="4.2"><p>RECORDED LIVE</p><p>localhost:3000</p><p>Gemini 3.5 Flash-Lite</p><p>two anonymous tabs</p></div>
-<div id="e36" class="clip cap" data-start="24" data-duration="4.2"><p>Gemini <span class="hl">drafts</span>. A person <span class="hl">decides</span>.</p></div>
-<div id="e37" class="clip pane-shadow" data-start="28.2" data-duration="6.4" style="left:272px;top:36px;width:658px;height:868px;"></div>
-<div id="e38" class="clip pane-shadow" data-start="28.2" data-duration="6.4" style="left:990px;top:36px;width:658px;height:868px;"></div>
-<video id="e39" class="clip " data-start="28.2" data-duration="6.4" src="assets/clips/main-L.mp4" muted playsinline data-media-start="26.4" style="left:272px;top:36px;width:658px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<video id="e40" class="clip " data-start="28.2" data-duration="6.4" src="assets/clips/main-R.mp4" muted playsinline data-media-start="26.23" style="left:990px;top:36px;width:658px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<div id="e41" class="clip pane-edge" data-start="28.2" data-duration="6.4" style="left:272px;top:36px;width:658px;height:868px;"><span class="who giver">Giver</span></div>
-<div id="e42" class="clip pane-edge veil" data-start="28.2" data-duration="6.4" style="left:990px;top:36px;width:658px;height:868px;"><span class="who taker">Taker</span></div>
-<div id="e43" class="clip side" data-start="28.2" data-duration="6.4"><p>RECORDED LIVE</p><p>localhost:3000</p><p>Gemini 3.5 Flash-Lite</p><p>two anonymous tabs</p></div>
-<div id="e44" class="clip cap" data-start="28.2" data-duration="6.4"><p>Gemini <span class="hl">drafts</span>. A person <span class="hl">decides</span>.</p></div>
-<div id="e45" class="clip pane-shadow" data-start="34.6" data-duration="4.4" style="left:272px;top:36px;width:658px;height:868px;"></div>
-<div id="e46" class="clip pane-shadow" data-start="34.6" data-duration="4.4" style="left:990px;top:36px;width:658px;height:868px;"></div>
-<video id="e47" class="clip " data-start="34.6" data-duration="4.4" src="assets/clips/main-L.mp4" muted playsinline data-media-start="34.2" style="left:272px;top:36px;width:658px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<video id="e48" class="clip " data-start="34.6" data-duration="4.4" src="assets/clips/main-R.mp4" muted playsinline data-media-start="34.03" style="left:990px;top:36px;width:658px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<div id="e49" class="clip pane-edge" data-start="34.6" data-duration="4.4" style="left:272px;top:36px;width:658px;height:868px;"><span class="who giver">Giver</span></div>
-<div id="e50" class="clip pane-edge veil" data-start="34.6" data-duration="4.4" style="left:990px;top:36px;width:658px;height:868px;"><span class="who taker">Taker</span></div>
-<div id="e51" class="clip side" data-start="34.6" data-duration="4.4"><p>RECORDED LIVE</p><p>localhost:3000</p><p>Gemini 3.5 Flash-Lite</p><p>two anonymous tabs</p></div>
-<div id="e52" class="clip cap" data-start="34.6" data-duration="4.4"><p><span class="hl">Offer to them</span></p></div>
-<div id="e53" class="clip pane-shadow" data-start="39" data-duration="4.2" style="left:272px;top:36px;width:658px;height:868px;"></div>
-<div id="e54" class="clip pane-shadow" data-start="39" data-duration="4.2" style="left:990px;top:36px;width:658px;height:868px;"></div>
-<video id="e55" class="clip " data-start="39" data-duration="4.2" src="assets/clips/main-L.mp4" muted playsinline data-media-start="41.07" style="left:272px;top:36px;width:658px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<video id="e56" class="clip " data-start="39" data-duration="4.2" src="assets/clips/main-R.mp4" muted playsinline data-media-start="40.9" style="left:990px;top:36px;width:658px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<div id="e57" class="clip pane-edge veil" data-start="39" data-duration="4.2" style="left:272px;top:36px;width:658px;height:868px;"><span class="who giver">Giver</span></div>
-<div id="e58" class="clip pane-edge" data-start="39" data-duration="4.2" style="left:990px;top:36px;width:658px;height:868px;"><span class="who taker">Taker</span></div>
-<div id="e59" class="clip side" data-start="39" data-duration="4.2"><p>RECORDED LIVE</p><p>localhost:3000</p><p>Gemini 3.5 Flash-Lite</p><p>two anonymous tabs</p></div>
-<div id="e60" class="clip cap" data-start="39" data-duration="4.2"><p>The ticket is the <span class="hl">only identity</span> that matters.</p></div>
-<div id="e61" class="clip pane-shadow" data-start="43.2" data-duration="5.4" style="left:272px;top:36px;width:658px;height:868px;"></div>
-<div id="e62" class="clip pane-shadow" data-start="43.2" data-duration="5.4" style="left:990px;top:36px;width:658px;height:868px;"></div>
-<video id="e63" class="clip " data-start="43.2" data-duration="5.4" src="assets/clips/main-L.mp4" muted playsinline data-media-start="47.97" style="left:272px;top:36px;width:658px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<video id="e64" class="clip " data-start="43.2" data-duration="5.4" src="assets/clips/main-R.mp4" muted playsinline data-media-start="47.8" style="left:990px;top:36px;width:658px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<div id="e65" class="clip pane-edge veil" data-start="43.2" data-duration="5.4" style="left:272px;top:36px;width:658px;height:868px;"><span class="who giver">Giver</span></div>
-<div id="e66" class="clip pane-edge" data-start="43.2" data-duration="5.4" style="left:990px;top:36px;width:658px;height:868px;"><span class="who taker">Taker</span></div>
-<div id="e67" class="clip side" data-start="43.2" data-duration="5.4"><p>RECORDED LIVE</p><p>localhost:3000</p><p>Gemini 3.5 Flash-Lite</p><p>two anonymous tabs</p></div>
-<div id="e68" class="clip cap" data-start="43.2" data-duration="5.4"><p>The ticket is the <span class="hl">only identity</span> that matters.</p></div>
-<div id="e69" class="clip pane-shadow" data-start="48.6" data-duration="2.3" style="left:272px;top:36px;width:658px;height:868px;"></div>
-<div id="e70" class="clip pane-shadow" data-start="48.6" data-duration="2.3" style="left:990px;top:36px;width:658px;height:868px;"></div>
-<video id="e71" class="clip " data-start="48.6" data-duration="2.3" src="assets/clips/main-L.mp4" muted playsinline data-media-start="55.9" style="left:272px;top:36px;width:658px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<video id="e72" class="clip " data-start="48.6" data-duration="2.3" src="assets/clips/main-R.mp4" muted playsinline data-media-start="55.73" style="left:990px;top:36px;width:658px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<div id="e73" class="clip pane-edge" data-start="48.6" data-duration="2.3" style="left:272px;top:36px;width:658px;height:868px;"><span class="who giver">Giver</span></div>
-<div id="e74" class="clip pane-edge veil" data-start="48.6" data-duration="2.3" style="left:990px;top:36px;width:658px;height:868px;"><span class="who taker">Taker</span></div>
-<div id="e75" class="clip side" data-start="48.6" data-duration="2.3"><p>RECORDED LIVE</p><p>localhost:3000</p><p>Gemini 3.5 Flash-Lite</p><p>two anonymous tabs</p></div>
-<div id="e76" class="clip cap" data-start="48.6" data-duration="2.3"><p>Loop <span class="hl">proposes</span>. People <span class="hl">confirm</span>.</p></div>
-<div id="e77" class="clip pane-shadow" data-start="50.9" data-duration="3.6" style="left:272px;top:36px;width:658px;height:868px;"></div>
-<div id="e78" class="clip pane-shadow" data-start="50.9" data-duration="3.6" style="left:990px;top:36px;width:658px;height:868px;"></div>
-<video id="e79" class="clip " data-start="50.9" data-duration="3.6" src="assets/clips/main-L.mp4" muted playsinline data-media-start="60.4" style="left:272px;top:36px;width:658px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<video id="e80" class="clip " data-start="50.9" data-duration="3.6" src="assets/clips/main-R.mp4" muted playsinline data-media-start="60.23" style="left:990px;top:36px;width:658px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<div id="e81" class="clip pane-edge" data-start="50.9" data-duration="3.6" style="left:272px;top:36px;width:658px;height:868px;"><span class="who giver">Giver</span></div>
-<div id="e82" class="clip pane-edge veil" data-start="50.9" data-duration="3.6" style="left:990px;top:36px;width:658px;height:868px;"><span class="who taker">Taker</span></div>
-<div id="e83" class="clip side" data-start="50.9" data-duration="3.6"><p>RECORDED LIVE</p><p>localhost:3000</p><p>Gemini 3.5 Flash-Lite</p><p>two anonymous tabs</p></div>
-<div id="e84" class="clip cap" data-start="50.9" data-duration="3.6"><p>Loop <span class="hl">proposes</span>. People <span class="hl">confirm</span>.</p></div>
-<div id="e85" class="clip pane-shadow" data-start="54.5" data-duration="3.4" style="left:272px;top:36px;width:658px;height:868px;"></div>
-<div id="e86" class="clip pane-shadow" data-start="54.5" data-duration="3.4" style="left:990px;top:36px;width:658px;height:868px;"></div>
-<video id="e87" class="clip " data-start="54.5" data-duration="3.4" src="assets/clips/main-L.mp4" muted playsinline data-media-start="65.8" style="left:272px;top:36px;width:658px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<video id="e88" class="clip " data-start="54.5" data-duration="3.4" src="assets/clips/main-R.mp4" muted playsinline data-media-start="65.63" style="left:990px;top:36px;width:658px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<div id="e89" class="clip pane-edge" data-start="54.5" data-duration="3.4" style="left:272px;top:36px;width:658px;height:868px;"><span class="who giver">Giver</span></div>
-<div id="e90" class="clip pane-edge veil" data-start="54.5" data-duration="3.4" style="left:990px;top:36px;width:658px;height:868px;"><span class="who taker">Taker</span></div>
-<div id="e91" class="clip side" data-start="54.5" data-duration="3.4"><p>RECORDED LIVE</p><p>localhost:3000</p><p>Gemini 3.5 Flash-Lite</p><p>two anonymous tabs</p></div>
-<div id="e92" class="clip cap" data-start="54.5" data-duration="3.4"><p>Loop <span class="hl">proposes</span>. People <span class="hl">confirm</span>.</p></div>
-<div id="e93" class="clip pane-shadow" data-start="57.9" data-duration="2.2" style="left:272px;top:36px;width:658px;height:868px;"></div>
-<div id="e94" class="clip pane-shadow" data-start="57.9" data-duration="2.2" style="left:990px;top:36px;width:658px;height:868px;"></div>
-<video id="e95" class="clip " data-start="57.9" data-duration="2.2" src="assets/clips/main-L.mp4" muted playsinline data-media-start="70.57" style="left:272px;top:36px;width:658px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<video id="e96" class="clip " data-start="57.9" data-duration="2.2" src="assets/clips/main-R.mp4" muted playsinline data-media-start="70.4" style="left:990px;top:36px;width:658px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<div id="e97" class="clip pane-edge veil" data-start="57.9" data-duration="2.2" style="left:272px;top:36px;width:658px;height:868px;"><span class="who giver">Giver</span></div>
-<div id="e98" class="clip pane-edge" data-start="57.9" data-duration="2.2" style="left:990px;top:36px;width:658px;height:868px;"><span class="who taker">Taker</span></div>
-<div id="e99" class="clip side" data-start="57.9" data-duration="2.2"><p>RECORDED LIVE</p><p>localhost:3000</p><p>Gemini 3.5 Flash-Lite</p><p>two anonymous tabs</p></div>
-<div id="e100" class="clip cap" data-start="57.9" data-duration="2.2"><p>Loop <span class="hl">proposes</span>. People <span class="hl">confirm</span>.</p></div>
-<div id="e101" class="clip pane-shadow" data-start="60.1" data-duration="5.5" style="left:272px;top:36px;width:658px;height:868px;"></div>
-<div id="e102" class="clip pane-shadow" data-start="60.1" data-duration="5.5" style="left:990px;top:36px;width:658px;height:868px;"></div>
-<video id="e103" class="clip " data-start="60.1" data-duration="5.5" src="assets/clips/main-L.mp4" muted playsinline data-media-start="74.77" style="left:272px;top:36px;width:658px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<video id="e104" class="clip " data-start="60.1" data-duration="5.5" src="assets/clips/main-R.mp4" muted playsinline data-media-start="74.6" style="left:990px;top:36px;width:658px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<div id="e105" class="clip pane-edge veil" data-start="60.1" data-duration="5.5" style="left:272px;top:36px;width:658px;height:868px;"><span class="who giver">Giver</span></div>
-<div id="e106" class="clip pane-edge" data-start="60.1" data-duration="5.5" style="left:990px;top:36px;width:658px;height:868px;"><span class="who taker">Taker</span></div>
-<div id="e107" class="clip side" data-start="60.1" data-duration="5.5"><p>RECORDED LIVE</p><p>localhost:3000</p><p>Gemini 3.5 Flash-Lite</p><p>two anonymous tabs</p></div>
-<div id="e108" class="clip cap" data-start="60.1" data-duration="5.5"><p>Loop <span class="hl">proposes</span>. People <span class="hl">confirm</span>.</p></div>
-<div id="e109" class="clip pane-shadow" data-start="65.6" data-duration="2.2" style="left:272px;top:36px;width:658px;height:868px;"></div>
-<div id="e110" class="clip pane-shadow" data-start="65.6" data-duration="2.2" style="left:990px;top:36px;width:658px;height:868px;"></div>
-<video id="e111" class="clip " data-start="65.6" data-duration="2.2" src="assets/clips/main-L.mp4" muted playsinline data-media-start="95.47" style="left:272px;top:36px;width:658px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<video id="e112" class="clip " data-start="65.6" data-duration="2.2" src="assets/clips/main-R.mp4" muted playsinline data-media-start="95.3" style="left:990px;top:36px;width:658px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<div id="e113" class="clip pane-edge veil" data-start="65.6" data-duration="2.2" style="left:272px;top:36px;width:658px;height:868px;"><span class="who giver">Giver</span></div>
-<div id="e114" class="clip pane-edge" data-start="65.6" data-duration="2.2" style="left:990px;top:36px;width:658px;height:868px;"><span class="who taker">Taker</span></div>
-<div id="e115" class="clip side" data-start="65.6" data-duration="2.2"><p>RECORDED LIVE</p><p>localhost:3000</p><p>Gemini 3.5 Flash-Lite</p><p>two anonymous tabs</p></div>
-<div id="e116" class="clip cap" data-start="65.6" data-duration="2.2"><p>Four digits are the whole <span class="hl">handshake</span>.</p></div>
-<div id="e117" class="clip pane-shadow" data-start="67.8" data-duration="2.2" style="left:272px;top:36px;width:658px;height:868px;"></div>
-<div id="e118" class="clip pane-shadow" data-start="67.8" data-duration="2.2" style="left:990px;top:36px;width:658px;height:868px;"></div>
-<video id="e119" class="clip " data-start="67.8" data-duration="2.2" src="assets/clips/main-L.mp4" muted playsinline data-media-start="98.1" style="left:272px;top:36px;width:658px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<video id="e120" class="clip " data-start="67.8" data-duration="2.2" src="assets/clips/main-R.mp4" muted playsinline data-media-start="97.93" style="left:990px;top:36px;width:658px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<div id="e121" class="clip pane-edge" data-start="67.8" data-duration="2.2" style="left:272px;top:36px;width:658px;height:868px;"><span class="who giver">Giver</span></div>
-<div id="e122" class="clip pane-edge veil" data-start="67.8" data-duration="2.2" style="left:990px;top:36px;width:658px;height:868px;"><span class="who taker">Taker</span></div>
-<div id="e123" class="clip side" data-start="67.8" data-duration="2.2"><p>RECORDED LIVE</p><p>localhost:3000</p><p>Gemini 3.5 Flash-Lite</p><p>two anonymous tabs</p></div>
-<div id="e124" class="clip cap" data-start="67.8" data-duration="2.2"><p>Four digits are the whole <span class="hl">handshake</span>.</p></div>
-<div id="e125" class="clip pane-shadow" data-start="70" data-duration="3.2" style="left:272px;top:36px;width:658px;height:868px;"></div>
-<div id="e126" class="clip pane-shadow" data-start="70" data-duration="3.2" style="left:990px;top:36px;width:658px;height:868px;"></div>
-<video id="e127" class="clip " data-start="70" data-duration="3.2" src="assets/clips/main-L.mp4" muted playsinline data-media-start="102.4" style="left:272px;top:36px;width:658px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<video id="e128" class="clip " data-start="70" data-duration="3.2" src="assets/clips/main-R.mp4" muted playsinline data-media-start="102.23" style="left:990px;top:36px;width:658px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<div id="e129" class="clip pane-edge" data-start="70" data-duration="3.2" style="left:272px;top:36px;width:658px;height:868px;"><span class="who giver">Giver</span></div>
-<div id="e130" class="clip pane-edge veil" data-start="70" data-duration="3.2" style="left:990px;top:36px;width:658px;height:868px;"><span class="who taker">Taker</span></div>
-<div id="e131" class="clip side" data-start="70" data-duration="3.2"><p>RECORDED LIVE</p><p>localhost:3000</p><p>Gemini 3.5 Flash-Lite</p><p>two anonymous tabs</p></div>
-<div id="e132" class="clip cap" data-start="70" data-duration="3.2"><p>Four digits are the whole <span class="hl">handshake</span>.</p></div>
-<div id="e133" class="clip pane-shadow" data-start="73.2" data-duration="2.4" style="left:272px;top:36px;width:658px;height:868px;"></div>
-<div id="e134" class="clip pane-shadow" data-start="73.2" data-duration="2.4" style="left:990px;top:36px;width:658px;height:868px;"></div>
-<video id="e135" class="clip " data-start="73.2" data-duration="2.4" src="assets/clips/main-L.mp4" muted playsinline data-media-start="105.6" style="left:272px;top:36px;width:658px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<video id="e136" class="clip " data-start="73.2" data-duration="2.4" src="assets/clips/main-R.mp4" muted playsinline data-media-start="105.43" style="left:990px;top:36px;width:658px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<div id="e137" class="clip pane-edge" data-start="73.2" data-duration="2.4" style="left:272px;top:36px;width:658px;height:868px;"><span class="who giver">Giver</span></div>
-<div id="e138" class="clip pane-edge veil" data-start="73.2" data-duration="2.4" style="left:990px;top:36px;width:658px;height:868px;"><span class="who taker">Taker</span></div>
-<div id="e139" class="clip side" data-start="73.2" data-duration="2.4"><p>RECORDED LIVE</p><p>localhost:3000</p><p>Gemini 3.5 Flash-Lite</p><p>two anonymous tabs</p></div>
-<div id="e140" class="clip cap" data-start="73.2" data-duration="2.4"><p><span class="hl">KEPT IN USE</span></p></div>
-<div id="e141" class="clip pane-shadow" data-start="75.6" data-duration="2.4" style="left:272px;top:36px;width:658px;height:868px;"></div>
-<div id="e142" class="clip pane-shadow" data-start="75.6" data-duration="2.4" style="left:990px;top:36px;width:658px;height:868px;"></div>
-<video id="e143" class="clip " data-start="75.6" data-duration="2.4" src="assets/clips/main-L.mp4" muted playsinline data-media-start="110.77" style="left:272px;top:36px;width:658px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<video id="e144" class="clip " data-start="75.6" data-duration="2.4" src="assets/clips/main-R.mp4" muted playsinline data-media-start="110.6" style="left:990px;top:36px;width:658px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<div id="e145" class="clip pane-edge veil" data-start="75.6" data-duration="2.4" style="left:272px;top:36px;width:658px;height:868px;"><span class="who giver">Giver</span></div>
-<div id="e146" class="clip pane-edge" data-start="75.6" data-duration="2.4" style="left:990px;top:36px;width:658px;height:868px;"><span class="who taker">Taker</span></div>
-<div id="e147" class="clip side" data-start="75.6" data-duration="2.4"><p>RECORDED LIVE</p><p>localhost:3000</p><p>Gemini 3.5 Flash-Lite</p><p>two anonymous tabs</p></div>
-<div id="e148" class="clip cap" data-start="75.6" data-duration="2.4"><p><span class="hl">KEPT IN USE</span></p></div>
-<div id="e149" class="clip card phone" data-start="78" data-duration="15.5"><div class="sms"><p class="sms-head">iMESSAGE · (773) 912-3997</p><div class="thread">
-    <div class="msg loop m0"><p class="from">LOOP</p><p>Hi — this is Loop. Text me a photo of something you don't need and I'll draft the listing.</p></div>
-    <div class="msg you m1"><img src="assets/coat.jpg" alt=""></div>
-    <div class="msg loop m2"><p class="from">LOOP</p><p>Got it — looking at your photo…</p></div>
-    <div class="msg loop m3"><p class="from">LOOP</p><p>Tan winter coat with faux fur hood · good · Tan winter coat with a black inner collar, front zipper, buttons, and dual lower flap pockets. The hood has a brown faux fur trim. Someone nearby asked for &quot;Winter coat, size M-ish&quot; 1 h ago — it fits. Reply YES to offer it, BOARD to post it for anyone, or type a correction.</p><p class="tap">👍 YES · 👎 BOARD</p><span class="tapback m4">👎</span></div>
-    <div class="msg loop m5"><p class="from">LOOP</p><p>Posted to the board. I'll text you when someone reserves it.</p></div>
-  </div></div>
-  <p class="fineprint">Loop's real reply strings, set in type (not a phone recording).<br>The draft is Gemini's real output for this photo.</p></div>
-<div id="e150" class="clip cap" data-start="78" data-duration="15.5"><p><span class="hl">No app needed.</span> Text a photo.</p></div>
-<div id="e151" class="clip pane-shadow" data-start="93.5" data-duration="4.2" style="left:1100px;top:36px;width:401px;height:868px;"></div>
-<video id="e152" class="clip " data-start="93.5" data-duration="4.2" src="assets/clips/pile-P.mp4" muted playsinline data-media-start="10.2" style="left:1100px;top:36px;width:401px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<div id="e153" class="clip pane-edge" data-start="93.5" data-duration="4.2" style="left:1100px;top:36px;width:401px;height:868px;"><span class="who giver">Giver</span></div>
-<div id="e154" class="clip pile-note" data-start="93.5" data-duration="4.2"><p class="big">One photo.<br><span class="hl">Six drafts.</span></p><p class="small">A pile, sorted by Gemini.<br>Each box is its own listing.</p></div>
-<div id="e155" class="clip cap" data-start="93.5" data-duration="4.2"><p>Gemini says <span class="hl">no match</span> when there is none.</p></div>
-<div id="e156" class="clip pane-shadow" data-start="97.7" data-duration="2.6" style="left:1100px;top:36px;width:401px;height:868px;"></div>
-<video id="e157" class="clip " data-start="97.7" data-duration="2.6" src="assets/clips/pile-P.mp4" muted playsinline data-media-start="16.2" style="left:1100px;top:36px;width:401px;height:868px;border-radius:14px;object-fit:cover;"></video>
-<div id="e158" class="clip pane-edge" data-start="97.7" data-duration="2.6" style="left:1100px;top:36px;width:401px;height:868px;"><span class="who giver">Giver</span></div>
-<div id="e159" class="clip pile-note" data-start="97.7" data-duration="2.6"><p class="big">One photo.<br><span class="hl">Six drafts.</span></p><p class="small">A pile, sorted by Gemini.<br>Each box is its own listing.</p></div>
-<div id="e160" class="clip cap" data-start="97.7" data-duration="2.6"><p>Gemini says <span class="hl">no match</span> when there is none.</p></div>
-<div id="e161" class="clip pane-shadow" data-start="100.3" data-duration="3" style="left:360px;top:36px;width:1200px;height:863px;"></div>
-<div id="e162" class="clip crop" data-start="100.3" data-duration="3" style="left:360px;top:36px;width:1200px;height:863px;"></div>
-<video id="e163" class="clip " data-start="100.3" data-duration="3" src="assets/clips/main-R.mp4" muted playsinline data-media-start="90.5" style="left:360px;top:-582.75px;width:1200px;height:1583px;clip-path:inset(618.75px 0 101.25px 0 round 14px);"></video>
-<div id="e164" class="clip pane-edge" data-start="100.3" data-duration="3" style="left:360px;top:36px;width:1200px;height:863px;"><span class="who taker">Taker</span></div>
-<div id="e165" class="clip cap" data-start="100.3" data-duration="3"><p>Loop <span class="hl">says no</span> when it should.</p></div>
-<div id="e166" class="clip card tech" data-start="103.3" data-duration="10.2"><p class="kicker">UNDER THE HOOD</p><ul><li class="t0">Node + plain JavaScript</li><li class="t1">Gemini 3.5 Flash-Lite behind JSON schemas</li><li class="t2">Photon Spectrum for iMessage</li></ul><p class="sub t3">The model drafts and proposes. People decide.</p></div>
-<div id="e167" class="clip card end" data-start="113.5" data-duration="3.2"><div class="lockup"><svg class="knot-end" viewBox="2 4.02 60 55.96" aria-hidden="true"><path d="M25.66 44.93C24.38 43.2 23.26 41.35 22.31 39.42C21.37 37.49 20.61 35.48 20.05 33.45C19.49 31.42 19.13 29.38 18.98 27.38C18.83 25.37 18.89 23.41 19.14 21.55C19.4 19.7 19.85 17.94 20.47 16.35C21.09 14.75 21.88 13.31 22.8 12.07C23.73 10.84 24.79 9.8 25.94 9C27.09 8.2 28.32 7.63 29.59 7.31C30.86 7 32.17 6.94 33.45 7.13C34.74 7.32 36 7.76 37.19 8.44C38.38 9.13 39.49 10.05 40.48 11.19C41.47 12.32 42.34 13.67 43.04 15.19C43.74 16.7 44.28 18.39 44.63 20.19C44.98 21.99 45.14 23.91 45.09 25.89C45.04 27.87 44.79 29.9 44.33 31.94C43.87 33.97 43.21 36 42.36 37.97C41.5 39.93 40.46 41.83 39.26 43.62C38.06 45.4 36.7 47.06 35.23 48.56C33.75 50.06 32.16 51.39 30.5 52.52C28.84 53.66 27.11 54.59 25.38 55.3C23.64 56.01 21.9 56.49 20.2 56.75C18.51 57.02 16.87 57.05 15.33 56.87C13.8 56.68 12.37 56.28 11.1 55.69C9.84 55.09 8.73 54.31 7.82 53.37C6.91 52.42 6.2 51.33 5.73 50.12C5.25 48.91 5 47.59 5 46.22C5 44.85 5.24 43.43 5.73 42C6.22 40.58 6.95 39.15 7.91 37.79C8.87 36.42 10.06 35.11 11.45 33.91C12.84 32.7 14.42 31.61 16.16 30.66C17.89 29.71 19.78 28.91 21.77 28.29C23.76 27.67 25.85 27.23 27.98 26.99C30.11 26.74 32.28 26.69 34.42 26.84C36.57 26.99 38.69 27.33 40.72 27.86C42.76 28.39 44.71 29.11 46.52 29.98C48.33 30.85 50 31.88 51.48 33.03C52.96 34.18 54.26 35.44 55.33 36.78C56.4 38.11 57.25 39.52 57.86 40.94C58.47 42.36 58.84 43.8 58.96 45.19C59.08 46.59 58.95 47.94 58.59 49.2C58.23 50.46 57.63 51.62 56.82 52.63C56.01 53.65 55 54.52 53.81 55.21C52.63 55.9 51.27 56.4 49.79 56.69C48.31 56.98 46.71 57.06 45.05 56.91C43.38 56.76 41.65 56.38 39.92 55.78C38.18 55.18 36.44 54.36 34.75 53.33C33.06 52.3 31.43 51.06 29.9 49.65C28.36 48.24 26.94 46.65 25.66 44.93Z" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-dasharray="65.17 18.81"/></svg><p class="word">Loop</p></div><p class="tag"><span class="hl">Post what you don't need.</span></p><p class="mono">github.com/rongtnt/loop</p><p class="mono">Text a photo · (773) 912-3997</p></div>
-<audio id="a-v1" src="assets/audio/v1.mp3" data-start="0.25" data-duration="11.51" data-volume="1"></audio>
-<audio id="a-v2" src="assets/audio/v2.mp3" data-start="12.45" data-duration="1.18" data-volume="1"></audio>
-<audio id="a-v3" src="assets/audio/v3.mp3" data-start="14.95" data-duration="7.65" data-volume="1"></audio>
-<audio id="a-v4" src="assets/audio/v4.mp3" data-start="24.35" data-duration="10.16" data-volume="1"></audio>
-<audio id="a-v6" src="assets/audio/v6.mp3" data-start="39.35" data-duration="7.84" data-volume="1"></audio>
-<audio id="a-v7" src="assets/audio/v7.mp3" data-start="48.85" data-duration="16.34" data-volume="1"></audio>
-<audio id="a-v8" src="assets/audio/v8.mp3" data-start="65.95" data-duration="9.32" data-volume="1"></audio>
-<audio id="a-v9" src="assets/audio/v9.mp3" data-start="78.15" data-duration="15.08" data-volume="1"></audio>
-<audio id="a-v10" src="assets/audio/v10.mp3" data-start="93.75" data-duration="19.31" data-volume="1"></audio>
-<audio id="a-v12" src="assets/audio/v12.mp3" data-start="114.1" data-duration="0.31" data-volume="1"></audio>
+<div id="root" data-composition-id="main" data-start="0" data-duration="99.99" data-width="1920" data-height="1080">
+<div id="wc" class="clip scene" data-start="0" data-duration="10.86" data-cue-scale="1" data-cue-offset="0"></div>
+<video id="e1" class="clip scene" data-start="10.86" data-duration="7.92" src="assets/clips/slam-238-c712.mp4" muted playsinline data-media-start="0"></video>
+<div id="e2" class="clip scene knot-scene" data-start="18.78" data-duration="2.43" data-knot='{"turns":0.6,"spinEnd":0.9631578947368412,"spinEase":"out","flatAt":0.9631578947368412,"flatDur":0.4045263157894733,"from":[610,165,700],"to":[452,370,340]}'><canvas width="1920" height="1080"></canvas>
+<svg class="knot2d" viewBox="0 0 64 64" style="left:452px;top:370px;width:340px;height:340px" aria-hidden="true"><path d="M25.66 44.93C24.38 43.2 23.26 41.35 22.31 39.42C21.37 37.49 20.61 35.48 20.05 33.45C19.49 31.42 19.13 29.38 18.98 27.38C18.83 25.37 18.89 23.41 19.14 21.55C19.4 19.7 19.85 17.94 20.47 16.35C21.09 14.75 21.88 13.31 22.8 12.07C23.73 10.84 24.79 9.8 25.94 9C27.09 8.2 28.32 7.63 29.59 7.31C30.86 7 32.17 6.94 33.45 7.13C34.74 7.32 36 7.76 37.19 8.44C38.38 9.13 39.49 10.05 40.48 11.19C41.47 12.32 42.34 13.67 43.04 15.19C43.74 16.7 44.28 18.39 44.63 20.19C44.98 21.99 45.14 23.91 45.09 25.89C45.04 27.87 44.79 29.9 44.33 31.94C43.87 33.97 43.21 36 42.36 37.97C41.5 39.93 40.46 41.83 39.26 43.62C38.06 45.4 36.7 47.06 35.23 48.56C33.75 50.06 32.16 51.39 30.5 52.52C28.84 53.66 27.11 54.59 25.38 55.3C23.64 56.01 21.9 56.49 20.2 56.75C18.51 57.02 16.87 57.05 15.33 56.87C13.8 56.68 12.37 56.28 11.1 55.69C9.84 55.09 8.73 54.31 7.82 53.37C6.91 52.42 6.2 51.33 5.73 50.12C5.25 48.91 5 47.59 5 46.22C5 44.85 5.24 43.43 5.73 42C6.22 40.58 6.95 39.15 7.91 37.79C8.87 36.42 10.06 35.11 11.45 33.91C12.84 32.7 14.42 31.61 16.16 30.66C17.89 29.71 19.78 28.91 21.77 28.29C23.76 27.67 25.85 27.23 27.98 26.99C30.11 26.74 32.28 26.69 34.42 26.84C36.57 26.99 38.69 27.33 40.72 27.86C42.76 28.39 44.71 29.11 46.52 29.98C48.33 30.85 50 31.88 51.48 33.03C52.96 34.18 54.26 35.44 55.33 36.78C56.4 38.11 57.25 39.52 57.86 40.94C58.47 42.36 58.84 43.8 58.96 45.19C59.08 46.59 58.95 47.94 58.59 49.2C58.23 50.46 57.63 51.62 56.82 52.63C56.01 53.65 55 54.52 53.81 55.21C52.63 55.9 51.27 56.4 49.79 56.69C48.31 56.98 46.71 57.06 45.05 56.91C43.38 56.76 41.65 56.38 39.92 55.78C38.18 55.18 36.44 54.36 34.75 53.33C33.06 52.3 31.43 51.06 29.9 49.65C28.36 48.24 26.94 46.65 25.66 44.93Z" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-dasharray="65.17 18.81"/></svg>
+<p class="kword" data-in="1.397" style="left:842px;top:392px;font-size:250px">Loop</p></div>
+<div class="shot-box"><video id="v3" class="clip" src="assets/clips/main-L.mp4" muted playsinline data-start="21.21" data-duration="3.86" data-media-start="3.151" style="left:-2.567px;top:0px;width:1925.134px;height:1203.209px;transform-origin:962.567px 521.39px"></video></div>
+<div class="shot-box"><video id="v4" class="clip" src="assets/clips/main-R.mp4" muted playsinline data-start="25.07" data-duration="1.7" data-media-start="11.967" style="left:-356px;top:-169.333px;width:2688px;height:1680px;transform-origin:1316px 709.333px"></video></div>
+<div class="shot-box"><video id="v5" class="clip" src="assets/clips/main-R.mp4" muted playsinline data-start="26.52" data-duration="2.41" data-media-start="20.94" style="left:-1152px;top:-571px;width:3072px;height:1920px;transform-origin:2378.667px 1056px"></video></div>
+<div id="e6" class="clip cap" data-start="26.77" data-duration="2.16"><p><span class="hl">ASKED JUST NOW</span></p></div>
+<div class="shot-box"><video id="v7" class="clip" src="assets/clips/main-L.mp4" muted playsinline data-start="28.93" data-duration="3.89" data-media-start="29.492" style="left:-900px;top:-355px;width:2880px;height:1800px;transform-origin:1860px 840px"></video></div>
+<div class="shot-box"><video id="v8" class="clip" src="assets/clips/main-L.mp4" muted playsinline data-start="32.57" data-duration="3.45" data-media-start="33.744" style="left:-960px;top:-720px;width:2880px;height:1800px;transform-origin:2060px 1340px"></video></div>
+<div class="shot-box"><video id="v9" class="clip" src="assets/clips/main-L.mp4" muted playsinline data-start="35.77" data-duration="2.05" data-media-start="37.828" style="left:-960px;top:-175px;width:2880px;height:1800px;transform-origin:2010px 660px"></video></div>
+<div class="shot-box"><video id="v10" class="clip" src="assets/clips/main-L.mp4" muted playsinline data-start="37.57" data-duration="1.96" data-media-start="40.092" style="left:-960px;top:-720px;width:2880px;height:1800px;transform-origin:1950px 1390px"></video></div>
+<div id="e11" class="clip cap" data-start="28.93" data-duration="10.6"><p>Gemini <span class="hl">drafts</span>. A person <span class="hl">decides</span>.</p></div>
+<div class="shot-box"><video id="v12" class="clip" src="assets/clips/main-R.mp4" muted playsinline data-start="39.53" data-duration="1" data-media-start="50.628" style="left:-960px;top:-720px;width:2880px;height:1800px;transform-origin:2240px 1360px"></video></div>
+<div class="shot-box"><video id="v13" class="clip" src="assets/clips/main-R.mp4" muted playsinline data-start="40.28" data-duration="3.24" data-media-start="54.947" style="left:0px;top:-411px;width:3072px;height:1920px;transform-origin:874.667px 896px"></video></div>
+<div id="e14" class="clip cap" data-start="39.53" data-duration="3.99"><p>The ticket is the <span class="hl">only identity</span>.</p></div>
+<div id="p15" class="pane-box" style="left:170px;top:40px;width:760px;height:880px"><video id="m17" class="clip" src="assets/clips/main-L.mp4" muted playsinline data-start="43.52" data-duration="2.501" data-media-start="59.389" style="left:-1171.376px;top:-89.908px;width:2008.073px;height:1255.046px"></video></div>
+<div id="p16" class="clip pane-edge active" data-start="43.52" data-duration="2.501" style="left:170px;top:40px;width:760px;height:880px"><span class="who giver">Giver</span></div>
+<div id="p18" class="pane-box" style="left:990px;top:40px;width:760px;height:880px"><video id="m20" class="clip" src="assets/clips/main-R.mp4" muted playsinline data-start="43.52" data-duration="2.501" data-media-start="59.012" style="left:-1171.376px;top:-89.908px;width:2008.073px;height:1255.046px"></video></div>
+<div id="p19" class="clip pane-edge veil" data-start="43.52" data-duration="2.501" style="left:990px;top:40px;width:760px;height:880px"><span class="who taker">Taker</span></div>
+<div id="p21" class="pane-box" style="left:170px;top:40px;width:760px;height:880px"><video id="m23" class="clip" src="assets/clips/main-L.mp4" muted playsinline data-start="45.771" data-duration="4.288" data-media-start="73.83" style="left:-1171.376px;top:-313.028px;width:2008.073px;height:1255.046px"></video></div>
+<div id="p22" class="clip pane-edge active" data-start="45.771" data-duration="4.288" style="left:170px;top:40px;width:760px;height:880px"><span class="who giver">Giver</span></div>
+<div id="p24" class="pane-box" style="left:990px;top:40px;width:760px;height:880px"><video id="m26" class="clip" src="assets/clips/main-R.mp4" muted playsinline data-start="45.771" data-duration="4.288" data-media-start="73.453" style="left:-1171.376px;top:-313.028px;width:2008.073px;height:1255.046px"></video></div>
+<div id="p25" class="clip pane-edge veil" data-start="45.771" data-duration="4.288" style="left:990px;top:40px;width:760px;height:880px"><span class="who taker">Taker</span></div>
+<div id="p27" class="pane-box" style="left:990px;top:40px;width:760px;height:880px"><video id="m29" class="clip" src="assets/clips/main-R.mp4" muted playsinline data-start="49.809" data-duration="1.751" data-media-start="82.59" style="left:-1171.376px;top:-375.046px;width:2008.073px;height:1255.046px"></video></div>
+<div id="p28" class="clip pane-edge active" data-start="49.809" data-duration="1.751" style="left:990px;top:40px;width:760px;height:880px"><span class="who taker">Taker</span></div>
+<div id="p30" class="pane-box" style="left:170px;top:40px;width:760px;height:880px"><video id="m32" class="clip" src="assets/clips/main-L.mp4" muted playsinline data-start="49.809" data-duration="1.751" data-media-start="82.967" style="left:-1171.376px;top:-375.046px;width:2008.073px;height:1255.046px"></video></div>
+<div id="p31" class="clip pane-edge veil" data-start="49.809" data-duration="1.751" style="left:170px;top:40px;width:760px;height:880px"><span class="who giver">Giver</span></div>
+<div id="p33" class="pane-box" style="left:990px;top:40px;width:760px;height:880px"><video id="m35" class="clip" src="assets/clips/main-R.mp4" muted playsinline data-start="51.309" data-duration="2.511" data-media-start="84.793" style="left:-1171.376px;top:-187.523px;width:2008.073px;height:1255.046px"></video></div>
+<div id="p34" class="clip pane-edge active" data-start="51.309" data-duration="2.511" style="left:990px;top:40px;width:760px;height:880px"><span class="who taker">Taker</span></div>
+<div id="p36" class="pane-box" style="left:170px;top:40px;width:760px;height:880px"><video id="m38" class="clip" src="assets/clips/main-L.mp4" muted playsinline data-start="51.309" data-duration="2.511" data-media-start="85.17" style="left:-1171.376px;top:-187.523px;width:2008.073px;height:1255.046px"></video></div>
+<div id="p37" class="clip pane-edge veil" data-start="51.309" data-duration="2.511" style="left:170px;top:40px;width:760px;height:880px"><span class="who giver">Giver</span></div>
+<div id="e39" class="clip cap" data-start="43.52" data-duration="10.3"><p>Loop <span class="hl">proposes</span>. People <span class="hl">confirm</span>.</p></div>
+<div class="shot-box"><video id="v40" class="clip" src="assets/clips/main-R.mp4" muted playsinline data-start="53.82" data-duration="1.6" data-media-start="96.979" style="left:-2.567px;top:0px;width:1925.134px;height:1203.209px;transform-origin:962.567px 528.075px"></video></div>
+<div class="shot-box"><video id="v41" class="clip" src="assets/clips/main-L.mp4" muted playsinline data-start="55.17" data-duration="4.48" data-media-start="105.606" style="left:0px;top:-335px;width:2880px;height:1800px;transform-origin:870px 820px"></video></div>
+<div class="shot-box"><video id="v42" class="clip" src="assets/clips/main-R.mp4" muted playsinline data-start="59.4" data-duration="4.12" data-media-start="111.173" style="left:0px;top:-335px;width:2880px;height:1800px;transform-origin:870px 820px"></video></div>
+<div id="e43" class="clip cap" data-start="56.9" data-duration="6.62"><p><span class="hl">KEPT IN USE</span></p></div>
+<div id="ph44" class="clip phone-shell" data-start="63.52" data-duration="11.48" style="left:583px;top:20px;width:754.0000000000001px;height:904.0000000000001px"></div>
+<div id="ph45" class="phone-box" style="left:597px;top:34px;width:726.0000000000001px;height:880.0000000000001px"><img class="clip" src="assets/phone-first.png" alt="" data-start="63.52" data-duration="5.49" style="width:726.0000000000001px;height:880.0000000000001px"><video id="ph46" class="clip" src="assets/clips/phone.mp4" muted playsinline data-start="68.96" data-duration="0.99" data-media-start="0" style="width:726.0000000000001px;height:880.0000000000001px"></video><video id="ph47" class="clip" src="assets/clips/phone.mp4" muted playsinline data-start="69.7" data-duration="2.3" data-media-start="3.9" style="width:726.0000000000001px;height:880.0000000000001px"></video><video id="ph48" class="clip" src="assets/clips/phone.mp4" muted playsinline data-start="71.75" data-duration="2.45" data-media-start="13.57" style="width:726.0000000000001px;height:880.0000000000001px"></video><video id="ph49" class="clip" src="assets/clips/phone.mp4" muted playsinline data-start="73.95" data-duration="1.05" data-media-start="18.78" style="width:726.0000000000001px;height:880.0000000000001px"></video></div>
+<div id="e50" class="clip cap" data-start="63.52" data-duration="11.48"><p><span class="hl">Photon Spectrum</span> = Loop's real iMessage number</p></div>
+<div class="shot-box"><video id="v51" class="clip" src="assets/clips/main-R.mp4" muted playsinline data-start="75" data-duration="0.95" data-media-start="83.54" style="left:-1920px;top:0px;width:3840px;height:2400px;transform-origin:2966.667px 506.667px"></video></div>
+<div id="p52" class="pane-box" style="left:504px;top:40px;width:912px;height:880px"><video id="m54" class="clip" src="assets/clips/main-R.mp4" muted playsinline data-start="75.95" data-duration="1.88" data-media-start="92.116" style="left:-1405.651px;top:-564.037px;width:2409.688px;height:1506.055px"></video></div>
+<div id="p53" class="clip pane-edge active" data-start="75.95" data-duration="1.88" style="left:504px;top:40px;width:912px;height:880px"><span class="who taker">Taker</span></div>
+<div class="shot-box"><video id="v55" class="clip" src="assets/clips/main-L.mp4" muted playsinline data-start="77.83" data-duration="3.3" data-media-start="123.807" style="left:-7.742px;top:-141.186px;width:2049.336px;height:1280.835px;transform-origin:967.742px 626.186px"></video></div>
+<div class="shot-box"><video id="v56" class="clip" src="assets/clips/main-L.mp4" muted playsinline data-start="80.88" data-duration="3.75" data-media-start="127.248" style="left:0px;top:-114.461px;width:1939.829px;height:1212.393px;transform-origin:936.237px 599.461px"></video></div>
+<div class="shot-box"><video id="v57" class="clip" src="assets/clips/main-L.mp4" muted playsinline data-start="84.38" data-duration="3.79" data-media-start="131.162" style="left:-1152px;top:-453.667px;width:3072px;height:1920px;transform-origin:2154.667px 938.667px"></video></div>
+<div id="e58" class="clip cap" data-start="77.83" data-duration="10.34"><p>One photo, <span class="hl">six listings</span>.</p></div>
+<video id="e59" class="clip scene" data-start="88.17" data-duration="5.82" src="assets/clips/code-175.mp4" muted playsinline data-media-start="0"></video>
+<div id="e60" class="clip scene knot-scene" data-start="93.99" data-duration="6" data-knot='{"turns":1,"spinEnd":2.3,"spinEase":"inout","flatAt":2.3,"flatDur":0.6,"from":[700,60,520],"to":[612,168,230]}'><canvas width="1920" height="1080"></canvas>
+<svg class="knot2d" viewBox="0 0 64 64" style="left:612px;top:168px;width:230px;height:230px" aria-hidden="true"><path d="M25.66 44.93C24.38 43.2 23.26 41.35 22.31 39.42C21.37 37.49 20.61 35.48 20.05 33.45C19.49 31.42 19.13 29.38 18.98 27.38C18.83 25.37 18.89 23.41 19.14 21.55C19.4 19.7 19.85 17.94 20.47 16.35C21.09 14.75 21.88 13.31 22.8 12.07C23.73 10.84 24.79 9.8 25.94 9C27.09 8.2 28.32 7.63 29.59 7.31C30.86 7 32.17 6.94 33.45 7.13C34.74 7.32 36 7.76 37.19 8.44C38.38 9.13 39.49 10.05 40.48 11.19C41.47 12.32 42.34 13.67 43.04 15.19C43.74 16.7 44.28 18.39 44.63 20.19C44.98 21.99 45.14 23.91 45.09 25.89C45.04 27.87 44.79 29.9 44.33 31.94C43.87 33.97 43.21 36 42.36 37.97C41.5 39.93 40.46 41.83 39.26 43.62C38.06 45.4 36.7 47.06 35.23 48.56C33.75 50.06 32.16 51.39 30.5 52.52C28.84 53.66 27.11 54.59 25.38 55.3C23.64 56.01 21.9 56.49 20.2 56.75C18.51 57.02 16.87 57.05 15.33 56.87C13.8 56.68 12.37 56.28 11.1 55.69C9.84 55.09 8.73 54.31 7.82 53.37C6.91 52.42 6.2 51.33 5.73 50.12C5.25 48.91 5 47.59 5 46.22C5 44.85 5.24 43.43 5.73 42C6.22 40.58 6.95 39.15 7.91 37.79C8.87 36.42 10.06 35.11 11.45 33.91C12.84 32.7 14.42 31.61 16.16 30.66C17.89 29.71 19.78 28.91 21.77 28.29C23.76 27.67 25.85 27.23 27.98 26.99C30.11 26.74 32.28 26.69 34.42 26.84C36.57 26.99 38.69 27.33 40.72 27.86C42.76 28.39 44.71 29.11 46.52 29.98C48.33 30.85 50 31.88 51.48 33.03C52.96 34.18 54.26 35.44 55.33 36.78C56.4 38.11 57.25 39.52 57.86 40.94C58.47 42.36 58.84 43.8 58.96 45.19C59.08 46.59 58.95 47.94 58.59 49.2C58.23 50.46 57.63 51.62 56.82 52.63C56.01 53.65 55 54.52 53.81 55.21C52.63 55.9 51.27 56.4 49.79 56.69C48.31 56.98 46.71 57.06 45.05 56.91C43.38 56.76 41.65 56.38 39.92 55.78C38.18 55.18 36.44 54.36 34.75 53.33C33.06 52.3 31.43 51.06 29.9 49.65C28.36 48.24 26.94 46.65 25.66 44.93Z" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-dasharray="65.17 18.81"/></svg>
+<p class="kword" data-in="2.95" style="left:860px;top:184px;font-size:176px">Loop</p>
+<p class="ktag" data-in="3.05"><span class="hl">Post what you don't need.</span></p>
+<p class="kmono" data-in="3.2" style="top:640px">github.com/rongtnt/loop</p>
+<p class="kmono" data-in="3.35" style="top:706px">(773) 912-3997</p></div>
+<div class="clip black" data-start="99.69" data-duration="0.3"></div>
 </div>
+<script src="assets/wc.js"></script>
+<script src="assets/knot.js"></script>
 <script>
 window.__timelines = window.__timelines || {};
 const tl = gsap.timeline({ paused: true });
-tl.fromTo("#e1 .sub", {opacity:0}, {opacity:1, duration:0.4}, 4);
-tl.fromTo("#drawmask .draw", {attr:{"stroke-dashoffset":1}}, {attr:{"stroke-dashoffset":0}, duration:1.4, ease:"power2.inOut"}, 12.3);
-tl.fromTo("#e3 .word", {opacity:0, x:-16}, {opacity:1, x:0, duration:0.4}, 13.4);
-tl.fromTo("#e149 .m0", {opacity:0, y:14}, {opacity:1, y:0, duration:0.3}, 78.2);
-tl.fromTo("#e149 .m1", {opacity:0, y:14}, {opacity:1, y:0, duration:0.3}, 80);
-tl.fromTo("#e149 .m2", {opacity:0, y:14}, {opacity:1, y:0, duration:0.3}, 81);
-tl.fromTo("#e149 .m3", {opacity:0, y:14}, {opacity:1, y:0, duration:0.3}, 82.2);
-tl.fromTo("#e149 .m4", {opacity:0, y:14}, {opacity:1, y:0, duration:0.3}, 88.6);
-tl.fromTo("#e149 .m5", {opacity:0, y:14}, {opacity:1, y:0, duration:0.3}, 89.8);
-tl.fromTo("#e166 .t0", {opacity:0, y:12}, {opacity:1, y:0, duration:0.3}, 103.3);
-tl.fromTo("#e166 .t1", {opacity:0, y:12}, {opacity:1, y:0, duration:0.3}, 105.7);
-tl.fromTo("#e166 .t2", {opacity:0, y:12}, {opacity:1, y:0, duration:0.3}, 108.6);
-tl.fromTo("#e166 .t3", {opacity:0, y:12}, {opacity:1, y:0, duration:0.3}, 110.7);
+tl.fromTo("#v3", {scale:1}, {scale:1.02, duration:3.86, ease:"sine.inOut"}, 21.21);
+tl.fromTo("#v4", {scale:1}, {scale:1.02, duration:1.7, ease:"sine.inOut"}, 25.07);
+tl.fromTo("#v5", {scale:1}, {scale:1.02, duration:2.41, ease:"sine.inOut"}, 26.52);
+tl.fromTo("#v5", {opacity:0}, {opacity:1, duration:0.25, ease:"sine.inOut"}, 26.52);
+tl.fromTo("#v7", {scale:1}, {scale:1.02, duration:3.89, ease:"sine.inOut"}, 28.93);
+tl.fromTo("#v8", {scale:1}, {scale:1.02, duration:3.45, ease:"sine.inOut"}, 32.57);
+tl.fromTo("#v8", {opacity:0}, {opacity:1, duration:0.25, ease:"sine.inOut"}, 32.57);
+tl.fromTo("#v9", {scale:1}, {scale:1.02, duration:2.05, ease:"sine.inOut"}, 35.77);
+tl.fromTo("#v9", {opacity:0}, {opacity:1, duration:0.25, ease:"sine.inOut"}, 35.77);
+tl.fromTo("#v10", {scale:1}, {scale:1.02, duration:1.96, ease:"sine.inOut"}, 37.57);
+tl.fromTo("#v10", {opacity:0}, {opacity:1, duration:0.25, ease:"sine.inOut"}, 37.57);
+tl.fromTo("#v13", {scale:1}, {scale:1.02, duration:3.24, ease:"sine.inOut"}, 40.28);
+tl.fromTo("#v13", {opacity:0}, {opacity:1, duration:0.25, ease:"sine.inOut"}, 40.28);
+tl.fromTo("#p15, #p16", {scale:1}, {scale:1.02, duration:2.501, ease:"sine.inOut"}, 43.52);
+tl.fromTo("#p21, #p22", {scale:1}, {scale:1.02, duration:4.288, ease:"sine.inOut"}, 45.771);
+tl.fromTo("#p21, #p22, #p24, #p25", {opacity:0}, {opacity:1, duration:0.25, ease:"sine.inOut"}, 45.771);
+tl.fromTo("#p27, #p28", {scale:1}, {scale:1.02, duration:1.751, ease:"sine.inOut"}, 49.809);
+tl.fromTo("#p27, #p28, #p30, #p31", {opacity:0}, {opacity:1, duration:0.25, ease:"sine.inOut"}, 49.809);
+tl.fromTo("#p33, #p34", {scale:1}, {scale:1.02, duration:2.511, ease:"sine.inOut"}, 51.309);
+tl.fromTo("#p33, #p34, #p36, #p37", {opacity:0}, {opacity:1, duration:0.25, ease:"sine.inOut"}, 51.309);
+tl.fromTo("#v40", {scale:1}, {scale:1.02, duration:1.6, ease:"sine.inOut"}, 53.82);
+tl.fromTo("#v41", {scale:1}, {scale:1.02, duration:4.48, ease:"sine.inOut"}, 55.17);
+tl.fromTo("#v41", {opacity:0}, {opacity:1, duration:0.25, ease:"sine.inOut"}, 55.17);
+tl.set("#v41", {x:9, y:-5}, 56.9); tl.set("#v41", {x:-7, y:4}, 56.933); tl.set("#v41", {x:0, y:0}, 56.967);
+tl.fromTo("#v42", {scale:1}, {scale:1.02, duration:4.12, ease:"sine.inOut"}, 59.4);
+tl.fromTo("#v42", {opacity:0}, {opacity:1, duration:0.25, ease:"sine.inOut"}, 59.4);
+tl.fromTo("#ph47", {opacity:0}, {opacity:1, duration:0.25, ease:"sine.inOut"}, 69.7);
+tl.fromTo("#ph48", {opacity:0}, {opacity:1, duration:0.25, ease:"sine.inOut"}, 71.75);
+tl.fromTo("#ph49", {opacity:0}, {opacity:1, duration:0.25, ease:"sine.inOut"}, 73.95);
+tl.fromTo("#ph44, #ph45", {x:1300}, {x:0, duration:0.7, ease:"power3.out"}, 63.52);
+tl.fromTo("#ph44, #ph45", {scale:1}, {scale:1.02, duration:10.53, ease:"sine.inOut"}, 64.22);
+tl.fromTo("#ph44, #ph45", {x:0}, {x:1300, duration:0.25, ease:"power2.in", immediateRender:false}, 74.75);
+tl.fromTo("#p52, #p53", {scale:1}, {scale:1.02, duration:1.88, ease:"sine.inOut"}, 75.95);
+tl.fromTo("#v55", {scale:1}, {scale:1.02, duration:3.3, ease:"sine.inOut"}, 77.83);
+tl.fromTo("#v56", {scale:1}, {scale:1.02, duration:3.75, ease:"sine.inOut"}, 80.88);
+tl.fromTo("#v56", {opacity:0}, {opacity:1, duration:0.25, ease:"sine.inOut"}, 80.88);
+tl.fromTo("#v57", {scale:1}, {scale:1.02, duration:3.79, ease:"sine.inOut"}, 84.38);
+tl.fromTo("#v57", {opacity:0}, {opacity:1, duration:0.25, ease:"sine.inOut"}, 84.38);
+tl.set({}, {}, 99.99);
 window.__timelines["main"] = tl;
 </script>
 </body>

@@ -21,3 +21,5 @@ film/**/*.png
 film/node_modules/
 film/remotion/out/
 film/comp/assets/clips/
+film/remotion/node_modules/
+film/remotion/.remotion/

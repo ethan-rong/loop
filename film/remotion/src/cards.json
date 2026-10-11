@@ -1,0 +1,11 @@
+{
+  "cps": 26,
+  "arrive": [0, 0.36, 0.64],
+  "typeDelay": 6,
+  "tail": 12,
+  "cards": [
+    { "file": "server/gemini.mjs", "lines": [[20, "export const DRAFT_SCHEMA = {"], [null, "  …"], [26, "    condition: { type: 'STRING', enum: CONDITIONS },"]] },
+    { "file": "server/coordinator.mjs", "lines": [[9, "const TYPES = ['chat', 'propose', 'accept', 'arrived', 'cancel', 'decline'];"]] },
+    { "file": "server/channels/spectrum.mjs", "lines": [[303, "export function sendToPerson(personId, text, choice = null) {"], [null, "  …"], [305, "  return deliver(personId, text, choice);"]] }
+  ]
+}

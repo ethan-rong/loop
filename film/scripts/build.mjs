@@ -5,7 +5,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 const COMP = new URL('../comp/', import.meta.url).pathname;
 const VO = JSON.parse(readFileSync(new URL('vo-durations.json', import.meta.url)));
 const COAT = JSON.parse(readFileSync(new URL('../raw/coat-draft.json', import.meta.url))).draft;
-const SKEW = 0.17; // L clock = R clock + 0.17 s (both marked "ready" at the same wall moment)
+const SKEW = 0.28; // L clock = R clock + 0.28 s (both marked "ready" at the same wall moment)
 const KNOT_D = readFileSync('/Users/ethan/loop/brand/knot.svg', 'utf8').match(/ d="([^"]+)"/)[1];
 
 // Pane geometry (2x captures: 1280x1688 two-up, 780x1688 phone).
@@ -16,18 +16,18 @@ const BEATS = [
   { id: 'cold', kind: 'cold', dur: 12.2, vo: 'v1', voAt: 0.25 },
   { id: 'title', kind: 'title', dur: 2.4, cap: '[A place to post what you have.] No names, no accounts.', vo: 'v2', voAt: 0.25 },
   { id: 'ask', kind: 'two', vo: 'v3', cap: '[Asked just now] · Reading lamp for my desk',
-    shots: [['R', 4.3, 9.3], ['R', 10.9, 13.3], ['R', 17.2, 19.2]] },
+    shots: [['R', 4.4, 9.4], ['R', 11.0, 13.4], ['R', 17.35, 19.35]] },
   { id: 'post', kind: 'two', vo: 'v4', cap: 'Gemini [drafts]. A person [decides].',
-    shots: [['L', 22.0, 26.2], ['L', 26.4, 32.8, null, 'still-1'], ['L', 34.2, 38.6, '[Offer to them]']] },
+    shots: [['L', 22.2, 26.4], ['L', 27.0, 33.4, null, 'still-1'], ['L', 35.3, 39.7, '[Offer to them]']] },
   { id: 'accept', kind: 'two', vo: 'v6', cap: 'The ticket is the [only identity] that matters.',
-    shots: [['R', 40.9, 45.1], ['R', 47.8, 53.2, null, 'still-2']] },
+    shots: [['R', 41.9, 46.1], ['R', 48.8, 54.2, null, 'still-2']] },
   { id: 'plan', kind: 'two', vo: 'v7', voAt: 0.25, cap: 'Loop [proposes]. People [confirm].',
-    shots: [['L', 55.9, 58.2], ['L', 60.4, 64.0], ['L', 65.8, 69.2], ['R', 70.4, 72.6], ['R', 74.6, 80.1, null, 'still-3']] },
+    shots: [['L', 56.9, 59.2], ['L', 61.4, 65.0], ['L', 66.8, 70.2], ['R', 71.2, 73.4], ['R', 75.4, 80.9, null, 'still-3']] },
   { id: 'handoff', kind: 'two', vo: 'v8', cap: 'Four digits are the whole [handshake].',
-    shots: [['R', 95.3, 97.5], ['L', 98.1, 100.3], ['L', 102.4, 105.6], ['L', 105.6, 108.0, '[KEPT IN USE]', 'still-4'], ['R', 110.6, 113.0, '[KEPT IN USE]']] },
+    shots: [['R', 96.0, 98.2], ['L', 98.9, 101.1], ['L', 103.2, 106.4], ['L', 106.4, 108.8, '[KEPT IN USE]', 'still-4'], ['R', 111.3, 113.7, '[KEPT IN USE]']] },
   { id: 'phone', kind: 'phone', dur: 15.5, cap: '[No app needed.] Text a photo.', vo: 'v9', voAt: 0.15, still: 'still-5' },
   { id: 'honest', kind: 'honest', vo: 'v10', voAt: 0.25, voSpan: 'tech', cap: 'Gemini says [no match] when there is none.',
-    shots: [['P', 10.2, 14.4, null, 'still-6'], ['P', 16.2, 18.8], ['X', 90.5, 93.5, 'Loop [says no] when it should.']] },
+    shots: [['P', 10.2, 14.4, null, 'still-6'], ['P', 16.2, 18.8], ['X', 91.2, 94.2, 'Loop [says no] when it should.']] },
   { id: 'tech', kind: 'tech', dur: 10.2 },
   { id: 'end', kind: 'end', dur: 3.2, vo: 'v12', voAt: 0.6 },
 ];
@@ -81,8 +81,8 @@ function phonePane(start, dur, from) {
 }
 
 function refusal(start, dur, from) {
-  // Crop of the taker's thread: CSS y 330..790 of the 640x844 tab.
-  const w = 1200, s = w / 1280, top = 330 * 2 * s, h = Math.round(460 * 2 * s);
+  // Crop of the taker's thread: CSS y 290..760 of the 640x844 tab.
+  const w = 1200, s = w / 1280, top = 290 * 2 * s, h = Math.round(470 * 2 * s);
   const x = (1920 - w) / 2;
   els.push(timed('div', start, dur, { cls: 'pane-shadow', style: `left:${x}px;top:${PY}px;width:${w}px;height:${h}px;` }));
   els.push(timed('div', start, dur, { cls: 'crop', style: `left:${x}px;top:${PY}px;width:${w}px;height:${h}px;` }));

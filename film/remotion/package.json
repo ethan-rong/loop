@@ -1,0 +1,16 @@
+{
+  "name": "loop-film-remotion",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "render:slam": "remotion render src/index.ts Slam out/slam.mp4",
+    "render:code": "remotion render src/index.ts Code out/code.mp4"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.534",
+    "@remotion/fonts": "^4.0.534",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "remotion": "^4.0.534"
+  }
+}
