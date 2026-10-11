@@ -1966,7 +1966,7 @@ const actions = {
   'open-reserve': () => {
     state.ui.reserveOpen = true;
     state.ui.notice = null;
-    state.focusTarget = '#pick-place-0';
+    state.focusTarget = '#place-input';
     render();
   },
   'close-reserve': () => {

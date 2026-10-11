@@ -865,8 +865,8 @@ select.input {
 /* ---------- handoff thread ---------- */
 
 .optional { color: var(--muted); font: 400 var(--fs-5) var(--mono); text-transform: uppercase; letter-spacing: .04em; }
-.thread { display: grid; gap: 18px; }
-.thread-live { display: grid; gap: 18px; }
+.thread { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; } /* minmax(0): the native date and time pickers must not widen the column on phones */
+.thread-live { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
 .plan-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
 .plan-head h2 { text-transform: uppercase; letter-spacing: -.03em; }
 .plan .meet { margin-top: 16px; }

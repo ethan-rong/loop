@@ -14,7 +14,7 @@ cd ~/loop && (lsof -ti :3000 | xargs kill 2>/dev/null; true) && npm run seed && 
 - **Seed items belong to your phone persona:** reserving the coat, the fan or the textbook from any tab texts your phone, so the web → iMessage story works from the seed alone.
 - Browser window = **the taker** (any tab is an anonymous session; nothing to pick). Your phone = **the giver** over iMessage. Loop has no identities at all: no names, no accounts; the 4-digit code proves identity at the handoff. Say that to judges when they ask about privacy. Second browser tab = Ethan's web view, optional, to show the board updating.
 - Before every judge: run `curl -s -X POST localhost:3000/api/reset >/dev/null` in a terminal (there is no reset button in the UI), then reload both tabs.
-- Wi-Fi fallback: tether the laptop to your phone's hotspot (both Gemini and Photon need the internet). Last resort: `GEMINI_MOCK=1 npm start` shows a "Demo mode" banner and turns iMessage off; say so to the judge. Never present mock output as live.
+- Wi-Fi fallback: tether the laptop to your phone's hotspot (both Gemini and Photon need the internet). Last resort: `GEMINI_MOCK=1 npm start` answers with fixed mock drafts and turns iMessage off, with no banner; say so to the judge. Never present mock output as live.
 - Keep a real object on the table to photograph (a lamp-like object matches the seeded request "Reading lamp for my desk"; otherwise edit the taker's seed request to match your object before `npm run seed`).
 
 ## Two-minute video / live demo script (giver on iMessage, recipient on the web)

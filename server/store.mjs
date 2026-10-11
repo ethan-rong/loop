@@ -120,12 +120,11 @@ export function createItem(db, { ownerId, photo, title, description, condition, 
 }
 
 // Reserve an available item, or accept an item offered to one of my requests. Also opens the
-// handoff thread (SPEC2 §1). Place and time are optional, but only as a pair: with them Loop asks the
-// owner to confirm; without them the owner picks (plan stays empty until someone proposes).
+// handoff thread (SPEC2 §1). Place and time are optional, together or alone: with both Loop asks the owner to
+// confirm; with one it asks the owner for the other half; with neither the owner picks.
 export function reserveItem(db, id, { personId, requestId, place = null, time = null, timeISO = null }) {
   const item = find(db.items, id, 'item');
   getPerson(db, personId);
-  if (!place !== !time) throw new ApiError(400, 'missing_field', 'Pick both a place and a time, or leave both empty.');
   if (item.ownerId === personId) throw new ApiError(403, 'own_item', "You can't reserve your own item.");
   const offer = item.status === 'offered' ? db.requests.find((r) => r.id === item.offeredToRequestId) : null;
   const offeredToMe = offer?.personId === personId;
@@ -146,12 +145,14 @@ export function reserveItem(db, id, { personId, requestId, place = null, time = 
   const hello = `Someone reserved your ${item.title}${item.price ? ` ($${item.price})` : ''}`;
   const thread = {
     id: newId('t'), itemId: item.id, ownerId: item.ownerId, recipientId: personId, status: 'planning',
-    plan: place
+    plan: place || time
       ? { place, time, timeISO: timeISO ?? null, proposedBy: personId, confirmedBy: [personId] }
       : { place: null, time: null, timeISO: null, proposedBy: null, confirmedBy: [] },
     remindAt: null, reminded: false,
-    messages: place
-      ? [message('loop', `${hello} and suggested ${place}, ${time}. Does that work?`, { actions: PLAN_ACTIONS, forPersonId: item.ownerId })]
+    messages: place || time
+      ? [place && time
+        ? message('loop', `${hello} and suggested ${place}, ${time}. Does that work?`, { actions: PLAN_ACTIONS, forPersonId: item.ownerId })
+        : message('loop', `${hello} and suggested ${place || time}. ${place ? 'When' : 'Where'} works for you?`, { actions: PICK_ACTIONS, forPersonId: item.ownerId })]
       : [
         message('loop', `${hello}. You're the one handing it over, so you pick: when and where works for you?`, { actions: PICK_ACTIONS, forPersonId: item.ownerId }),
         message('loop', 'The giver will suggest a time and place; you can reply here too.', { forPersonId: personId }),
