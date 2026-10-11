@@ -297,10 +297,36 @@ async function runMain(browser) {
   return [L, R];
 }
 
+// Pile re-take for shot 11 (desktop, one tab, pane P): the six drafts are scrolled through, one card per second, so
+// the film can show all of them. node scripts/record.mjs pile -> raw/pile-P.mp4 + raw/pile-marks.json.
+async function runPile(browser) {
+  await api('/api/reset', { method: 'POST' });
+  const P = await open(browser, 'P', VW, VH);
+  await sleep(2500);
+  mark(P, 'ready');
+  await tap(P, P.getByRole('link', { name: 'Post something' }), 'pile-give', { after: 900 });
+  await tap(P, P.locator('#mode-pile'), 'pile-mode');
+  await pickPhoto(P, 'pile.jpg', 'pile-photo');
+  await P.locator('#pile-title').waitFor({ timeout: 60_000 });
+  mark(P, 'pile-review');
+  await glide(P, 1400, 860, 500); // pointer out of the way
+  await sleep(2600);
+  const cards = P.locator('.pile-item');
+  const n = await cards.count();
+  for (let i = 1; i < n; i++) {
+    await cards.nth(i).evaluate((el) => el.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    mark(P, `pile-card-${i + 1}`);
+    await sleep(1000);
+  }
+  mark(P, 'pile-scrolled');
+  await sleep(2500);
+  return [P];
+}
+
 const browser = await chromium.launch({ channel: 'chromium', args: ['--force-device-scale-factor=2'] });
 let pages = [];
 try {
-  pages = await ({ test: runTest, main: runMain })[mode](browser);
+  pages = await ({ test: runTest, main: runMain, pile: runPile })[mode](browser);
 } catch (err) {
   console.error('FAILED:', err.message);
   for (const p of browser.contexts().flatMap((c) => c.pages())) await p.screenshot({ path: `${RAW}${mode}-fail-${p.label ?? 'x'}.png` }).catch(() => {});

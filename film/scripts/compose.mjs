@@ -30,10 +30,13 @@ const END_SPIN = 3.0; // the end-card knot spins and flattens for 3 s; its words
 //   click   the mark is a click; fitCuts() keeps it in place when a window rescales the shot.
 // One idea per cut: few, long cuts (>= 1.5 s; a 1.0 s click cut only before a hold of >= 2 s), crossfaded inside
 // a beat, hard cuts only on beat boundaries.
-const MARKS = JSON.parse(readFileSync(new URL('../raw/main-marks.json', import.meta.url)));
+const RAW = new URL('../raw/', import.meta.url).pathname;
+// Marks of the main take (panes L, R) plus the pile re-take (pane P, scripts/record.mjs pile) when it exists.
+const MARKS = [...JSON.parse(readFileSync(`${RAW}main-marks.json`)), ...(existsSync(`${RAW}pile-marks.json`) ? JSON.parse(readFileSync(`${RAW}pile-marks.json`)) : [])];
+if (existsSync(`${RAW}pile-P.mp4`)) copyFileSync(`${RAW}pile-P.mp4`, `${COMP}assets/clips/pile-P.mp4`);
 const M = (pane, label) => {
   const m = MARKS.find((x) => x.pane === pane && x.label === label);
-  if (!m) throw new Error(`no mark ${pane}:${label} in raw/main-marks.json`);
+  if (!m) throw new Error(`no mark ${pane}:${label} in raw/main-marks.json or raw/pile-marks.json`);
   return m.ms / 1000;
 };
 const cut = (pane, label, a, b, region, zmax = 1.5, minFont = 14, click = false) => {
@@ -47,7 +50,7 @@ const FOOTAGE = {
   4: [cut('L', 'board', 0.11, 3.97, [60, 60, 1380, 720], 1.2, 16)], // the board: hero, Inventory, People need
   5: [cut('R', 'type-ask', 0.45, 2.15, [380, 140, 1030, 620], 1.4, 15), // typing the ask
     cut('R', 'needs-visible', 0.06, 2.22, [890, 340, 1340, 650], 1.6, 12)], // result: it sits under People need
-  6: [cut('L', 'photo', -0.2, 3.69, [560, 240, 1300, 600], 1.5, 14), // photo in, Gemini drafts the card
+  6: [cut('L', 'photo', -0.2, 3.69, [40, 90, 1400, 820], 1.2, 14), // photo in, Gemini looks at it: photo + card, whole page
     cut('L', 'match', -0.3, 2.9, [700, 540, 1360, 800], 1.5, 14), // the match card
     cut('L', 'fair', -0.5, 1.3, [680, 180, 1330, 480], 1.5, 14, true), // correct the condition: Fair
     cut('L', 'offer', -0.8, 0.91, [650, 620, 1300, 770], 1.5, 14, true)], // approve: Offer to them
@@ -60,8 +63,9 @@ const FOOTAGE = {
   9: [cut('R', 'here', -0.9, 0.7, [60, 230, 1380, 560], 1.6, 14, true), cut('L', 'confirm', -1.33, 2.9, [60, 300, 810, 520], 1.5, 14, true),
     cut('R', 'pass-on', -0.5, 3.37, [60, 290, 810, 530], 1.5, 14)],
   10.5: [cut('R', 'works', -0.2, 0.75, [840, 70, 1385, 310], 2.0, 10)], // PLANNING -> SET, "YOU AGREED"
-  11: [cut('L', 'pile-photo', -0.3, 3.0, [60, 220, 1300, 660], 1.5, 13), cut('L', 'pile-review', -0.5, 3.0, [40, 230, 1350, 660], 1.5, 14),
-    cut('L', 'pile-nomatch', -0.3, 3.24, [660, 380, 1360, 500], 1.6, 13)],
+  11: [cut('P', 'pile-photo', -0.3, 2.2, [60, 220, 1300, 660], 1.5, 13), // one photo in
+    cut('P', 'pile-review', -0.4, 2.3, [40, 90, 1400, 820], 1.2, 14), // "Gemini found 6 things": the boxes on the photo + draft 1
+    cut('P', 'pile-card-2', -0.6, ['pile-scrolled', 1.4], [640, 40, 1400, 880], 1.3, 14)], // the scroll through drafts 2-6
 };
 const REFUSAL = ['R', M('R', 'refusal'), 600]; // old shot 12 [pane, Loop's refusal on screen, focus row], under the last sentence of beat 10
 const SHAKE = { pane: 'L', at: M('L', 'confirm') + 0.15 }; // the KEPT IN USE stamp lands: a 2-frame shake (+ thump)
@@ -159,7 +163,7 @@ const anim = [];
 const stills = [];
 const timed = (cls, at, dur, inner, extra = '', tag = 'div') =>
   `<${tag} id="e${++uid}" class="clip ${cls}" data-start="${f3(at)}" data-duration="${f3(dur)}"${extra}>${inner}</${tag}>`;
-const src = (pane) => `assets/clips/main-${pane}.mp4`;
+const src = (pane) => (pane === 'P' ? 'assets/clips/pile-P.mp4' : `assets/clips/main-${pane}.mp4`);
 
 // ---- camera: fit the cut's region into the safe frame (above the caption when one shows), push <= 1.02 eased ----
 const PUSH = 1.02, XF = 0.25, MIN_PUSH_CUT = 1.5;
@@ -265,10 +269,6 @@ for (const s of shots) {
     els.push(`<div id="wc" class="clip scene" data-start="${f3(s.at)}" data-duration="${f3(dur)}" data-cue-scale="${f3(SPEECH(1) / 9.81)}" data-cue-offset="${f3(B[1].start - s.at - 0.6 * (SPEECH(1) / 9.81))}"></div>`); // wc.js cues are in this voice's seconds (beat 1 speech 0.6-10.41)
   } else if (s.kind === 'clip') {
     els.push(timed('scene', s.at, dur, '', ` src="assets/clips/${remotionClip(s.comp, dur, s.cue)}" muted playsinline data-media-start="0"`, 'video'));
-    if (s.comp === 'Slam') {
-      const fr = (n) => Math.round(n * s.cue) / 30;
-      sfx.push({ t: s.at + fr(207) + 4 / 30, kind: 'thump', why: 'POSTED stamp lands' }, { t: s.at + fr(254), kind: 'crack', why: 'POSTED stamp cracks' });
-    }
     if (s.comp === 'Code') codeTicks(s.at, dur);
   } else if (s.kind === 'knot') {
     const k = KNOTS[s.knot](SPEECH(3) / 1.9);
