@@ -276,3 +276,6 @@ title-bar and band fills, whose ink text is measured above), and `--sunk` (1.12)
   a sky-to-mint ribbon and glossy Frutiger Aero orbs for the logo, the pickup code and Collected.
 - **v1** (superseded 2026-10-10): full Frutiger Aero, a sky-to-meadow page with drifting bubbles,
   blurred glass cards, glossy pill buttons, Nunito, max 520 px.
+
+## v4.2 — desktop layout (Oct 10, 21:15 EDT)
+One `@media (min-width: 960px)` block: 1120 px content on a 12-column grid (32 px gaps, 40 px gutters). Board: hero lead + button on 7 columns with the riffle figure on 5; For you full width; Inventory 3-up on 8 columns (4:3 photos); People need as a 4-column sidebar. Item page: photo/card/timeline/action on 7, plan + thread sticky on 5 with its own scroll. Give and pile review: sticky photo on 6, cards on 6. Ask: centred 640 px. Below 960 px nothing changed (verified box-for-box at 390/700/959). Hero title is one line at clamp(56px, 32px + 2.5vw, 64px).

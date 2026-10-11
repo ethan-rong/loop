@@ -1166,3 +1166,76 @@ select.input {
 
 /* v4 addendum: map caption (privacy note under the campus map) */
 .map-caption { margin: 8px 0 0; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; letter-spacing: .02em; color: var(--muted, #4a5068); }
+
+/* ---------- desktop (v4.2, Lane S): a website layout from 960 px ----------
+   Below 960 px nothing changes (phones, the 640 px and 700 px steps). Same tokens and components, CSS grid only:
+   1120 px of content with 40 px gutters, a 12-column grid with 32 px gaps. */
+@media (min-width: 960px) {
+  .wrap { max-width: 1200px; padding: 40px 40px 96px; }
+  .topbar-inner { max-width: 1200px; padding: 8px 40px; }
+
+  /* Board: the headline on one line across the top (at 56-64 px it is wider than 7 columns), the lead and the two
+     actions on 7 columns beside the riffle (5 columns, 320 px tall); For you full width; Inventory on 8 columns
+     with People need as a 4-column sidebar. */
+  .board { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: 32px; align-items: start; }
+  .board > * { grid-column: 1 / -1; }
+  .board > .board-inv { grid-column: 1 / span 8; }
+  .board > .board-needs { grid-column: 9 / span 4; }
+  .board > .hero { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: auto auto 1fr; column-gap: 32px; }
+  .hero h1 { grid-column: 1 / -1; font-size: clamp(56px, 32px + 2.5vw, 64px); white-space: nowrap; }
+  .hero .lead { grid-column: 1 / span 7; grid-row: 2; margin-top: 20px; font-size: 21px; }
+  .hero .hero-actions { grid-column: 1 / span 7; grid-row: 3; align-self: start; flex-direction: row; align-items: center; gap: 24px; margin-top: 28px; }
+  .fig-hero { grid-column: 8 / span 5; grid-row: 2 / -1; justify-self: end; align-self: start; width: min(400px, 100%); margin: 8px 0 0; }
+  .board-you .list { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+  .board-inv .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px 20px; }
+  .board-inv .thumb { aspect-ratio: 4 / 3; }
+  .board-needs .list { gap: 10px; }
+  .board-needs .need { padding: 0; } /* compact rows: the face carries the padding */
+  .board-needs .need-face { padding: 12px 14px; }
+  .board-needs .need-title { font-size: 16px; }
+  .board-needs .need-more { padding: 0 14px 12px; }
+
+  /* Item page: photo, item card, timeline and action on the left 7 columns; the plan and the thread on the right 5,
+     sticky under the top bar with their own scroll. The scroll is bottom-anchored (column-reverse), so a fresh render
+     opens on the newest message; the plan card and the composer stay pinned. Without a thread: photo left, the cards
+     beside it. */
+  .item-page { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: repeat(5, auto) 1fr; column-gap: 32px; align-items: start; }
+  .item-page > * { grid-column: 1 / span 7; }
+  .item-page > .back { grid-column: 1 / -1; justify-self: start; }
+  .item-page > .thread {
+    grid-column: 8 / span 5;
+    grid-row: 2 / -1;
+    position: sticky;
+    top: 88px;
+    display: flex;
+    flex-direction: column-reverse;
+    max-height: calc(100vh - 176px); /* fits the viewport before it sticks too (it starts level with the photo) */
+    max-height: calc(100dvh - 176px);
+    margin: 18px -6px 0;
+    padding: 0 6px 6px; /* room inside the scroller for the 3 px shadows and the focus ring (nothing reaches above the plan) */
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+  .item-page > .thread > .thread-live { order: 1; display: flex; flex-direction: column; gap: 18px; } /* flex, not grid: the plan can stick */
+  .item-page > .thread .plan { position: sticky; top: 0; z-index: 1; }              /* the plan stays on top while messages scroll */
+  .item-page > .thread > .composer {                                                    /* and the composer at the bottom, */
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    box-shadow: var(--focus, var(--none)), var(--lift-sm), 0 6px 0 6px var(--cream);       /* a cream skirt over the padding below */
+  }
+  .item-page:not(:has(> .thread)) > .detail-photo { grid-row: 2 / -1; }
+  .item-page:not(:has(> .thread)) > :is(.detail-head, .timeline, .action) { grid-column: 8 / span 5; }
+
+  /* Give and pile review: the photo (sticky) on the left 6 columns, the cards on the right 6. Picking a photo uses
+     the full width. */
+  .give-page > .segmented { max-width: 400px; }
+  .give-page > .drop { min-height: 360px; }
+  .give-split { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: 32px; align-items: start; }
+  .give-split > .give-photo { grid-column: 1 / span 6; position: sticky; top: 88px; }
+  .give-split > .give-cards { grid-column: 7 / span 6; margin-top: 0; }
+
+  /* Ask: one centred 640 px column. */
+  .ask-page { max-width: 640px; margin-inline: auto; }
+}

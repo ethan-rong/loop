@@ -559,7 +559,7 @@ function boardView() {
   const forYou = live.filter((i) => bannerFor(i));
   const grabs = live.filter((i) => !bannerFor(i));
   const allNeeds = state.ui.needsAll;
-  return html`<div class="stack">
+  return html`<div class="stack board">
     <section class="hero">
       <h1>Post what you don't need.</h1>
       <p class="lead">Someone nearby takes it. No names, no accounts.</p>
@@ -569,12 +569,12 @@ function boardView() {
         <a class="quiet-link" href="#/ask">Ask for something</a>
       </div>
     </section>
-    ${forYou.length ? html`<section class="stack-sm" aria-labelledby="h-you"><h2 id="h-you" class="section-title">For you</h2><ul class="list">${forYou.map(forYouCard)}</ul></section>` : ''}
-    <section class="stack-sm" aria-labelledby="h-grabs">
+    ${forYou.length ? html`<section class="stack-sm board-you" aria-labelledby="h-you"><h2 id="h-you" class="section-title">For you</h2><ul class="list">${forYou.map(forYouCard)}</ul></section>` : ''}
+    <section class="stack-sm board-inv" aria-labelledby="h-grabs">
       <h2 id="h-grabs" class="section-title">Inventory</h2>
       ${grabs.length ? html`<ul class="grid">${grabs.map(itemCard)}</ul>` : html`<div class="empty glass">${basketFig()}<p>Nothing up for grabs yet. Got something you don't use? Post it.</p></div>`}
     </section>
-    <section class="stack-sm" aria-labelledby="h-needs">
+    <section class="stack-sm board-needs" aria-labelledby="h-needs">
       <h2 id="h-needs" class="section-title">People need</h2>
       ${needs.length ? html`<ul class="list" id="needs">${(allNeeds ? needs : needs.slice(0, NEED_LIMIT)).map(needCard)}</ul>` : html`<div class="empty glass">${grabs.length ? basketFig() : ''}<p>No open requests right now.</p></div>`}
       ${needs.length > NEED_LIMIT ? html`<button class="btn btn-ghost btn-small more" id="needs-all" data-action="toggle-needs" aria-expanded="${String(allNeeds)}" aria-controls="needs">${allNeeds ? 'Show fewer' : `Show all (${needs.length})`}</button>` : ''}
@@ -630,7 +630,7 @@ function itemView(id) {
   const item = itemOf(id);
   if (!item) return notFoundView();
   const mine = item.ownerId === state.me;
-  return html`<div class="stack">
+  return html`<div class="stack item-page">
     ${backLink()}
     <figure class="photo-frame glass detail-photo"><img src="${item.photo}" alt="Photo of ${item.title}" style="view-transition-name:${vtName(item.id)}"></figure>
     <section class="glass card detail-head">
@@ -948,7 +948,7 @@ function giveView() {
   const head = html`${backLink()}<h1>Post something</h1><p class="appear">Nothing identifies you. The pickup code proves it's you at the handoff.</p>`;
   if (state.giveMode === 'pile') return pileView(head);
   if (g.phase === 'pick') {
-    return html`<div class="stack">${head}${modeSwitch()}${g.error ? html`<p class="notice error">${g.error}</p>` : ''}${dropZone()}${textIn()}</div>`;
+    return html`<div class="stack give-page">${head}${modeSwitch()}${g.error ? html`<p class="notice error">${g.error}</p>` : ''}${dropZone()}${textIn()}</div>`;
   }
   const busy = g.phase === 'uploading' || g.phase === 'drafting';
   let body = reviewCards(g);
@@ -958,9 +958,11 @@ function giveView() {
   const swap = g.phase === 'review' && !isManual(g) && !g.draft.notAllowed
     ? html`<div class="swap"><button class="btn btn-ghost btn-small" id="new-photo" data-action="new-photo">${icon('camera')} Use a different photo</button></div>`
     : '';
-  return html`<div class="stack">${head}
-    <figure class="photo-frame glass ${busy ? 'is-busy' : ''}"><img src="${g.previewUrl}" alt="Your photo"></figure>
-    ${swap}${body}
+  return html`<div class="stack give-page">${head}
+    <div class="stack give-split">
+      <div class="stack give-photo"><figure class="photo-frame glass ${busy ? 'is-busy' : ''}"><img src="${g.previewUrl}" alt="Your photo"></figure>${swap}</div>
+      <div class="stack give-cards">${body}</div>
+    </div>
   </div>`;
 }
 
@@ -1103,7 +1105,7 @@ function pileMatch(it) { // the open request this item may be offered to, if it 
 function pileView(head) {
   const p = state.pile;
   if (p.phase === 'pick') {
-    return html`<div class="stack">${head}${modeSwitch()}${p.error ? html`<p class="notice error">${p.error}</p>` : ''}
+    return html`<div class="stack give-page">${head}${modeSwitch()}${p.error ? html`<p class="notice error">${p.error}</p>` : ''}
       ${dropZone('Take or choose a photo of a pile', "Up to six things in one photo. Gemini outlines each one and drafts its listing. You check them, and nothing goes up until you say so.")}${textIn()}</div>`;
   }
   let body = pileReview(p);
@@ -1111,12 +1113,13 @@ function pileView(head) {
   else if (p.phase === 'failed') body = failedCard(p);
   else if (p.aiError || !p.items.length) body = pileExplainCard(p);
   const outlined = p.phase === 'review' ? p.items.filter((it) => it.box) : [];
-  return html`<div class="stack">${head}
+  return html`<div class="stack give-page">${head}
+    <div class="stack give-split"><div class="stack give-photo">
     <figure class="photo-frame glass pile-photo ${p.phase === 'sorting' ? 'is-busy' : ''}">
       <img src="${p.previewUrl}" alt="${outlined.length ? `Your photo, with ${outlined.length} things outlined and numbered` : 'Your photo'}">
       ${outlined.map((it) => html`<span class="pile-box ${isPending(it) || it.itemId ? '' : 'is-off'}" style="${boxStyle(it.box)}" aria-hidden="true"><span class="pile-num">${it.n}</span></span>`)}
-    </figure>
-    ${body}
+    </figure></div>
+    <div class="stack give-cards">${body}</div></div>
   </div>`;
 }
 
@@ -1217,7 +1220,7 @@ function askView() {
   const result = state.ui.askResult;
   if (result) return askDoneView(result);
   const { title, details } = state.ui.ask;
-  return html`<div class="stack">
+  return html`<div class="stack ask-page">
     ${backLink()}
     <form class="glass card" data-form="ask" novalidate>
       <h1>Ask for something</h1>
@@ -1238,7 +1241,7 @@ function askView() {
 
 function askDoneView(result) {
   const suggestions = (result.suggestions ?? []).map((s) => ({ ...s, item: itemOf(s.itemId) })).filter((s) => s.item);
-  return html`<div class="stack">
+  return html`<div class="stack ask-page">
     ${backLink()}
     <section class="glass card">
       <div class="success"><span class="check-badge">${icon('check')}</span><div><h1>Posted</h1><p class="muted">${result.request?.title ?? ''}</p></div></div>
