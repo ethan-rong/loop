@@ -1,6 +1,6 @@
 {
- "total": 99.99,
- "speechEnd": 96.99,
+ "total": 103.04,
+ "speechEnd": 100.04,
  "wpm": 178,
  "voice": "raw/voice/vo-minimax.wav",
  "beats": [
@@ -87,16 +87,16 @@
   {
    "id": 11,
    "shot": "11 · a pile → six drafts",
-   "start": 77.83,
-   "end": 87.47,
+   "start": 80.88,
+   "end": 90.52,
    "text": "Have a whole pile of stuff? Gemini can turn a single photo into separate listings and see who might need them. You review the drafts, just like before.",
    "audio": "raw/voice/beats/beat-11.mp3"
   },
   {
    "id": 12,
    "shot": "13–14 · code cards → end card",
-   "start": 88.17,
-   "end": 96.99,
+   "start": 91.22,
+   "end": 100.04,
    "text": "From one lamp to a whole pile, the idea stays the same: make the process simpler, so we waste less and make it easier for people in the community to help each other out.",
    "audio": "raw/voice/beats/beat-12.mp3"
   }

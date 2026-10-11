@@ -1,0 +1,104 @@
+{
+ "total": 99.99,
+ "speechEnd": 96.99,
+ "wpm": 178,
+ "voice": "raw/voice/vo-minimax.wav",
+ "beats": [
+  {
+   "id": 1,
+   "shot": "1 · watercolor lamp → dumpster",
+   "start": 0.6,
+   "end": 10.41,
+   "text": "We all have stuff we don’t use anymore. Maybe you got a new lamp, and the old one’s just sitting there. For you, it’s taking up space. For someone else, it could be exactly what they need.",
+   "audio": "raw/voice/beats/beat-01.mp3"
+  },
+  {
+   "id": 2,
+   "shot": "2 · LISTINGS STOP AT “POSTED”",
+   "start": 10.86,
+   "end": 17.98,
+   "text": "Giving it away should be simple. Less waste. One less thing to buy. But posting is only the beginning. There’s still a pickup to arrange.",
+   "audio": "raw/voice/beats/beat-02.mp3"
+  },
+  {
+   "id": 3,
+   "shot": "3 · the knot (3D) → Loop",
+   "start": 18.78,
+   "end": 20.61,
+   "text": "That’s why I built Loop.",
+   "audio": "raw/voice/beats/beat-03.mp3"
+  },
+  {
+   "id": 4,
+   "shot": "4 · the board (desktop)",
+   "start": 21.21,
+   "end": 24.62,
+   "text": "Post what you’re giving away. Or ask for what you need.",
+   "audio": "raw/voice/beats/beat-04.mp3"
+  },
+  {
+   "id": 5,
+   "shot": "5 · taker posts a need",
+   "start": 25.07,
+   "end": 28.48,
+   "text": "Say someone needs a lamp, and you have one.",
+   "audio": "raw/voice/beats/beat-05.mp3"
+  },
+  {
+   "id": 6,
+   "shot": "6 · photo → Gemini draft → match",
+   "start": 28.93,
+   "end": 39.08,
+   "text": "With just a photo, Gemini drafts the listing and finds their request. You check the details, correct the condition, and approve it. Gemini does the drafting. You make the decision.",
+   "audio": "raw/voice/beats/beat-06.mp3"
+  },
+  {
+   "id": 7,
+   "shot": "7 · the ticket",
+   "start": 39.53,
+   "end": 43.07,
+   "text": "They accept and get a four-digit pickup code.",
+   "audio": "raw/voice/beats/beat-07.mp3"
+  },
+  {
+   "id": 8,
+   "shot": "8 · Loop in the thread",
+   "start": 43.52,
+   "end": 53.37,
+   "text": "Then Loop joins the conversation. It asks you first, because you’re the one giving. Just tell Loop when and where: “Tomorrow at noon, Davis Library.” The other person confirms. Loop reminds you both.",
+   "audio": "raw/voice/beats/beat-08.mp3"
+  },
+  {
+   "id": 9,
+   "shot": "9 · the code → KEPT IN USE",
+   "start": 53.82,
+   "end": 62.82,
+   "text": "At pickup, they show you the code. You enter it. Done. No personal details to exchange. Even when you meet. All you need is the code.",
+   "audio": "raw/voice/beats/beat-09.mp3"
+  },
+  {
+   "id": 10,
+   "shot": "10 · iPhone: Messages (Photon)",
+   "start": 63.52,
+   "end": 77.38,
+   "text": "And the whole thing works in Messages. Through Photon’s Spectrum, Loop has its own iMessage number. Text it a photo. Give the draft a thumbs-up. Text a time. Enter the code at pickup. No app needed. And your phone number stays private.",
+   "audio": "raw/voice/beats/beat-10.mp3"
+  },
+  {
+   "id": 11,
+   "shot": "11 · a pile → six drafts",
+   "start": 77.83,
+   "end": 87.47,
+   "text": "Have a whole pile of stuff? Gemini can turn a single photo into separate listings and see who might need them. You review the drafts, just like before.",
+   "audio": "raw/voice/beats/beat-11.mp3"
+  },
+  {
+   "id": 12,
+   "shot": "13–14 · code cards → end card",
+   "start": 88.17,
+   "end": 96.99,
+   "text": "From one lamp to a whole pile, the idea stays the same: make the process simpler, so we waste less and make it easier for people in the community to help each other out.",
+   "audio": "raw/voice/beats/beat-12.mp3"
+  }
+ ]
+}
