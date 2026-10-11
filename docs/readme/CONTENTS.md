@@ -11,5 +11,5 @@ Screenshots: Playwright, 1440×900 at deviceScaleFactor 2, downscaled to 1440 px
 - `kept.png` 1440×900, 290324 bytes: Mock. Taker's item page after the giver confirmed the code: Collected by you, KEPT IN USE stamp, Pass it on again; closed thread on the right.
 - `pile.png` 1440×900, 192311 bytes: Mock. A pile: pile.jpg with 3 outlined, numbered items and the per-item drafts.
 - `phone.png` 900×1800, 397164 bytes: Real. iPhone Messages (dark mode) frame at 17.0 s of film/raw/phone/imessage-take1.mov, scaled to 900 wide and cropped: Loop's message with Works for me / Suggest another time.
-- `loop.gif` 800�450, 5840434 bytes: Real. film/out/loop-film.mp4 40.5-58.5 s at 2× speed, 9.0 s, 12 fps, palette pass: ticket appears, Loop proposes / people confirm, Hand it over, KEPT IN USE. 800 px wide: the 960 px version was 6.3 MB.
+- `loop.gif` 800×450, 5840434 bytes: Real. film/out/loop-film.mp4 40.5-58.5 s at 2× speed, 9.0 s, 12 fps, palette pass: ticket appears, Loop proposes / people confirm, Hand it over, KEPT IN USE. 800 px wide: the 960 px version was 6.3 MB.
 - `architecture.mmd` text, 459 bytes: Mermaid flowchart LR (Browser, Express 5 API, JSON store, Gemini 3.5 Flash-Lite, Photon Spectrum SDK, iMessage, macOS sips). Not rendered or syntax-checked.
