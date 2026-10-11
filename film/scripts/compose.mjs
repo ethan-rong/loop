@@ -63,11 +63,11 @@ const FOOTAGE = {
   4: [cut('L', 'board', 0.11, 3.97, [60, 60, 1380, 720], 1.2, 16)], // the board: hero, Inventory, People need
   5: [cut('R', 'type-ask', 0.45, 2.15, [380, 140, 1030, 620], 1.4, 15), // typing the ask
     cut('R', 'needs-visible', 0.06, 2.22, [890, 340, 1340, 650], 1.6, 12)], // result: it sits under People need
-  6: [cut('L', 'photo', -0.2, 3.69, [40, 100, 1400, 760], 1.2, 14), // photo in, Gemini looks at it: photo + card, whole page
-    cut('L', 'match', -0.3, 2.9, [700, 540, 1360, 800], 1.5, 14), // the match card
+  6: [cut('L', 'photo:set', 0.3, 4.2, [40, 100, 1400, 760], 1.2, 14), // photo in, Gemini looks at it: photo + card, whole page
+    cut('L', 'match', -0.05, 3.15, [700, 540, 1360, 800], 1.5, 14), // the match card
     cut('L', 'fair', -0.5, 1.3, [680, 180, 1330, 480], 1.5, 14, true), // correct the condition: Fair
     cut('L', 'offer', -0.8, 0.91, [650, 620, 1300, 770], 1.5, 14, true)], // approve: Offer to them
-  7: [cut('R', 'open-reserve', -0.6, 0.4, [860, 560, 1380, 800], 1.5, 14, true), // Accept & reserve (1.0 s click cut)
+  7: [cut('R', 'open-reserve', -0.9, 0.1, [860, 560, 1380, 800], 1.5, 14, true), // Accept & reserve (1.0 s click cut)
     cut('R', 'ticket', 0.1, 3.09, [60, 280, 760, 560], 1.6, 14)], // the ticket holds
   // Beat 8 is a split screen of the two thread columns; pane = the side the action is on, fy = the thread row.
   8: [split('L', 'loop-asks', -0.3, 2.2, 380), split('L', 'pick-time', -0.8, ['propose', 0.6], 540),
@@ -77,9 +77,9 @@ const FOOTAGE = {
     cut('R', 'pass-on', -0.5, 3.37, [60, 290, 810, 530], 1.5, 14)],
   10.5: [cut('R', 'works', -0.2, 0.75, [840, 70, 1385, 310], 2.0, 10)], // PLANNING -> SET, "YOU AGREED"
   // Beat 11 (77.6-91.2): sorting during the breath, the six boxes held under "Have a whole pile of stuff?", the scroll.
-  11: [cut('Q', 'pile-photo', -0.1, 2.5, [60, 220, 1300, 660], 1.5, 13), // one photo in, "Gemini is sorting the pile..." (2.6 s)
-    cut('Q', 'pile-review', -0.1, 4.4, [40, 100, 1400, 760], 1.2, 14), // "Gemini found 6 things", the boxes (4.5 s)
-    cut('Q', 'pile-card-2', -0.2, ['pile-scrolled', 1.29], [640, 130, 1400, 790], 1.3, 14)], // drafts 1-6 to "List 6 items"
+  11: [cut('Q', 'pile-photo:set', -1.6, 2.0, [60, 140, 1300, 660], 1.5, 13), // the "A pile" pick page held 1.6 s, the photo lands, sorting (3.6 s)
+    cut('Q', 'pile-review', -0.1, 4.1, [40, 100, 1400, 760], 1.2, 14), // "Gemini found 6 things", the boxes (4.2 s)
+    cut('Q', 'pile-card-2', 0.3, ['pile-scrolled', 1.09], [640, 130, 1400, 790], 1.3, 14)], // drafts 1-6 to "List 6 items" (5.8 s)
 };
 const REFUSAL = ['R', M('R', 'refusal'), 600]; // old shot 12 [pane, Loop's refusal on screen, focus row], under the last sentence of beat 10
 const STAMP_CSS = [460, 430]; // where the KEPT IN USE stamp sits on the giver's page (CSS px)
@@ -397,6 +397,7 @@ function codeTicks(at, dur) {
   });
 }
 sfx.sort((a, b) => a.t - b.t);
+writeFileSync(new URL('../out/review/placed.json', import.meta.url).pathname, JSON.stringify(placed.map((p) => ({ ...p, from: f3(p.from), to: f3(p.to), at: f3(p.at) }))));
 const REVIEW = new URL('../out/review/', import.meta.url).pathname;
 writeFileSync(`${REVIEW}cut-checks.txt`, `${checks.join('\n')}\n\nshot 10 (phone):\n${phoneCuts.join('\n')}\n`);
 writeFileSync(`${REVIEW}sfx-cues.json`, JSON.stringify(sfx.map((c) => ({ ...c, t: f3(c.t) })), null, 1));
