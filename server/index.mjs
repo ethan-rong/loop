@@ -8,6 +8,7 @@ import { channelStatus, forwardNewMessages, forwardTranslation, sendToPerson, st
 import { coordinate } from './coordinator.mjs';
 import { CATEGORIES, CONDITIONS, clamp, describeItem, isMock, modelName, suggestItems } from './gemini.mjs';
 import { pileRouter } from './pile.mjs';
+import { convertRouter } from './convert.mjs';
 import { resetToSeed } from './seed.mjs';
 import * as store from './store.mjs';
 import { handleInbound, itemPosted, startTextflow } from './textflow.mjs';
@@ -186,7 +187,7 @@ app.post('/api/items/:id/reserve', (req, res) => {
   res.json(commit(store.reserveItem(db, req.params.id, {
     personId: text(b, 'personId', ID_MAX),
     requestId: text(b, 'requestId', ID_MAX, false) || null,
-    place: text(b, 'place', 60, false) || null, // optional since SPEC2: the owner can pick in the thread
+    place: text(b, 'place', 100, false) || null, // optional since SPEC2: the owner can pick in the thread
     time: text(b, 'time', 40, false) || null,
     timeISO: isoTime(b, 'timeISO'),
   })).item);
@@ -221,6 +222,7 @@ app.post('/api/reset', (req, res) => {
 
 // Pile photo (SPEC2 §2, Lane E): POST /api/items/pile and POST /api/photos.
 app.use('/api', pileRouter);
+app.use(convertRouter);
 
 // ---- Handoff threads (SPEC2 §1) ----
 // Button taps and the coordinator's suggestions go through the same store transitions.
@@ -273,7 +275,7 @@ app.post('/api/threads/:id/actions', (req, res) => {
   const action = oneOf(b, 'action', Object.keys(THREAD_ACTIONS));
   const { thread } = commit(THREAD_ACTIONS[action](db, req.params.id, {
     personId: text(b, 'personId', ID_MAX),
-    place: text(b, 'place', 60, false) || null,
+    place: text(b, 'place', 100, false) || null,
     time: text(b, 'time', 40, false) || null,
     timeISO: isoTime(b, 'timeISO'),
   }));

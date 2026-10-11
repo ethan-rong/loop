@@ -11,7 +11,6 @@ const UPLOAD_TIMEOUT_MS = 60000;
 const MAX_SIDE = 1024;
 const JPEG_QUALITY = 0.85;
 const PLACES = ['Davis Library lobby', 'Student Union', 'Dorm front desk'];
-const TIMES = ['Today 5 pm', 'Today 8 pm', 'Tomorrow noon'];
 const CONDITIONS = ['good', 'fair', 'worn'];
 const CATEGORIES = ['furniture', 'lighting', 'kitchen', 'textbooks', 'electronics', 'clothing', 'bedding', 'sports', 'other'];
 /* SPEC4 §F campus map: schematic spots on a 0-100 grid (x right, y down), Franklin St on top, South Campus at the
@@ -38,7 +37,6 @@ const DONE_TEXT = {
   withdraw: "You took it back. It's off the board.",
 };
 /* Phase 2: handoff threads and pile photos. */
-const QUICK_TIMES = { 'Today 5 pm': [0, 17], 'Today 8 pm': [0, 20], 'Tomorrow noon': [1, 12] }; // [days from today, hour] in New York
 const OPEN_THREAD = ['planning', 'set', 'meeting'];
 const THREAD_CHIP = { planning: ['Planning', 'open'], set: ['Set', 'available'], meeting: ['Meeting now', 'reserved'], done: ['Done', 'collected'], cancelled: ['Cancelled', 'withdrawn'] };
 const THREAD_ACTIONS = ['accept', 'propose', 'arrived', 'cancel', 'enter_code']; // enter_code never goes to the server
@@ -96,7 +94,7 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const freshUi = () => ({
   notice: null, // { text, tone, where } for the current view; where = 'thread' puts it in the conversation
   reserveOpen: false,
-  reserve: { place: '', time: '' }, // both optional: people can settle it in the thread
+  reserve: { place: '', spot: '', when: '' }, // all optional: people can settle it in the thread
   propose: null, // { threadId, place, time } while "Suggest another time" is open
   composer: {}, // thread id -> unsent message
   code: '',
@@ -198,18 +196,24 @@ function nyWall(ms) { // New York's wall clock at instant ms, written as if it w
   const p = Object.fromEntries(NEW_YORK.formatToParts(ms).map(({ type, value }) => [type, Number(value)]));
   return Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute);
 }
-function quickTimeISO(label, now = Date.now()) {
-  const slot = QUICK_TIMES[label];
-  if (!slot) return null; // free text: the server gets no timeISO
-  const today = new Date(nyWall(now));
-  const wall = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + slot[0], slot[1]);
-  let at = wall - (nyWall(wall) - wall); // offset guessed at the wall time itself
-  at = wall - (nyWall(at) - at); // then taken at the real instant, so DST change days land right
-  return at > now ? new Date(at).toISOString() : null; // "Today 5 pm" at 6 pm has no future moment
+/* The plan's time comes from a date-time picker; this label is what both people, Loop and the iMessage line read. */
+const DAY_MS = 86_400_000;
+const NY_CLOCK = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' });
+const NY_DATE = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'short', month: 'short', day: 'numeric' });
+function timeLabel(ms, now = Date.now()) {
+  const days = Math.floor(nyWall(ms) / DAY_MS) - Math.floor(nyWall(now) / DAY_MS);
+  const day = days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : `${NY_DATE.format(ms)},`;
+  return `${day} ${NY_CLOCK.format(ms).toLowerCase()}`.replace(/[\u202f\u00a0]/g, ' ');
 }
-console.assert(quickTimeISO('Today 5 pm', Date.parse('2026-10-10T17:37:00Z')) === '2026-10-10T21:00:00.000Z', 'quick time: EDT');
-console.assert(quickTimeISO('Tomorrow noon', Date.parse('2026-10-31T17:00:00Z')) === '2026-11-01T17:00:00.000Z', 'quick time: across the DST change');
-console.assert(quickTimeISO('Today 5 pm', Date.parse('2026-10-10T22:00:00Z')) === null, 'quick time: already passed');
+console.assert(timeLabel(Date.parse('2026-10-10T21:00:00Z'), Date.parse('2026-10-10T17:37:00Z')) === 'Today 5:00 pm', 'time label: today');
+console.assert(timeLabel(Date.parse('2026-10-11T16:00:00Z'), Date.parse('2026-10-10T17:37:00Z')) === 'Tomorrow 12:00 pm', 'time label: tomorrow');
+console.assert(timeLabel(Date.parse('2026-10-13T16:30:00Z'), Date.parse('2026-10-10T17:37:00Z')) === 'Tue Oct 13, 12:30 pm', 'time label: later');
+// The picker's earliest value: now, rounded up to 5 minutes, in the browser's own zone (datetime-local is local time).
+function localInputValue(ms) {
+  const d = new Date(Math.ceil(ms / 300_000) * 300_000);
+  const two = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}T${two(d.getHours())}:${two(d.getMinutes())}`;
+}
 
 /* Two announcements in one burst (pickup code, then Loop's message) are read together, not the last one only. */
 let announcing = '';
@@ -562,7 +566,6 @@ function boardView() {
   return html`<div class="stack board">
     <section class="hero">
       <h1>Post what you don't need.</h1>
-      <p class="lead">Someone nearby takes it. No names, no accounts.</p>
       <div class="fig fig-hero" id="fig-hero" data-fig="hero" aria-hidden="false"></div>
       <div class="hero-actions">
         <a class="btn btn-primary" href="#/give">${icon('camera')} Post something</a>
@@ -714,11 +717,10 @@ function reserveBlock(item, offeredReq) {
       ${noticeBlock()}
       <div class="actions"><button class="btn btn-primary btn-moment btn-block" id="open-reserve" data-action="open-reserve">Reserve</button></div>`;
   }
-  const { place, time } = state.ui.reserve;
   return html`<form class="stack-sm" data-form="reserve" data-request="${offeredReq?.id ?? ''}" novalidate>
     <h2 id="action-title">Suggest a time and place <span class="optional">(optional)</span></h2>
     <p class="muted small">Or leave it blank and work it out with the giver in the chat; they're handing it over, so their time comes first.</p>
-    ${placeTimeFields('reserve', place, time)}
+    ${placeTimeFields('reserve', state.ui.reserve)}
     ${noticeBlock()}
     <div class="actions">
       <button class="btn btn-primary btn-moment" type="submit" id="reserve-submit">${busyText('reserve', offeredReq ? 'Accept & reserve' : 'Reserve', 'Reserving…')}</button>
@@ -727,21 +729,21 @@ function reserveBlock(item, offeredReq) {
   </form>`;
 }
 
-/* Quick picks plus free text; shared by the reserve form and "Suggest another time". Both fields are optional. */
+/* Area chips plus the exact spot, and a date-time picker; shared by the reserve form and "Suggest another time".
+   Everything is optional. */
 const pickButton = (scope, field, value, i, current) => html`<button type="button" class="pick" id="${scope === 'reserve' ? 'pick' : scope}-${field}-${i}" data-action="pick" data-scope="${scope}" data-field="${field}" data-value="${value}" aria-pressed="${String(value === current)}">${icon('check', 'tick')}${value}</button>`;
-function placeTimeFields(scope, place, time) {
+function placeTimeFields(scope, { place, spot, when }) {
   const id = (field) => (scope === 'reserve' ? `${field}-input` : `${scope}-${field}`);
   return html`<fieldset class="field">
       <legend class="label">Meet at</legend>
       <div class="picks">${MEET_PLACES.map((v, i) => pickButton(scope, 'place', v, i, place))}</div>
-      <label class="sr-only" for="${id('place')}">Or type a place</label>
-      <input id="${id('place')}" class="input" name="place" data-scope="${scope}" maxlength="60" autocomplete="off" placeholder="Or type a place" value="${place}">
+      <label class="sr-only" for="${id('spot')}">Exactly where</label>
+      <input id="${id('spot')}" class="input" name="spot" data-scope="${scope}" maxlength="40" autocomplete="off" placeholder="Exactly where? e.g. front entrance, by the printers" value="${spot}">
     </fieldset>
     <fieldset class="field">
-      <legend class="label">Time</legend>
-      <div class="picks">${TIMES.map((v, i) => pickButton(scope, 'time', v, i, time))}</div>
-      <label class="sr-only" for="${id('time')}">Or type a time</label>
-      <input id="${id('time')}" class="input" name="time" data-scope="${scope}" maxlength="40" autocomplete="off" placeholder="Or type a time" value="${time}">
+      <legend class="label">When</legend>
+      <label class="sr-only" for="${id('when')}">Date and time</label>
+      <input id="${id('when')}" class="input input-when" type="datetime-local" name="when" data-scope="${scope}" step="300" min="${localInputValue(Date.now())}" value="${when}">
     </fieldset>`;
 }
 const meetGrid = (place, time) => html`<dl class="meet"><div><dt>Where</dt><dd>${place || NOT_SET}</dd></div><div><dt>When</dt><dd>${time || NOT_SET}</dd></div></dl>`;
@@ -923,7 +925,7 @@ function proposeForm(t) {
   const title = t.plan.place || t.plan.time ? 'Suggest another time or place' : 'Suggest a time and place';
   return html`<form class="glass card stack-sm" data-form="propose" novalidate aria-labelledby="propose-title">
     <h3 id="propose-title">${title}</h3>
-    ${placeTimeFields('propose', p.place, p.time)}
+    ${placeTimeFields('propose', p)}
     <div class="actions">
       <button class="btn btn-primary" type="submit" id="propose-submit">${busyText('thread:propose', `Suggest to the ${roleIn(t, otherIn(t))}`, 'Sending…')}</button>
       <button class="btn btn-ghost" type="button" data-action="close-propose">Cancel</button>
@@ -950,17 +952,17 @@ function giveView() {
   if (g.phase === 'pick') {
     return html`<div class="stack give-page">${head}${modeSwitch()}${g.error ? html`<p class="notice error">${g.error}</p>` : ''}${dropZone()}${textIn()}</div>`;
   }
+  if (g.phase === 'failed') return html`<div class="stack give-page">${head}<div class="give-center">${failedCard(g)}</div></div>`;
   const busy = g.phase === 'uploading' || g.phase === 'drafting';
   let body = reviewCards(g);
   if (busy) body = draftingCard(g);
-  else if (g.phase === 'failed') body = failedCard(g);
   // The failure cards carry their own "Try another photo"; a good draft needs a way out too.
   const swap = g.phase === 'review' && !isManual(g) && !g.draft.notAllowed
     ? html`<div class="swap"><button class="btn btn-ghost btn-small" id="new-photo" data-action="new-photo">${icon('camera')} Use a different photo</button></div>`
     : '';
   return html`<div class="stack give-page">${head}
     <div class="stack give-split">
-      <div class="stack give-photo"><figure class="photo-frame glass ${busy ? 'is-busy' : ''}"><img src="${g.previewUrl}" alt="Your photo"></figure>${swap}</div>
+      <div class="stack give-photo"><figure class="photo-frame glass ${busy ? 'is-busy' : ''}">${g.previewUrl ? html`<img src="${g.previewUrl}" alt="Your photo">` : ''}</figure>${swap}</div>
       <div class="stack give-cards">${body}</div>
     </div>
   </div>`;
@@ -1108,15 +1110,15 @@ function pileView(head) {
     return html`<div class="stack give-page">${head}${modeSwitch()}${p.error ? html`<p class="notice error">${p.error}</p>` : ''}
       ${dropZone('Take or choose a photo of a pile', "Up to six things in one photo. Gemini outlines each one and drafts its listing. You check them, and nothing goes up until you say so.")}${textIn()}</div>`;
   }
+  if (p.phase === 'failed') return html`<div class="stack give-page">${head}<div class="give-center">${failedCard(p)}</div></div>`;
   let body = pileReview(p);
   if (p.phase === 'sorting') body = draftingCard(p, 'Gemini is sorting the pile…');
-  else if (p.phase === 'failed') body = failedCard(p);
   else if (p.aiError || !p.items.length) body = pileExplainCard(p);
   const outlined = p.phase === 'review' ? p.items.filter((it) => it.box) : [];
   return html`<div class="stack give-page">${head}
     <div class="stack give-split"><div class="stack give-photo">
     <figure class="photo-frame glass pile-photo ${p.phase === 'sorting' ? 'is-busy' : ''}">
-      <img src="${p.previewUrl}" alt="${outlined.length ? `Your photo, with ${outlined.length} things outlined and numbered` : 'Your photo'}">
+      ${p.previewUrl ? html`<img src="${p.previewUrl}" alt="${outlined.length ? `Your photo, with ${outlined.length} things outlined and numbered` : 'Your photo'}">` : ''}
       ${outlined.map((it) => html`<span class="pile-box ${isPending(it) || it.itemId ? '' : 'is-off'}" style="${boxStyle(it.box)}" aria-hidden="true"><span class="pile-num">${it.n}</span></span>`)}
     </figure></div>
     <div class="stack give-cards">${body}</div></div>
@@ -1322,18 +1324,33 @@ async function removeRequest(id) {
 
 const itemPath = (action) => `/api/items/${encodeURIComponent(state.route.id)}/${action}`;
 
-/* Place and time are optional; blank ones are left out so the two people settle them in the thread. */
-function planBody(place, time) {
+/* Place and time are optional; blank ones are left out so the two people settle them in the thread. The place is the
+   area chip plus the exact spot ("Davis Library lobby, by the printers"); the time is the picker's local value. */
+function planBody({ place, spot, when }) {
   const body = {};
-  if (place) body.place = place;
-  if (time) body.time = time;
-  const timeISO = quickTimeISO(time);
-  if (timeISO) body.timeISO = timeISO;
-  return body;
+  const where = [place.trim(), spot.trim()].filter(Boolean).join(', ');
+  if (where) body.place = where;
+  if (when) {
+    const at = new Date(when).getTime();
+    if (!(at > Date.now())) return { error: "Pick a time that's still ahead." };
+    body.time = timeLabel(at);
+    body.timeISO = new Date(at).toISOString();
+  }
+  return { body };
 }
+console.assert(planBody({ place: 'Student Union', spot: ' by the stairs ', when: '' }).body.place === 'Student Union, by the stairs', 'plan: area + spot');
+console.assert(planBody({ place: '', spot: '', when: '2000-01-01T10:00' }).error, 'plan: a past time is refused');
 
 async function reserveItem(requestId) {
-  const body = { personId: state.me, ...planBody(state.ui.reserve.place.trim(), state.ui.reserve.time.trim()) };
+  const { body: plan, error } = planBody(state.ui.reserve);
+  if (error) {
+    state.ui.notice = { text: error, tone: 'error' };
+    state.focusTarget = '#when-input';
+    render();
+    announce(error);
+    return;
+  }
+  const body = { personId: state.me, ...plan };
   if (requestId) body.requestId = requestId;
   await mutate('reserve', () => api('POST', itemPath('reserve'), body), (item) => {
     state.ui.reserveOpen = false;
@@ -1383,9 +1400,12 @@ async function threadAction(threadId, kind) {
   if (kind === 'enter_code') return focusCodeInput();
   const t = threadById(threadId);
   if (kind === 'propose') {
-    state.ui.propose = { threadId, place: t?.plan.place ?? '', time: '' };
+    const [area, ...rest] = (t?.plan.place ?? '').split(', '); // "Student Union, by the stairs" back into chip + spot
+    state.ui.propose = MEET_PLACES.includes(area)
+      ? { threadId, place: area, spot: rest.join(', '), when: '' }
+      : { threadId, place: '', spot: t?.plan.place ?? '', when: '' };
     state.ui.notice = null;
-    state.focusTarget = '#propose-time-0';
+    state.focusTarget = '#propose-place-0';
     return render();
   }
   if (kind === 'cancel' && !confirm(`Cancel this pickup? The reservation ends and it goes back on the board.`)) return;
@@ -1405,16 +1425,16 @@ async function submitPropose() {
   const p = state.ui.propose;
   const t = p && threadById(p.threadId);
   if (!t) return;
-  const place = p.place.trim();
-  const time = p.time.trim();
-  if (!time && (!place || place === t.plan.place)) {
-    state.ui.notice = { text: 'Pick a new time or place to suggest.', tone: 'error', where: 'thread' };
-    state.focusTarget = '#propose-time-0';
+  const { body: plan, error } = planBody(p);
+  const fail = error || (!plan.time && (!plan.place || plan.place === t.plan.place) ? 'Pick a new time or place to suggest.' : '');
+  if (fail) {
+    state.ui.notice = { text: fail, tone: 'error', where: 'thread' };
+    state.focusTarget = '#propose-when';
     render();
-    announce(state.ui.notice.text);
+    announce(fail);
     return;
   }
-  const body = { personId: state.me, action: 'propose', ...planBody(place, time) };
+  const body = { personId: state.me, action: 'propose', ...plan };
   await mutate('thread:propose', () => api('POST', threadPath(t.id, 'actions'), body), () => {
     state.ui.propose = null;
     state.focusTarget = '#thread-title';
@@ -1488,10 +1508,31 @@ function cropToJpeg(bitmap, box) {
   return canvas.toDataURL('image/jpeg', JPEG_QUALITY).split(',')[1];
 }
 
-async function toJpegBase64(file) {
-  const bitmap = await createImageBitmap(file);
+// The browser opens JPEG, PNG, WebP (and HEIC on Safari). Anything else goes to the server once and comes back as a
+// JPEG blob, used from then on, for the preview too. Throws when neither side can open it.
+async function decodeImage(file) {
   try {
-    return cropToJpeg(bitmap, null);
+    return { bitmap: await createImageBitmap(file), blob: file };
+  } catch {
+    const { jpegBase64 } = await api('POST', '/api/photos/convert', { imageBase64: await fileToBase64(file) });
+    const blob = new Blob([Uint8Array.from(atob(jpegBase64), (c) => c.charCodeAt(0))], { type: 'image/jpeg' });
+    return { bitmap: await createImageBitmap(blob), blob };
+  }
+}
+const fileToBase64 = (file) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = () => resolve(String(reader.result).split(',')[1]);
+  reader.onerror = () => reject(reader.error);
+  reader.readAsDataURL(file);
+});
+const PHOTO_OPEN_ERROR = "This photo couldn't be opened here. Try a JPEG or PNG.";
+const openError = (err) => (err?.code === 'unsupported_image' || err?.code === 'too_large' ? err.message : PHOTO_OPEN_ERROR);
+
+// {imageBase64, blob}: the listing JPEG (at most 1024 px a side) and a blob the browser can show.
+async function toJpegBase64(file) {
+  const { bitmap, blob } = await decodeImage(file);
+  try {
+    return { imageBase64: cropToJpeg(bitmap, null), blob };
   } finally {
     bitmap.close?.();
   }
@@ -1506,15 +1547,16 @@ async function onPhoto(file) {
     render();
     return;
   }
-  g.previewUrl = URL.createObjectURL(file);
   g.phase = 'uploading';
   render();
   announce('Uploading your photo…');
   try {
-    g.imageBase64 = await toJpegBase64(file);
-  } catch {
+    const { imageBase64, blob } = await toJpegBase64(file);
     if (state.give !== g) return;
-    Object.assign(g, { phase: 'failed', error: "This photo couldn't be opened here. Try a JPEG or PNG.", canRetry: false });
+    Object.assign(g, { imageBase64, previewUrl: URL.createObjectURL(blob) });
+  } catch (err) {
+    if (state.give !== g) return;
+    Object.assign(g, { phase: 'failed', error: openError(err), canRetry: false });
     render();
     return;
   }
@@ -1649,13 +1691,15 @@ async function onPilePhoto(file) {
     render();
     return;
   }
-  Object.assign(p, { file, previewUrl: URL.createObjectURL(file), phase: 'sorting' });
+  Object.assign(p, { file, phase: 'sorting' });
   render();
   try {
-    p.imageBase64 = await toJpegBase64(file);
-  } catch {
+    const { imageBase64, blob } = await toJpegBase64(file);
     if (state.pile !== p) return;
-    Object.assign(p, { phase: 'failed', error: "This photo couldn't be opened here. Try a JPEG or PNG.", canRetry: false });
+    Object.assign(p, { imageBase64, file: blob, previewUrl: URL.createObjectURL(blob) }); // crops read the shown blob
+  } catch (err) {
+    if (state.pile !== p) return;
+    Object.assign(p, { phase: 'failed', error: openError(err), canRetry: false });
     render();
     return;
   }
@@ -1752,7 +1796,7 @@ async function listPile() {
   const ownerId = state.me; // a reset mid-way gives this tab a new id: the rest must not list under it
   let bitmap = null;
   try {
-    bitmap = await createImageBitmap(p.file);
+    ({ bitmap } = await decodeImage(p.file));
   } catch {
     state.ui.notice = { text: "This photo couldn't be opened here. Try another photo.", tone: 'error' };
   }
