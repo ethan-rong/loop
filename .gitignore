@@ -16,3 +16,6 @@ film/**/*.webm
 film/**/*.mp4
 film/**/*.mp3
 film/**/*.aiff
+film/raw/
+film/**/*.png
+film/node_modules/

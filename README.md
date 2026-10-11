@@ -111,7 +111,7 @@ Not measured: behaviour under a real 429 (would burn quota), image accuracy beyo
 
 ## Attribution and AI disclosure
 
-- Built during the hacking window with AI coding assistance: **Claude Code** (Claude Fable 5.1 for planning, specification and review; Claude Opus for implementation). AI wrote most of the code under my direction; I set the scope and the rules (human approval at every step, honest AI drafts), reviewed the flows, tested the app end to end, and can explain how it works. Pre-event research on the rules and past winners used OpenAI Codex/ChatGPT; no code came from it.
+- Built during the hacking window with AI coding assistance: **Claude Code** (Claude Fable 5.1 for planning, specification and review; Claude Opus for implementation). AI wrote the code under my direction: I set the scope and the rules (human approval at every step, honest AI drafts, no identities), directed each change and design pass, and tested the flows myself, including the live iMessage path from my own phone. I have not reviewed every line; the server is about 2,500 lines across eight modules and I know what each one does. Pre-event research on the rules and past winners used OpenAI Codex/ChatGPT; no code came from it.
 - The product calls **Google Gemini** (`gemini-3.5-flash-lite`) through the Gemini API, and **Photon Spectrum** (`spectrum-ts`) for iMessage on a shared line.
 - **Express** (MIT), **spectrum-ts** (Photon). Fonts **Space Grotesk** and **JetBrains Mono** (SIL Open Font License), self-hosted.
 - **Hairline** figures by Lucas Marques (MIT), vendored in `public/vendor/`.
