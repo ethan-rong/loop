@@ -87,6 +87,12 @@ function fail(what, err) {
   console.warn(`${line}.${hint} Loop keeps working in the app.`);
 }
 
+// Tests only: forget every per-person memory (offers, DMs, queued texts, STOPs) between scenarios.
+export function resetChannel() {
+  for (const m of [spaces, queues, waiting, offers]) m.clear();
+  for (const set of [stopped, toldUnknown, sentTo]) set.clear();
+}
+
 // imessage = the channel is connected; a failed send doesn't change it (lastSendOk tells how the last send went).
 export const channelStatus = () => ({ imessage: connected, lastSendOk, lineNumber, linkedPhones: [...phones().keys()] });
 

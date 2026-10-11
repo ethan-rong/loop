@@ -149,9 +149,9 @@ async function anonymousPerson() {
   assert.ok(s.people.every((p) => Object.keys(p).join() === 'id,lang'), 'people are {id, lang} only');
   assert.deepEqual(s.people.find((p) => p.id === me.id), me);
   const t = s.threads.findLast((x) => x.itemId === 'i_book');
-  assert.deepEqual([t.ownerId, t.recipientId], ['jack', me.id]);
+  assert.deepEqual([t.ownerId, t.recipientId], ['ethan', me.id]); // seed items belong to the phone persona
   assert.deepEqual(t.messages.map((m) => [m.forPersonId, m.text]), [
-    ['jack', "Someone reserved your Intro to Psychology textbook (8th ed.). You're the one handing it over, so you pick: when and where works for you?"],
+    ['ethan', "Someone reserved your Intro to Psychology textbook (8th ed.). You're the one handing it over, so you pick: when and where works for you?"],
     [me.id, 'The giver will suggest a time and place; you can reply here too.'],
   ]);
   const said = (text) => ok(call('POST', `/api/threads/${t.id}/messages`, { personId: me.id, text })).then((r) => r.thread.messages);

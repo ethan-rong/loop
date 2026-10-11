@@ -21,7 +21,7 @@ for (const [id, phone] of Object.entries(PHONES)) process.env[`PHONE_${id.toUppe
 const store = await import('../server/store.mjs');
 const { resetToSeed } = await import('../server/seed.mjs');
 const { handleInbound, itemPosted, startTextflow } = await import('../server/textflow.mjs');
-const { channelStatus, forwardNewMessages, readMessage, receive, threadTexts } = await import('../server/channels/spectrum.mjs');
+const { channelStatus, forwardNewMessages, readMessage, receive, resetChannel, threadTexts } = await import('../server/channels/spectrum.mjs');
 
 const RUNS = 3;
 const LAMP_FILE = fileURLToPath(new URL('../public/seed/lamp.jpg', import.meta.url));
@@ -93,8 +93,11 @@ function take(personId) { // what that person's phone got since the last take
   outbox = outbox.filter((o) => o.personId !== personId);
   return mine;
 }
+let seedItems = 0; // items in seed.mjs: the published count is checked relative to it
 function fresh(...linked) {
+  resetChannel(); // offers, DMs and queued texts from the previous scenario must not answer this one
   db = resetToSeed(store.DATA_DIR, db?.version ?? 0);
+  seedItems = db.items.length;
   outbox = [];
   everSent = [];
   linkedNow = new Set(linked);
@@ -124,7 +127,7 @@ async function offerByText() {
   assert.equal(await say('ethan', 'condition fair'), `Updated: Adjustable desk lamp · fair · ${LAMP_LINE} ${FITS}`);
   assert.equal(await say('ethan', 'title: Blue adjustable desk lamp'), `Updated: Blue adjustable desk lamp · fair · ${LAMP_LINE} ${FITS}`);
   assert.equal(await say('ethan', 'dent on base'), `Updated: Blue adjustable desk lamp · fair (dent on base) · ${LAMP_LINE} ${FITS}`);
-  assert.equal(db.items.length, 2, 'nothing published before YES');
+  assert.equal(db.items.length, seedItems, 'nothing published before YES');
   assert.equal(await say('ethan', 'YES'), "Offered. I'll tell you when they accept and we'll sort out the pickup here.");
   const item = db.items.at(-1);
   assert.deepEqual(
@@ -237,7 +240,7 @@ async function edges() {
   await snap('ethan');
   assert.notEqual(db.textSessions.ethan.photoId, first, 'a new photo restarts the draft');
   await sleep(5);
-  commit(store.reserveItem(db, 'i_book', { personId: 'ethan' })); // a pickup thread newer than the draft
+  commit(store.reserveItem(db, 'i_book', { personId: 'jerry' })); // a pickup thread newer than the draft (ethan gives, jerry takes)
   assert.equal(await say('ethan', 'sounds good'), 'thread:ethan:sounds good');
   await sleep(5);
   await snap('ethan'); // now the draft is newer
@@ -249,6 +252,7 @@ async function edges() {
 // The channel with fake SDK messages: content shapes, routing, STOP, one number per person, and a reply that fails
 // twice waiting for the person's next text.
 async function channelChecks(run) {
+  resetChannel();
   const msg = (from, content, direction = 'inbound') => ({ platform: 'imessage', direction, sender: { id: from }, content });
   const text = (t) => ({ type: 'text', text: t });
   const photo = (mimeType = 'image/jpeg', name = 'IMG_0001.JPG') =>
@@ -350,7 +354,7 @@ async function oneTap() {
   await tap('😂', draftId);
   await tap('👍', 'some-other-message');
   await tap('👍', draftId, '+15550199999'); // not linked: no answer at all
-  assert.deepEqual([got.length, db.items.length, db.textSessions.ethan.state], [count, 2, 'drafting'], 'unrelated reactions are ignored');
+  assert.deepEqual([got.length, db.items.length, db.textSessions.ethan.state], [count, seedItems, 'drafting'], 'unrelated reactions are ignored');
   await tap('👍', draftId);
   assert.equal(got.at(-1), "Offered. I'll tell you when they accept and we'll sort out the pickup here.");
   assert.deepEqual([db.items.at(-1).status, db.items.at(-1).offeredToRequestId], ['offered', lampId], '👍 = YES');
