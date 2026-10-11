@@ -134,7 +134,12 @@ async function fullLoop() {
 // Reserve without a place/time: the owner picks, then the recipient agrees, all by typing (mock coordinator).
 async function ownerPicks() {
   const item = await ethanListsLamp();
-  await expect(call('POST', `/api/items/${item.id}/reserve`, { personId: 'jerry', place: 'Student Union' }), 400, 'missing_field');
+  const half = await ok(call('POST', `/api/items/${item.id}/reserve`, { personId: 'jerry', place: 'Student Union' })); // a place alone is accepted: Loop asks the giver for the time
+  assert.deepEqual([half.status, half.reservation.place, half.reservation.time], ['reserved', 'Student Union', null]);
+  const ht = await openThreadFor(item.id);
+  assert.equal(ht.messages[0].text, `Someone reserved your ${TITLE} and suggested Student Union. When works for you?`);
+  assert.deepEqual(ht.messages[0].actions, [{ label: 'Suggest a time and place', action: 'propose' }]);
+  await ok(call('POST', `/api/items/${item.id}/release`, { personId: 'jerry' }));
   const reserved = await ok(call('POST', `/api/items/${item.id}/reserve`, { personId: 'jerry' }));
   assert.deepEqual([reserved.status, reserved.reservation.place, reserved.reservation.time], ['reserved', null, null]);
   let t = await openThreadFor(item.id);

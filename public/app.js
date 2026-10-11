@@ -1683,10 +1683,12 @@ function sendDraft() {
     g.phase = 'drafting';
     requestRender();
     announce('Gemini is looking at your photo…');
-  }).then((res) => {
+  }).then(async (res) => {
     if (!current()) return;
     clearTimeout(g.slowTimer);
     setMock(Boolean(res.mock));
+    await refresh(); // same reason as the pile: the match card reads the request from this tab's board
+    if (!current()) return;
     Object.assign(g, { phase: 'review', photoId: res.photoId, draft: res.draft ?? null, aiError: res.aiError ?? null, form: formFromDraft(res.draft) });
     requestRender();
     announce(reviewAnnouncement(g));
@@ -1822,10 +1824,12 @@ function sendPile() {
   render();
   announce('Gemini is sorting the pile…');
   const body = { ownerId: state.me, imageBase64: p.imageBase64, mimeType: 'image/jpeg' };
-  api('POST', '/api/items/pile', body).then((res) => {
+  api('POST', '/api/items/pile', body).then(async (res) => {
     if (!current()) return;
     clearTimeout(p.slowTimer);
     setMock(Boolean(res?.mock));
+    await refresh(); // the match is checked against this tab's board: a request posted seconds ago must be in it
+    if (!current()) return;
     const items = res?.identified === false || !Array.isArray(res?.items) ? [] : res.items.slice(0, MAX_PILE).map(pileEntry);
     Object.assign(p, { phase: 'review', aiError: res?.aiError ?? null, items });
     requestRender();
