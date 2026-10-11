@@ -1,6 +1,6 @@
 // Photos the browser cannot decode (HEIC from an iPhone, TIFF, BMP…): the client sends the raw file here and gets a
 // JPEG back, at most 1024 px a side, then carries on exactly as with a JPEG. The listing photo stays client-made.
-// ponytail: macOS `sips` only (the judging server is a Mac); add sharp+libheif if this ever runs on Linux.
+// ponytail: macOS `sips` only (it has only been run on a Mac); add sharp+libheif if this ever runs on Linux.
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';

@@ -1,4 +1,4 @@
-// Builds comp/index.html for the v2 film: the storyboard's shots (submission/STORYBOARD.md) locked to the
+// Builds comp/index.html for the v2 film: the storyboard's shots locked to the
 // voice-over windows in film/vo-timing.json (the pacer schedule Ethan records against).
 //   node scripts/compose.mjs           full film (silent picture lock: captions only)
 //   node scripts/compose.mjs --smoke   shots 1-3 only (pipeline proof: WC + Remotion clip + three.js in HF)

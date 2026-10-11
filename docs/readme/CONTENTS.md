@@ -2,7 +2,7 @@
 
 Screenshots: Playwright, 1440×900 at deviceScaleFactor 2, downscaled to 1440 px, two anonymous browser contexts (giver, taker) on a local GEMINI_MOCK=1 server (canned Gemini drafts, no texts sent). phone.png and loop.gif are real footage.
 
-- `hero.png` 1600×640, 84059 bytes: README banner. Knot + Loop lockup, "Post what you don't need." on lime, HackNC 2026 sticker, chips Gemini 3.5 Flash-Lite / Photon Spectrum / Node 22.
+- `hero.png` 1600×640, 84059 bytes: README banner. Knot + Loop lockup, "Post what you don't need." on lime, chips Gemini 3.5 Flash-Lite / Photon Spectrum / Node 22.
 - `social.png` 1280×640, 82157 bytes: Same composition for GitHub's social preview (upload in repo Settings).
 - `board.png` 1440×900, 420906 bytes: Mock. The board: headline, Post something / Ask for something, Inventory (coat, fan, textbook), People need with "Reading lamp for my desk" on top.
 - `draft.png` 1440×900, 338179 bytes: Mock. Give page after uploading lamp.jpg: photo, Gemini draft (Adjustable desk lamp, Drafted by Gemini - check it), match card "Fits someone's request: Reading lamp for my desk" at the bottom edge (Offer to them button is below the fold).

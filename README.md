@@ -5,14 +5,13 @@
 <h3 align="center">Photograph something you don't need.<br>Loop finds who does and walks you both to the handoff.</h3>
 
 <p align="center">
-  <img alt="HackNC 2026" src="https://img.shields.io/badge/HackNC-2026-c8ff3c?style=flat-square&labelColor=0b0d17">
   <img alt="Gemini 3.5 Flash-Lite" src="https://img.shields.io/badge/Gemini-3.5%20Flash--Lite-f6f1e3?style=flat-square&labelColor=0b0d17">
   <img alt="Photon Spectrum" src="https://img.shields.io/badge/Photon-Spectrum-f6f1e3?style=flat-square&labelColor=0b0d17">
   <img alt="Node 22+" src="https://img.shields.io/badge/Node-22%2B-f6f1e3?style=flat-square&labelColor=0b0d17">
   <img alt="Front end: no framework" src="https://img.shields.io/badge/front%20end-no%20framework-f6f1e3?style=flat-square&labelColor=0b0d17">
 </p>
 
-<p align="center"><sub>Built solo at <b>HackNC 2026</b> (UNC–Chapel Hill, Oct 10–11).<br>Tracks: Beginner, Best Community Hack, MLH Best Use of Gemini API, Photon (Agents in iMessage).</sub></p>
+<p align="center"><sub>A personal project I made for my campus community. Free, MIT-licensed, and yours to run for your own campus, dorm or neighbourhood.</sub></p>
 
 ## What it does
 
@@ -185,7 +184,6 @@ Measured on Oct 10 2026 on the development laptop (Node 22.23, Express 5.3, macO
 | iMessage (real, Photon shared line) | channel connects; thread messages reached the linked phone; a dropped connection reconnects on restart; first send right after connect can fail once, so sends retry |
 | Live no-identities loop (browser, real Gemini, final look) | anonymous taker posts a need → anonymous giver's lamp photo matched it → offer → accept → giver's proposal via the spot chips (since replaced by the plan form) → "works for me" → "I'm here" → wrong code rejected → right code → Collected, stamp, closing line |
 | Proactive connector (live) | a web post matching an open request texted the linked phone "…Reply YES to reserve it" (`sent to ethan` in the log) |
-| Judging-path runs (`npm start` on :3000) | 2 of 2 complete API loops with Reset between; reset clears text sessions |
 | Cold start | fresh data directory + `npm start`: server up, seed written, page served; again on a fresh clone with only `.env.example` copied (`GEMINI_MOCK=1`, port 3400) |
 | Bad input | malformed JSON, missing fields, a 7 MB image, a non-image file and a bad mimeType all return 400 and the server keeps answering |
 
@@ -195,14 +193,14 @@ Not measured: behaviour under a real 429 (would burn quota), image accuracy beyo
 
 ### Limits, stated plainly
 
-- No accounts or sign-in: a tab is an anonymous session and the API takes the person id it is sent (demo only, no auth). Single-server JSON store.
+- No accounts or sign-in: a tab is an anonymous session and the API takes the person id it is sent (no auth yet). Single-server JSON store.
 - Notifications go only by iMessage, to linked phones; Photon's Free plan reaches 10 numbers. HEIC conversion needs macOS.
 - Image understanding was spot-checked on a handful of photos, not measured.
-- No real users, no exchange has happened outside the demo, and no environmental impact has been measured. Any "items kept in use" count is computed from the demo database.
+- No real users, no exchange has happened outside testing, and no environmental impact has been measured. Any "items kept in use" count is computed from the local database.
 
 ## AI engineering with a human in the loop
 
-I set the product, the design, every flow and every rule (human approval at every step, honest AI drafts, no identities), tested each step on the real services (live Gemini, the real iMessage line, my own phone), and sent the work back until it met the bar. AI coding agents wrote the code, the tests and most of the copy under that direction: **Claude Code**, with Claude Fable 5.1 for planning, specification and review and Claude Opus for implementation. I have not reviewed every line; the server is about 2,400 lines across eleven modules and I know what each one does. Pre-event research on the rules and past winners used OpenAI Codex/ChatGPT.
+I set the product, the design, every flow and every rule (human approval at every step, honest AI drafts, no identities), tested each step on the real services (live Gemini, the real iMessage line, my own phone), and sent the work back until it met the bar. AI coding agents wrote the code, the tests and most of the copy under that direction: **Claude Code**, with Claude Fable 5.1 for planning, specification and review and Claude Opus for implementation. I have not reviewed every line; the server is about 2,400 lines across eleven modules and I know what each one does.
 
 The product calls **Google Gemini** (`gemini-3.5-flash-lite`) through the Gemini API, and **Photon Spectrum** (`spectrum-ts`) supplies Loop's real iMessage number.
 

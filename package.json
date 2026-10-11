@@ -2,7 +2,7 @@
   "name": "loop",
   "version": "0.1.0",
   "private": true,
-  "description": "Pass usable belongings to students who need them. HackNC 2026.",
+  "description": "Pass usable belongings to people nearby who need them.",
   "type": "module",
   "scripts": {
     "start": "node server/index.mjs",
