@@ -100,8 +100,9 @@ const SHOTS = [
   { n: 10.5, at: SET_AT, end: REFUSAL_AT, kind: 'p' }, // the plan card flips to SET (desktop take), hard cut in
   { n: 12, at: REFUSAL_AT, end: W[10][1], kind: 'refusal' },
   { n: 11, at: W[11][0], end: W[11][1], kind: 'p', cap: 'One photo, [six listings].' },
-  { n: 13, at: W[12][0], end: VO.speechEnd - END_SPIN, kind: 'clip', comp: 'Code' },
-  { n: 14, at: VO.speechEnd - END_SPIN, end: VO.total, kind: 'knot', knot: 'end' },
+  // Beat 12: no code. The pile cuts straight to the end card: the knot ties over beat 12's first words, the card is
+  // fully on screen ~3.6 s in (before the middle of the beat) and holds to the end.
+  { n: 14, at: W[12][0], end: VO.total, kind: 'knot', knot: 'end' },
 ];
 const shots = SMOKE ? SHOTS.filter((s) => s.n <= 3) : SHOTS;
 const TOTAL = shots.at(-1).end;
@@ -142,8 +143,9 @@ const KNOTS = {
     cfg: { turns: 1, spinEnd: 2.3, spinEase: 'inout', flatAt: 2.3, flatDur: 0.6, from: [700, 60, 520], to: [612, 168, 230] },
     words: `<p class="kword" data-in="2.95" style="left:860px;top:184px;font-size:176px">Loop</p>
 <p class="ktag" data-in="3.05"><span class="hl">Post what you don't need.</span></p>
-<p class="kmono" data-in="3.2" style="top:640px">github.com/rongtnt/loop</p>
-<p class="kmono" data-in="3.35" style="top:706px">(773) 912-3997</p>`,
+<p class="kmono" data-in="3.2" style="top:630px">github.com/rongtnt/loop</p>
+<p class="kbuilt" data-in="3.35">BUILT WITH</p>
+<p class="kbrands" data-in="3.45"><span class="brand-photon">Photon</span><span class="brand-dot">·</span><span class="brand-gemini">Google Gemini</span></p>`,
   }),
 };
 
@@ -388,6 +390,10 @@ html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--
 .kword { position: absolute; font-weight: 700; line-height: 1; letter-spacing: -.04em; opacity: 0; }
 .ktag { position: absolute; left: 0; width: 1920px; top: 486px; text-align: center; font: 700 70px/1.2 "SG", sans-serif; letter-spacing: -.02em; opacity: 0; }
 .kmono { position: absolute; left: 0; width: 1920px; text-align: center; font: 400 44px/1.2 "JBM", monospace; opacity: 0; }
+.kbuilt { position: absolute; left: 0; top: 730px; width: 1920px; text-align: center; font: 700 20px/1 "JBM", monospace; letter-spacing: .18em; color: var(--muted); opacity: 0; }
+.kbrands { position: absolute; left: 0; top: 768px; width: 1920px; display: flex; justify-content: center; align-items: center; gap: 22px; color: var(--ink); opacity: 0; }
+.kbrands span { font: 700 36px/1 "SG", sans-serif; letter-spacing: -.02em; } /* wordmarks in type, ~28 px cap height */
+.kbrands .brand-dot { color: var(--muted); font-weight: 400; }
 .black { left: 0; top: 0; width: 1920px; height: 1080px; background: #000; z-index: 50; }
 .slot { display: flex; align-items: center; justify-content: center; }
 .slot-in { width: 1500px; padding: 60px 70px; border: 3px dashed var(--ink); border-radius: 18px; }
