@@ -36,7 +36,7 @@ cd ~/loop && (lsof -ti :3000 | xargs kill 2>/dev/null; true) && npm run seed && 
 Optional 10-second insert if time allows (replace the code shot):
 - "One photo, a whole pile": Give → A pile → the yard-sale photo → six items, one matched.
 
-Button labels as built: Post something · Ask for something · Looks right · Offer to them · Post to board instead · Accept & reserve · Suggest a time and place → Suggest to the taker · Works for me · I'm here · Confirm handoff · Release · Reset demo. Phone replies as built: welcome "Hi — this is Loop. Text me a photo…"; the draft reply ends with "👍 YES · 👎 BOARD" — tap 👍 on it (or type YES; both work; the film uses the tap); after YES "Offered. I'll tell you when they accept…"; after BOARD "Posted to the board. I'll text you when someone reserves it."; at the meeting "Loop: The taker is at {place}. Ask for the 4-digit code and text it to me."
+Button labels as built: Post something · Ask for something · Looks right · Offer to them · Post to board instead · Accept & reserve · Suggest a time and place → Suggest to the taker · Works for me · I'm here · Confirm handoff · Release. Phone replies as built: welcome "Hi — this is Loop. Text me a photo…"; the draft reply ends with "👍 YES · 👎 BOARD" — tap 👍 on it (or type YES; both work; the film uses the tap); after YES "Offered. I'll tell you when they accept…"; after BOARD "Posted to the board. I'll text you when someone reserves it."; at the meeting "Loop: The taker is at {place}. Ask for the 4-digit code and text it to me."
 
 Rehearse with a timer three times. Cut words, not steps. Record phone and screen together (QuickTime: screen recording + iPhone mirrored via USB, or film the phone with a second device).
 
