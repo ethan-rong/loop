@@ -4,8 +4,8 @@
 set -u
 cd "$(dirname "$0")/.." || exit 1
 S=/private/tmp/claude-501/-Users-ethan/57b599ed-bc69-48cf-b912-cd555f801c58/scratchpad
-ok=0; bad=0
-say() { printf '%s %s\n' "$1" "$2"; [[ "$1" == "PASS" ]] && ((ok++)) || ((bad++)); }
+ok=0; bad=0; warn=0
+say() { printf '%s %s\n' "$1" "$2"; case "$1" in PASS) ok=$((ok+1));; WARN) warn=$((warn+1));; *) bad=$((bad+1));; esac; return 0; }
 
 # 1. Judging server on :3000 (restart from seed if it is down)
 if ! h=$(curl -s -m 5 localhost:3000/api/health); then
@@ -25,7 +25,7 @@ const pid=process.env.SPECTRUM_PROJECT_ID, sec=process.env.SPECTRUM_PROJECT_SECR
 const r=await fetch('https://spectrum.photon.codes/projects/'+pid+'/users/',{headers:{authorization:'Basic '+Buffer.from(pid+':'+sec).toString('base64')}});
 const j=await r.json().catch(()=>null); const n=j?.data?.users?.length;
 console.log(r.status===200 && n<=10 ? 'PASS photon users '+n+'/10' : 'FAIL photon users api '+r.status+' '+JSON.stringify(j).slice(0,80));
-" 2>&1 | tail -1 | while read l; do [[ "$l" == PASS* ]] && ((ok++)) || ((bad++)); echo "$l"; done
+" 2>&1 | tail -1 | while read l; do echo "$l"; [[ "$l" == PASS* ]] && ok=$((ok+1)) || bad=$((bad+1)); done
 
 # 3. Leakage: no phone numbers in the public state, no secrets in git history, tunnel status
 curl -s -m 5 localhost:3000/api/state | grep -qE '"phone"|\+1[0-9]{10}' && say FAIL "public state carries a phone field or number" || say PASS "public state has no phone numbers"
@@ -49,4 +49,4 @@ import './server/env.mjs'; import { startChannel, sendToPerson } from './server/
 console.log('skipped: the running server holds the channel; use the app flow to send a real text');" | tail -1
 fi
 
-echo "SUMMARY pass=$ok problems=$bad $(TZ=America/New_York date '+%a %H:%M %Z')"
+echo "SUMMARY pass=$ok fail=$bad warn=$warn $(TZ=America/New_York date '+%a %H:%M %Z')"
