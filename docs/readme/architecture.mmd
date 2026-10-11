@@ -1,0 +1,7 @@
+flowchart LR
+  B["Browser<br/>vanilla JS, hash routes, polling"] --> E["Express 5 API<br/>server/index.mjs"]
+  E --> J["JSON store<br/>pure transitions, server/store.mjs"]
+  E --> G["Gemini 3.5 Flash-Lite<br/>generateContent, image parts, JSON schema<br/>drafting, matching, pile detection, coordinator"]
+  E <--> P["Photon Spectrum SDK<br/>server/channels/spectrum.mjs"]
+  P <--> I["iMessage<br/>on the shared line"]
+  E --> S["macOS sips<br/>HEIC to JPEG"]
