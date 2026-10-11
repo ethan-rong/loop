@@ -43,7 +43,7 @@ function noNames(data) {
 
 async function mainLoop() {
   const seed = await ok(call('POST', '/api/reset'));
-  assert.deepEqual([seed.people.length, seed.requests.length, seed.items.length], [5, 4, 2]);
+  assert.deepEqual([seed.people.length, seed.requests.length, seed.items.length], [5, 4, 3]);
 
   // jerry posts a need.
   const posted = await ok(call('POST', '/api/requests', { personId: 'jerry', title: 'Desk lamp for late reading', details: 'Mine broke.' }));
