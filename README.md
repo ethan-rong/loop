@@ -202,7 +202,7 @@ Not measured: behaviour under a real 429 (would burn quota), image accuracy beyo
 
 ## AI engineering with a human in the loop
 
-I set the product, the design, every flow and every rule (human approval at every step, honest AI drafts, no identities), tested each step on the real services (live Gemini, the real iMessage line, my own phone), and sent the work back until it met the bar. AI coding agents wrote the code, the tests and most of the copy under that direction: **Claude Code**, with Claude Fable 5.1 for planning, specification and review and Claude Opus for implementation. I have not reviewed every line; the server is about 2,400 lines across eleven modules and I know what each one does. Pre-event research on the rules and past winners used OpenAI Codex/ChatGPT; no code came from it.
+I set the product, the design, every flow and every rule (human approval at every step, honest AI drafts, no identities), tested each step on the real services (live Gemini, the real iMessage line, my own phone), and sent the work back until it met the bar. AI coding agents wrote the code, the tests and most of the copy under that direction: **Claude Code**, with Claude Fable 5.1 for planning, specification and review and Claude Opus for implementation. I have not reviewed every line; the server is about 2,400 lines across eleven modules and I know what each one does. Pre-event research on the rules and past winners used OpenAI Codex/ChatGPT.
 
 The product calls **Google Gemini** (`gemini-3.5-flash-lite`) through the Gemini API, and **Photon Spectrum** (`spectrum-ts`) supplies Loop's real iMessage number.
 
@@ -215,4 +215,4 @@ The demo video's narration is my own voice, cloned with my consent from a 58-sec
 - Seed photos from **Wikimedia Commons**, credited in `public/seed/ATTRIBUTION.md`.
 - Design: a "poster, light" system — cream and ink, acid lime and coral as fills only, Space Grotesk and JetBrains Mono (both SIL OFL, self-hosted), hard offset shadows, sticker chips, a ticket-stub pickup code, a rubber-stamp "Kept in use", and the Knot mark (a single over-under line, built mathematically; see `brand/`). References studied along the way: Shupatto brand site by mount inc. (Awwwards Site of the Day, Feb 3 2024), motion.dev examples, the OpenAI and Claude marks for logo construction. Patterns were adapted, not copied; no assets were taken.
 
-License: not yet chosen.
+License: MIT, see [LICENSE](LICENSE).
