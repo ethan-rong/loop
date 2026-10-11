@@ -7,7 +7,7 @@ data/
 .DS_Store
 npm-debug.log
 demo-photos/
-mockups/shots/
+docs/mockups/shots/
 .tmp*
 film/out/
 film/assets/

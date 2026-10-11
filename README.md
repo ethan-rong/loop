@@ -116,7 +116,7 @@ iMessage: Spectrum forwards thread messages to linked phones and routes replies 
 
 </details>
 
-Design notes and references are in [DESIGN.md](DESIGN.md). Build contracts, one per phase: [SPEC.md](SPEC.md) to [SPEC6.md](SPEC6.md).
+Design notes and references are in [DESIGN.md](docs/design/DESIGN.md). Build contracts, one per phase: [SPEC.md](docs/specs/SPEC.md) to [SPEC6.md](docs/specs/SPEC6.md).
 
 ## Run it
 
@@ -166,7 +166,7 @@ LOOP_POLLS=1 npm start          # ask thread questions as iMessage polls instead
 
 ## Verification
 
-Measured on Oct 10 2026 on the development laptop (Node 22.23, Express 5.3, macOS). Details in [SPIKE.md](SPIKE.md).
+Measured on Oct 10 2026 on the development laptop (Node 22.23, Express 5.3, macOS). Details in [SPIKE.md](docs/specs/SPIKE.md).
 
 <details>
 <summary>Every check and its result</summary>

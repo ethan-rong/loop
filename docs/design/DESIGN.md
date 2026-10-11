@@ -1,7 +1,7 @@
 # Loop — design notes
 
 **v4 "poster, light" (2026-10-10), decluttered as v4.1 (next section).** The user picked the poster direction from
-`mockups/poster/` but on a light background, with the Knot logo (SPEC6). Loop now reads like a printed
+`docs/mockups/poster/` but on a light background, with the Knot logo (SPEC6). Loop now reads like a printed
 gig poster: a cream canvas, ink type, 2–3 px ink rules, hard offset ink shadows, and two loud fills,
 acid lime and hot coral, always carrying ink print. Space Grotesk does the talking, JetBrains Mono does
 the labelling (times, chips, Loop's own voice). Everything structural from Lane I stays: no identities,
